@@ -5,6 +5,7 @@ import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
+import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -20,7 +21,7 @@ String? authGuard(BuildContext context, GoRouterState state) {
 }
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.splashRoute,
+  initialLocation: AppRoutes.loginRoute,
   errorBuilder: (context, state) =>
       ErrorScreen(error: state.error?.toString() ?? 'Unknown error occurred'),
 
@@ -37,6 +38,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.loginRoute,
       name: 'login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.forgotPasswordScreen,
+      name: 'forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
     ),
 
     /// 🏠 Home Route (protected)
