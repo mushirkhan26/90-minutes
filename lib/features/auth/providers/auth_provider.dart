@@ -10,7 +10,7 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final SecureStorageService _secureStorage = SecureStorageService();
   final LocalStorageService _localStorage = LocalStorageService();
-  final LoggerService _logger = LoggerService();
+  final LoggingService _logger = LoggingService.instance;
 
   AuthState _state = AuthState.idle;
   String? _errorMessage;
@@ -24,6 +24,8 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login(String employeeId, String password) async {
     _state = AuthState.loading;
     notifyListeners();
+
+    _logger.logAuth('Attempting login for employeeId: $employeeId');
 
     final response = await _authService.login(employeeId: employeeId, password: password);
 
@@ -44,11 +46,11 @@ class AuthProvider extends ChangeNotifier {
       await _localStorage.setLoginState(true);
 
       _state = AuthState.authenticated;
-      _logger.logResponse(response.statusCode ?? 200, "✅ User logged in");
+      _logger.logAuth('✅ User logged in successfully');
     } else {
       _state = AuthState.error;
       _errorMessage = response.message;
-      _logger.logError("❌ Login failed: ${response.message}");
+      _logger.logAuth('❌ Login failed: ${response.message}', level: LogLevel.error);
     }
 
     notifyListeners();
@@ -60,7 +62,8 @@ class AuthProvider extends ChangeNotifier {
     await _localStorage.setLoginState(false);
     _userData = null;
     _state = AuthState.unauthenticated;
-    _logger.logWarning("User logged out");
+
+    _logger.logAuth('User logged out', level: LogLevel.warning);
     notifyListeners();
   }
 
@@ -70,8 +73,10 @@ class AuthProvider extends ChangeNotifier {
     if (loggedIn) {
       _userData = await _secureStorage.getUserData();
       _state = AuthState.authenticated;
+      _logger.logAuth('User session found, authenticated');
     } else {
       _state = AuthState.unauthenticated;
+      _logger.logAuth('No user session found, unauthenticated');
     }
     notifyListeners();
   }

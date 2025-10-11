@@ -34,6 +34,10 @@ class AppColors {
   static const acceptButton = Color(0xff33d250);
   static const rejectButton = Color(0xffef5c5c);
   static const formFields = Color(0xffebebeb);
+  // Status Colors
+  static const Color successColor = Color(0xFF10B981);
+  static const Color warningColor = Color(0xFFF59E0B);
+  static const Color infoColor = Color(0xFF3B82F6);
 
   static const blue = Color(0xff2F82EF);
   static const blue00ABE9 = Color(0xff00ABE9);

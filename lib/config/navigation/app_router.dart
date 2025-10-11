@@ -21,7 +21,7 @@ String? authGuard(BuildContext context, GoRouterState state) {
 }
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.loginRoute,
+  initialLocation: AppRoutes.splashRoute,
   errorBuilder: (context, state) =>
       ErrorScreen(error: state.error?.toString() ?? 'Unknown error occurred'),
 

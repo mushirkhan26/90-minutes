@@ -5,7 +5,6 @@ import 'package:hrtz_hrms/common/widgets/custom_button.dart';
 import 'package:hrtz_hrms/common/widgets/custom_textfield.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/core/utils/utils.dart';
-import 'package:provider/provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -34,9 +33,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     // final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (_employeeIdController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter your Employee ID')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter your Employee ID')));
       return;
     }
 
@@ -62,9 +61,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     // final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (_otpController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter OTP')));
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter OTP')));
       return;
     }
 
@@ -99,9 +96,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     // final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     if (_newPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a new password')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please enter a new password')));
       return;
     }
 
@@ -152,10 +149,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         padding: const EdgeInsets.only(left: 5),
                         child: Text(
                           'Employee ID',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
                       SizedBox(height: 5),
@@ -194,10 +188,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                             children: [
                               Icon(Icons.arrow_back),
                               const SizedBox(width: 10),
-                              Text(
-                                'Back to login',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
+                              Text('Back to login', style: TextStyle(fontWeight: FontWeight.bold)),
                             ],
                           ),
                         ),

@@ -1,5 +1,5 @@
+import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../services/logger_service.dart';
 
 class LocalStorageService {
   static final LocalStorageService _instance = LocalStorageService._internal();
@@ -7,14 +7,14 @@ class LocalStorageService {
   LocalStorageService._internal();
 
   static SharedPreferences? _prefs;
-  final _logger = LoggerService();
+  final LoggingService _logger = LoggingService.instance;
 
   static const String _keyIsLoggedIn = 'is_logged_in';
 
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
-    LoggerService().logStorage('📦 LocalStorageService initialized');
+    LoggingService.instance.logStorage('📦 LocalStorageService initialized');
   }
 
   /// 📥 Safe getter
@@ -30,23 +30,30 @@ class LocalStorageService {
   /// 📝 Save string data
   Future<void> saveString(String key, String value) async {
     await prefs.setString(key, value);
+    _logger.logStorage('Saved string: $key');
   }
 
   Future<String?> getString(String key) async {
-    return prefs.getString(key);
+    final value = prefs.getString(key);
+    _logger.logStorage('Retrieved string: $key');
+    return value;
   }
 
   Future<void> removeString(String key) async {
     await prefs.remove(key);
+    _logger.logStorage('Removed string: $key');
   }
 
   /// 🔘 Boolean
   Future<void> setBool(String key, bool value) async {
     await prefs.setBool(key, value);
+    _logger.logStorage('Saved bool: $key = $value');
   }
 
   Future<bool> getBool(String key) async {
-    return prefs.getBool(key) ?? false;
+    final value = prefs.getBool(key) ?? false;
+    _logger.logStorage('Retrieved bool: $key = $value');
+    return value;
   }
 
   /// 🧹 Clear all local data

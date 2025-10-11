@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-// import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/common/widgets/custom_button.dart';
 import 'package:hrtz_hrms/common/widgets/custom_textfield.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/core/utils/utils.dart';
+import 'package:hrtz_hrms/core/utils/validators.dart';
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,6 +19,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _employeeIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -25,126 +28,118 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _login(BuildContext context) async {
-    // final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  Future<void> _handleLogin(BuildContext context) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    if (_employeeIdController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter Employee ID and Password')),
-      );
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // final response = await authProvider.login(
-    //   _employeeIdController.text.trim(),
-    //   _passwordController.text.trim(),
-    // );
+    final employeeId = _employeeIdController.text.trim();
+    final password = _passwordController.text.trim();
 
-    // if (response != null && response.success) {
-    //   ScaffoldMessenger.of(
-    //     context,
-    //   ).showSnackBar(SnackBar(content: Text(response.message)));
-    //   // TODO: Navigate to home/dashboard
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text(authProvider.errorMessage ?? 'Login failed')),
-    //   );
-    // }
+    try {
+      await authProvider.login(employeeId, password);
+
+      if (authProvider.state == AuthState.authenticated) {
+        AlertHelper.snackBarSuccess(context, 'Logged in successfully!');
+        context.go(AppRoutes.homeRoute);
+      } else if (authProvider.state == AuthState.error) {
+        AlertHelper.snackBarWarning(context, authProvider.errorMessage ?? 'Login failed');
+      }
+    } catch (e) {
+      AlertHelper.snackBarError(context, e.toString());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
 
-    return SafeArea(
-      child: Scaffold(
-        body: SingleChildScrollView(
-          child: Center(
-            child: SizedBox(
-              width: Utils().width(context) * 0.8,
+    return Scaffold(
+      body: SingleChildScrollView(
+        child: Center(
+          heightFactor: 1.1,
+          child: SizedBox(
+            width: Utils().width(context) * 0.85,
+            child: Form(
+              key: _formKey,
               child: Column(
-                // mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: Image.asset('assets/images/login_image.jpg'),
                   ),
-                  Text(
-                    'Login',
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 5),
-                  Text(
-                    'Please log in to continue',
-                    style: TextStyle(fontSize: 18),
-                  ),
-                  SizedBox(height: 15),
+                  const SizedBox(height: 10),
+                  const Text('Login', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 5),
+                  const Text('Please log in to continue', style: TextStyle(fontSize: 18)),
+                  const SizedBox(height: 15),
+
+                  // Employee ID
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 5),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 5),
                         child: Text(
                           'Employee Id',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      SizedBox(height: 5),
-                      CustomTextField(controller: _employeeIdController),
+                      const SizedBox(height: 5),
+                      CustomTextField(
+                        controller: _employeeIdController,
+                        validator: (value) =>
+                            Validators.validateName(value, fieldName: 'Employee Id'),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 10),
+
+                  // Password
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 5),
+                      const Padding(
+                        padding: EdgeInsets.only(left: 5),
                         child: Text(
                           'Password',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      SizedBox(height: 5),
+                      const SizedBox(height: 5),
                       CustomTextField(
                         controller: _passwordController,
                         maxLines: 1,
                         isPassword: true,
                         keyboardType: TextInputType.visiblePassword,
                         hintText: '********',
+                        validator: (value) => Validators.validateName(value, fieldName: 'Password'),
                       ),
                     ],
                   ),
                   const SizedBox(height: 10),
+
+                  // Forgot Password
                   Align(
                     alignment: Alignment.centerRight,
                     child: InkWell(
                       onTap: () {
                         context.go(AppRoutes.forgotPasswordScreen);
                       },
-                      child: Text(
+                      child: const Text(
                         'Forgot Password',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 12,
-                        ),
+                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  // authProvider.isLoading
-                  //     ? const CircularProgressIndicator()
-                  //     :
-                  CustomButton(
-                    text: 'Login',
-                    onPressed: () async => _login(context),
-                  ),
+
+                  // Login Button
+                  authProvider.state == AuthState.loading
+                      ? const CircularProgressIndicator()
+                      : CustomButton(text: 'Login', onPressed: () => _handleLogin(context)),
                 ],
               ),
             ),

@@ -6,8 +6,8 @@ import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:http/http.dart' as http;
 
 class ApiHelper {
-  final String _baseUrl = ""; // dotenv.env['BASE_URL'] ?? "";
-  final _logger = LoggerService();
+  final String _baseUrl = "https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/";
+  final LoggingService _logger = LoggingService.instance;
 
   Future<ApiResponse<T>> get<T>(String endpoint, {Map<String, String>? headers}) async {
     return _request<T>('GET', endpoint, headers: headers);
@@ -41,11 +41,14 @@ class ApiHelper {
   }) async {
     final url = Uri.parse('$_baseUrl$endpoint');
     http.Response response;
+    final sanitizedBody = body != null ? _sanitizeRequestBody(jsonEncode(body)) : null;
 
-    _logger.logRequest(method, url.toString(), headers: headers, body: body);
+    _logger.logApi(
+      '=== REQUEST START ===\nMethod: $method\nURL:\nHeaders: ${_sanitizeHeaders(headers ?? {})}\nBody: $sanitizedBody',
+    );
 
     try {
-      switch (method) {
+      switch (method.toUpperCase()) {
         case 'GET':
           response = await http.get(url, headers: _defaultHeaders(headers));
           break;
@@ -67,22 +70,66 @@ class ApiHelper {
       }
 
       final result = _handleResponse<T>(response);
-      _logger.logResponse(response.statusCode, result.data);
+      _logger.logApi(
+        '=== RESPONSE ===\nStatus Code: ${response.statusCode}\nBody: ${_sanitizeResponseBody(response.body)}',
+      );
+
       return result;
     } on SocketException catch (e, s) {
-      _logger.logError('No Internet Connection', s);
+      _logger.error('NETWORK', 'No Internet Connection', error: e, stackTrace: s);
       return ApiResponse.error('No Internet Connection');
     } on AppException catch (e, s) {
-      _logger.logError(e.toString(), s);
+      _logger.error('API_EXCEPTION', e.message, error: e, stackTrace: s);
       return ApiResponse.error(e.message);
     } catch (e, s) {
-      _logger.logError('Unexpected error: $e', s);
+      _logger.error('UNEXPECTED', 'Unexpected error: $e', error: e, stackTrace: s);
       return ApiResponse.error('Something went wrong. Please try again later.');
     }
   }
 
   Map<String, String> _defaultHeaders(Map<String, String>? customHeaders) {
     return {'Content-Type': 'application/json', ...?customHeaders};
+  }
+
+  Map<String, String> _sanitizeHeaders(Map<String, String> headers) {
+    final sanitized = Map<String, String>.from(headers);
+    const sensitiveHeaders = ['authorization', 'x-api-key', 'cookie', 'set-cookie'];
+    for (final key in sanitized.keys.toList()) {
+      if (sensitiveHeaders.contains(key.toLowerCase())) {
+        sanitized[key] = '***REDACTED***';
+      }
+    }
+    return sanitized;
+  }
+
+  String _sanitizeRequestBody(String body) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        final sanitized = Map<String, dynamic>.from(data);
+        const sensitiveFields = ['password', 'token', 'secret', 'key', 'otp'];
+        for (final field in sensitiveFields) {
+          if (sanitized.containsKey(field)) sanitized[field] = '***REDACTED***';
+        }
+        return jsonEncode(sanitized);
+      }
+    } catch (_) {}
+    return body;
+  }
+
+  String _sanitizeResponseBody(String body) {
+    try {
+      final data = jsonDecode(body);
+      if (data is Map<String, dynamic>) {
+        final sanitized = Map<String, dynamic>.from(data);
+        const sensitiveFields = ['token', 'secret', 'key', 'password'];
+        for (final field in sensitiveFields) {
+          if (sanitized.containsKey(field)) sanitized[field] = '***REDACTED***';
+        }
+        return jsonEncode(sanitized);
+      }
+    } catch (_) {}
+    return body.length > 1000 ? '${body.substring(0, 1000)}...[TRUNCATED]' : body;
   }
 
   ApiResponse<T> _handleResponse<T>(http.Response response) {
@@ -93,7 +140,6 @@ class ApiHelper {
       return ApiResponse.success(body as T, statusCode: statusCode);
     }
 
-    // Map status code to custom exception
     switch (statusCode) {
       case 400:
         throw BadRequestException(body['message']);
