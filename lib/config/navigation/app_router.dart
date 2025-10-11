@@ -3,7 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
+import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
@@ -51,6 +53,24 @@ final GoRouter appRouter = GoRouter(
       name: 'home',
       builder: (context, state) => const HomeScreen(),
       redirect: (context, state) => authGuard(context, state),
+    ),
+
+    GoRoute(
+      path: AppRoutes.verifyOtpRoute,
+      name: 'verify-otp',
+      builder: (context, state) {
+        final employeeId = state.extra as String;
+        return VerifyOtpScreen(employeeId: employeeId);
+      },
+    ),
+
+    GoRoute(
+      path: AppRoutes.changePaswordRoute,
+      name: 'change-password',
+      builder: (context, state) {
+        final employeeId = state.extra as String;
+        return ChangePasswordScreen(employeeId: employeeId);
+      },
     ),
   ],
 );

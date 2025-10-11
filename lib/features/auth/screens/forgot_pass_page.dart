@@ -3,8 +3,10 @@ import 'package:go_router/go_router.dart';
 // import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/common/widgets/custom_button.dart';
 import 'package:hrtz_hrms/common/widgets/custom_textfield.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/core/utils/utils.dart';
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -15,115 +17,17 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _employeeIdController = TextEditingController();
-  final TextEditingController _otpController = TextEditingController();
-  final TextEditingController _newPasswordController = TextEditingController();
-
-  bool _otpSent = false;
-  bool _otpVerified = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
     _employeeIdController.dispose();
-    _otpController.dispose();
-    _newPasswordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _getOtp(BuildContext context) async {
-    // final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    if (_employeeIdController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter your Employee ID')));
-      return;
-    }
-
-    // final response = await authProvider.getOtp(
-    //   _employeeIdController.text.trim(),
-    // );
-
-    // if (response != null && response.success) {
-    //   setState(() => _otpSent = true);
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(content: Text('OTP sent successfully: ${response.message}')),
-    //   );
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text(authProvider.errorMessage ?? 'Failed to send OTP'),
-    //     ),
-    //   );
-    // }
-  }
-
-  Future<void> _verifyOtp(BuildContext context) async {
-    // final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    if (_otpController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter OTP')));
-      return;
-    }
-
-    final otp = int.tryParse(_otpController.text.trim());
-    if (otp == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Invalid OTP format')));
-      return;
-    }
-
-    // final response = await authProvider.verifyOtp(
-    //   _employeeIdController.text.trim(),
-    //   otp,
-    // );
-
-    // if (response != null && response.success) {
-    //   setState(() => _otpVerified = true);
-    //   ScaffoldMessenger.of(
-    //     context,
-    //   ).showSnackBar(SnackBar(content: Text(response.message)));
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text(authProvider.errorMessage ?? 'OTP verification failed'),
-    //     ),
-    //   );
-    // }
-  }
-
-  Future<void> _changePassword(BuildContext context) async {
-    // final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    if (_newPasswordController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please enter a new password')));
-      return;
-    }
-
-    // final response = await authProvider.changePassword(
-    //   _employeeIdController.text.trim(),
-    //   _newPasswordController.text.trim(),
-    // );
-
-    // if (response != null && response.success) {
-    //   ScaffoldMessenger.of(
-    //     context,
-    //   ).showSnackBar(SnackBar(content: Text('Password changed successfully')));
-    //   Navigator.pop(context);
-    // } else {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     SnackBar(
-    //       content: Text(authProvider.errorMessage ?? 'Password change failed'),
-    //     ),
-    //   );
-    // }
   }
 
   @override
   Widget build(BuildContext context) {
-    // final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     return SafeArea(
       child: Scaffold(
@@ -160,81 +64,32 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         hintText: 'Enter your Employee ID',
                       ),
                       SizedBox(height: 15),
-                      // authProvider.isLoading
-                      //     ? CircularProgressIndicator()
-                      //     :
-                      CustomButton(
-                        text: 'Submit',
-                        onPressed: () async {
-                          // await authProvider.getOtp('employeeId'),
-                        },
-                      ),
-                      const SizedBox(height: 20),
-                      if (!_otpSent)
-                        // authProvider.isLoading
-                        //     ? const CircularProgressIndicator()
-                        //     :
-                        // ElevatedButton(
-                        //   onPressed: () => _getOtp(context),
-                        //   style: ElevatedButton.styleFrom(
-                        //     minimumSize: const Size(double.infinity, 50),
-                        //   ),
-                        //   child: const Text('Get OTP'),
-                        // ),
-                        GestureDetector(
-                          onTap: () => context.go(AppRoutes.loginRoute),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.arrow_back),
-                              const SizedBox(width: 10),
-                              Text('Back to login', style: TextStyle(fontWeight: FontWeight.bold)),
-                            ],
-                          ),
-                        ),
-                      if (_otpSent && !_otpVerified) ...[
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _otpController,
-                          decoration: const InputDecoration(
-                            labelText: 'Enter OTP',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        // authProvider.isLoading
-                        //     ? const CircularProgressIndicator()
-                        //     :
-                        ElevatedButton(
-                          onPressed: () => _verifyOtp(context),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                          ),
-                          child: const Text('Verify OTP'),
-                        ),
-                      ],
-                      if (_otpVerified) ...[
-                        const SizedBox(height: 20),
-                        TextField(
-                          controller: _newPasswordController,
-                          decoration: const InputDecoration(
-                            labelText: 'New Password',
-                            border: OutlineInputBorder(),
-                          ),
-                          obscureText: true,
-                        ),
-                        const SizedBox(height: 20),
-                        // authProvider.isLoading
-                        //     ? const CircularProgressIndicator()
-                        //     :
-                        ElevatedButton(
-                          onPressed: () => _changePassword(context),
-                          style: ElevatedButton.styleFrom(
-                            minimumSize: const Size(double.infinity, 50),
-                          ),
-                          child: const Text('Change Password'),
-                        ),
-                      ],
+                      _isLoading
+                          ? CircularProgressIndicator()
+                          : CustomButton(
+                              text: 'Submit',
+                              onPressed: () async {
+                                final employeeId = _employeeIdController.text.trim();
+                                if (employeeId.isEmpty) {
+                                  AlertHelper.snackBarWarning(
+                                    context,
+                                    'Please enter your Employee ID',
+                                  );
+                                  return;
+                                }
+
+                                final (success, message) = await authProvider.getOtp(employeeId);
+
+                                if (success) {
+                                  AlertHelper.snackBarSuccess(context, message);
+                                  if (context.mounted) {
+                                    context.goNamed('verify-otp', extra: employeeId);
+                                  }
+                                } else {
+                                  AlertHelper.snackBarError(context, message);
+                                }
+                              },
+                            ),
                     ],
                   ),
                 ],

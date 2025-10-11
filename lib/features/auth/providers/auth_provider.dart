@@ -80,4 +80,66 @@ class AuthProvider extends ChangeNotifier {
     }
     notifyListeners();
   }
+
+  // 📲 Get OTP
+  Future<(bool success, String message)> getOtp(String employeeId) async {
+    _logger.logAuth('Requesting OTP for employeeId: $employeeId');
+    final response = await _authService.getOtp(employeeId: employeeId);
+
+    if (response.success && response.data?['message'] == 'OTP sent') {
+      _logger.logAuth('✅ OTP sent successfully');
+      return (true, 'OTP sent successfully');
+    } else if (response.statusCode == 400 && response.message == 'User Not Found') {
+      _logger.logAuth('❌ User not found for employeeId: $employeeId', level: LogLevel.error);
+      return (false, 'User not found. Please check your Employee ID.');
+    } else {
+      _logger.logAuth('❌ Failed to get OTP: ${response.message}', level: LogLevel.error);
+      return (false, response.message ?? 'Something went wrong');
+    }
+  }
+
+  // Verify OTP
+  Future<bool> verifyOtp(String employeeId, int otp) async {
+    _logger.logAuth('Verifying OTP for employeeId: $employeeId');
+    final response = await _authService.verifyOtp(employeeId: employeeId, otp: otp);
+
+    if (response.success) {
+      _logger.logAuth('OTP verified successfully');
+      return true; // UI can navigate to change password page
+    } else {
+      _logger.logAuth('OTP verification failed: ${response.message}', level: LogLevel.error);
+      return false;
+    }
+  }
+
+  // Change Password
+  Future<bool> changePassword(String employeeId, String newPassword) async {
+    _logger.logAuth('Changing password for employeeId: $employeeId');
+    final response = await _authService.changePassword(
+      employeeId: employeeId,
+      password: newPassword,
+    );
+
+    if (response.success) {
+      _logger.logAuth('Password changed successfully');
+      return true; // UI can navigate to login page
+    } else {
+      _logger.logAuth('Password change failed: ${response.message}', level: LogLevel.error);
+      return false;
+    }
+  }
+
+  // Resend OTP
+  Future<(bool success, String message)> resendOtp(String employeeId) async {
+    _logger.logAuth('🔁 Resending OTP for employeeId: $employeeId');
+    final (success, message) = await getOtp(employeeId);
+
+    if (success) {
+      _logger.logAuth('✅ OTP resent successfully');
+    } else {
+      _logger.logAuth('❌ Failed to resend OTP: $message', level: LogLevel.error);
+    }
+
+    return (success, message);
+  }
 }
