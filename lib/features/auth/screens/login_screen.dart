@@ -42,13 +42,19 @@ class _LoginScreenState extends State<LoginScreen> {
       await authProvider.login(employeeId, password);
 
       if (authProvider.state == AuthState.authenticated) {
-        AlertHelper.snackBarSuccess(context, 'Logged in successfully!');
-        context.go(AppRoutes.homeRoute);
+        if (context.mounted) {
+          AlertHelper.snackBarSuccess(context, 'Logged in successfully!');
+          context.go(AppRoutes.homeRoute);
+        }
       } else if (authProvider.state == AuthState.error) {
-        AlertHelper.snackBarWarning(context, authProvider.errorMessage ?? 'Login failed');
+        if (context.mounted) {
+          AlertHelper.snackBarWarning(context, authProvider.errorMessage ?? 'Login failed');
+        }
       }
     } catch (e) {
-      AlertHelper.snackBarError(context, e.toString());
+      if (context.mounted) {
+        AlertHelper.snackBarError(context, e.toString());
+      }
     }
   }
 
