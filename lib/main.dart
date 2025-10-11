@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+// import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/theme/app_theme.dart';
@@ -23,39 +24,34 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        //providers
-      ],
-      child: MaterialApp.router(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
+    return MaterialApp.router(
+      title: AppConstants.appName,
+      debugShowCheckedModeBanner: false,
 
-        // Theme Configuration
-        theme: AppTheme.lightTheme,
-        themeMode: ThemeMode.light,
-        // Router Configuration
-        routerConfig: appRouter,
+      // Theme Configuration
+      theme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
+      // Router Configuration
+      routerConfig: appRouter,
 
-        // Localization (if needed in future)
-        // locale: const Locale('en', 'US'),
-        // supportedLocales: const [
-        //   Locale('en', 'US'),
-        // ],
+      // Localization (if needed in future)
+      // locale: const Locale('en', 'US'),
+      // supportedLocales: const [
+      //   Locale('en', 'US'),
+      // ],
 
-        // Builder for global configurations
-        builder: (context, child) {
-          return MediaQuery(
-            // Prevent font scaling beyond reasonable limits
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
-              ),
+      // Builder for global configurations
+      builder: (context, child) {
+        return MediaQuery(
+          // Prevent font scaling beyond reasonable limits
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
             ),
-            child: child ?? const SizedBox.shrink(),
-          );
-        },
-      ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

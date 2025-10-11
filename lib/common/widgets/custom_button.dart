@@ -15,7 +15,7 @@ class CustomButton extends StatelessWidget {
     this.borderRadius = 10,
     this.padding = const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
     this.elevation = 0,
-    this.borderColor = AppColors.blue,
+    this.borderColor = AppColors.primary,
     this.borderWidth = 1,
     this.image,
     this.imagePosition = ImagePosition.leading,
@@ -45,13 +45,16 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? AppColors.blue,
+          backgroundColor: backgroundColor ?? AppColors.primary,
           elevation: elevation,
           // padding: padding,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             side: borderWidth > 0
-                ? BorderSide(color: borderColor ?? AppColors.blue, width: borderWidth)
+                ? BorderSide(
+                    color: borderColor ?? AppColors.primary,
+                    width: borderWidth,
+                  )
                 : BorderSide.none,
           ),
         ),
@@ -60,9 +63,14 @@ class CustomButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(icon, color: textColor ?? Colors.white, size: fontSize ?? 20),
+              Icon(
+                icon,
+                color: textColor ?? Colors.white,
+                size: fontSize ?? 20,
+              ),
               const SizedBox(width: 8),
-            ] else if (image != null && imagePosition == ImagePosition.leading) ...[
+            ] else if (image != null &&
+                imagePosition == ImagePosition.leading) ...[
               image!,
               const SizedBox(width: 8), // Space between image and text
             ],

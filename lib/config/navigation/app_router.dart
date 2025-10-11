@@ -4,10 +4,11 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
+import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 
 final GoRouter appRouter = GoRouter(
-  initialLocation: AppRoutes.splashRoute,
+  initialLocation: AppRoutes.loginRoute,
   errorBuilder: (context, state) =>
       ErrorScreen(error: state.error?.toString() ?? 'Unknown error occurred'),
   routes: [
@@ -30,6 +31,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.loginRoute,
       name: 'login',
       builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.forgotPasswordScreen,
+      name: 'forgot-password',
+      builder: (context, state) => const ForgotPasswordScreen(),
     ),
 
     // GoRoute(
@@ -107,7 +113,10 @@ extension AppNavigation on BuildContext {
   void goToHome() => go(AppRoutes.homeRoute);
 
   // Authentication navigation
-  void goToOTPVerification({required String phoneNumber, required bool isRegistered}) {
+  void goToOTPVerification({
+    required String phoneNumber,
+    required bool isRegistered,
+  }) {
     push(
       AppRoutes.otpVerificationRoute,
       extra: {'phoneNumber': phoneNumber, 'isRegistered': isRegistered},
@@ -131,7 +140,9 @@ extension AppNavigation on BuildContext {
 
   // Get current route information
   String get currentRoute {
-    final RouteMatch lastMatch = GoRouter.of(this).routerDelegate.currentConfiguration.last;
+    final RouteMatch lastMatch = GoRouter.of(
+      this,
+    ).routerDelegate.currentConfiguration.last;
     return lastMatch.matchedLocation;
   }
 
