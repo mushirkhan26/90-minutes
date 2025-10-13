@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
-import 'package:hrtz_hrms/core/utils/utils.dart';
 
 class NavigationHost extends StatefulWidget {
   final Widget child;
