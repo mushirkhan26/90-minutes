@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
+import 'package:hrtz_hrms/config/navigation/navigation_host.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
+import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
+import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
+import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
 
@@ -28,31 +32,25 @@ final GoRouter appRouter = GoRouter(
       ErrorScreen(error: state.error?.toString() ?? 'Unknown error occurred'),
 
   routes: [
-    /// 🌀 Splash Route
+    /// 🌀 Splash
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      builder: (context, state) => const SplashScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
     ),
 
-    /// 🔐 Login Route
+    /// 🔐 Login
     GoRoute(
       path: AppRoutes.loginRoute,
       name: 'login',
-      builder: (context, state) => const LoginScreen(),
+      pageBuilder: (context, state) => buildTransitionPage(const LoginScreen()),
     ),
+
+    /// 🔑 Forgot Password
     GoRoute(
       path: AppRoutes.forgotPasswordScreen,
       name: 'forgot-password',
-      builder: (context, state) => const ForgotPasswordScreen(),
-    ),
-
-    /// 🏠 Home Route (protected)
-    GoRoute(
-      path: AppRoutes.homeRoute,
-      name: 'home',
-      builder: (context, state) => const HomeScreen(),
-      redirect: (context, state) => authGuard(context, state),
+      pageBuilder: (context, state) => buildTransitionPage(const ForgotPasswordScreen()),
     ),
 
     GoRoute(
@@ -72,6 +70,39 @@ final GoRouter appRouter = GoRouter(
         return ChangePasswordScreen(employeeId: employeeId);
       },
     ),
+
+    /// Navigation Shell for main app after login
+    /// This wraps Home, Chat, Meet, Mail in a persistent bottom nav
+    /// 🏠 Shell route for Main Navigation
+    ShellRoute(
+      builder: (context, state, child) => NavigationHost(child: child),
+      routes: [
+        GoRoute(
+          path: AppRoutes.homeRoute,
+          name: 'home',
+          redirect: (context, state) => authGuard(context, state),
+          pageBuilder: (context, state) => buildTransitionPage(const HomeScreen()),
+        ),
+        GoRoute(
+          path: AppRoutes.chatRoute,
+          name: 'chat',
+          redirect: (context, state) => authGuard(context, state),
+          pageBuilder: (context, state) => buildTransitionPage(const ChatScreen()),
+        ),
+        GoRoute(
+          path: AppRoutes.meetRoute,
+          name: 'meet',
+          redirect: (context, state) => authGuard(context, state),
+          pageBuilder: (context, state) => buildTransitionPage(const MeetScreen()),
+        ),
+        GoRoute(
+          path: AppRoutes.mailRoute,
+          name: 'mail',
+          redirect: (context, state) => authGuard(context, state),
+          pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
+        ),
+      ],
+    ),
   ],
 );
 
@@ -79,4 +110,25 @@ extension AuthNavigation on BuildContext {
   void goToHome() => go(AppRoutes.homeRoute);
   void goToLogin() => go(AppRoutes.loginRoute);
   void goToSplash() => go(AppRoutes.splashRoute);
+}
+
+/// ✨ Custom transition page helper
+CustomTransitionPage buildTransitionPage(Widget child) {
+  return CustomTransitionPage(
+    child: child,
+    transitionDuration: const Duration(milliseconds: 300),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      // 🪄 Fade + Slide from right
+      return FadeTransition(
+        opacity: animation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.1, 0), // slight slide from right
+            end: Offset.zero,
+          ).animate(animation),
+          child: child,
+        ),
+      );
+    },
+  );
 }

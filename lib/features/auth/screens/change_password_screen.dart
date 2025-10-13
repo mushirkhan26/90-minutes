@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/common/widgets/custom_button.dart';
-import 'package:hrtz_hrms/common/widgets/custom_textfield.dart';
+import 'package:hrtz_hrms/widgets/custom_button.dart';
+import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/core/utils/utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';

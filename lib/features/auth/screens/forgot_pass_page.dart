@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 // import 'package:hrtz_hrms/auth/auth_provider.dart';
-import 'package:hrtz_hrms/common/widgets/custom_button.dart';
-import 'package:hrtz_hrms/common/widgets/custom_textfield.dart';
+import 'package:hrtz_hrms/widgets/custom_button.dart';
+import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/core/utils/utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';

@@ -5,7 +5,7 @@ import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'package:hrtz_hrms/core/theme/app_theme.dart';
+import 'package:hrtz_hrms/config/theme/app_theme.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 

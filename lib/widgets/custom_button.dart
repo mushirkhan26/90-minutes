@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/core/theme/app_colors.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 
 class CustomButton extends StatelessWidget {
   const CustomButton({
@@ -51,10 +51,7 @@ class CustomButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             side: borderWidth > 0
-                ? BorderSide(
-                    color: borderColor ?? AppColors.primary,
-                    width: borderWidth,
-                  )
+                ? BorderSide(color: borderColor ?? AppColors.primary, width: borderWidth)
                 : BorderSide.none,
           ),
         ),
@@ -63,14 +60,9 @@ class CustomButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                color: textColor ?? Colors.white,
-                size: fontSize ?? 20,
-              ),
+              Icon(icon, color: textColor ?? Colors.white, size: fontSize ?? 20),
               const SizedBox(width: 8),
-            ] else if (image != null &&
-                imagePosition == ImagePosition.leading) ...[
+            ] else if (image != null && imagePosition == ImagePosition.leading) ...[
               image!,
               const SizedBox(width: 8), // Space between image and text
             ],
