@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/utils/utils.dart';
 
 class NavigationHost extends StatefulWidget {
   final Widget child;
@@ -36,9 +38,7 @@ class _NavigationHostState extends State<NavigationHost> {
             if (_lastBackPressed == null ||
                 now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
               _lastBackPressed = now;
-              ScaffoldMessenger.of(
-                context,
-              ).showSnackBar(const SnackBar(content: Text('Press back again to exit')));
+              AlertHelper.snackBarInfo(context, "Back again to exit");
             } else {
               // Exit the app
               SystemNavigator.pop();

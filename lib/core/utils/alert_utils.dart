@@ -12,7 +12,7 @@ class AlertHelper {
   }
 
   static void snackBarInfo(BuildContext context, String message) {
-    _showSnackBar(context, message, AppColors.infoColor, Icons.info_outline);
+    _showSnackBar(context, message, AppColors.primary2, Icons.info_outline);
   }
 
   static void snackBarWarning(BuildContext context, String message) {
