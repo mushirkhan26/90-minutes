@@ -11,6 +11,10 @@ import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
 
+import '../../features/meet/screens/meet_screen.dart';
+import '../../features/meet/screens/schedule_meet.dart';
+import '../../features/meet/widgets/meet_widget.dart';
+
 /// 👮 Auth guard: redirect user based on login state
 String? authGuard(BuildContext context, GoRouterState state) {
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -32,7 +36,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      builder: (context, state) => const SplashScreen(),
+      builder: (context, state) => const MeetScreen(),
+      // MeetWidget(),
     ),
 
     /// 🔐 Login Route
@@ -72,6 +77,27 @@ final GoRouter appRouter = GoRouter(
         return ChangePasswordScreen(employeeId: employeeId);
       },
     ),
+
+    // Meet Route
+    GoRoute(
+      path: AppRoutes.meetRoute,
+      name: '/meet-view',
+      builder: (context, state) => const MeetScreen(),
+    ),
+
+    // Schedule Meet Route
+    GoRoute(
+      path: AppRoutes.scheduleMeetScreen,
+      name: '/scedule-meet',
+      builder: (context, state) => const ScheduleMeet(),
+    ),
+
+    // Meet Tail Route
+    GoRoute(
+      path: AppRoutes.meetWidget,
+      name: '/meet-tail',
+      builder: (context, state) => const MeetWidget(),
+    ),
   ],
 );
 
@@ -79,4 +105,5 @@ extension AuthNavigation on BuildContext {
   void goToHome() => go(AppRoutes.homeRoute);
   void goToLogin() => go(AppRoutes.loginRoute);
   void goToSplash() => go(AppRoutes.splashRoute);
+  void goToMeet() => go(AppRoutes.meetRoute);
 }

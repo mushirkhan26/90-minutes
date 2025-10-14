@@ -18,7 +18,7 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             onPressed: () async {
               await authProvider.logout();
-              context.go(AppRoutes.loginRoute);
+              if (context.mounted) context.go(AppRoutes.loginRoute);
             },
             icon: const Icon(Icons.logout),
           ),
