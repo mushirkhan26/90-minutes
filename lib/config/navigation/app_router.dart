@@ -14,6 +14,8 @@ import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
+import '../../features/meet/screens/schedule_meet.dart';
+import '../../features/meet/widgets/meet_widget.dart';
 
 /// 👮 Auth guard: redirect user based on login state
 String? authGuard(BuildContext context, GoRouterState state) {
@@ -37,6 +39,8 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.splashRoute,
       name: 'splash',
       pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
+      builder: (context, state) => const MeetScreen(),
+      // MeetWidget(),
     ),
 
     /// 🔐 Login
@@ -102,6 +106,22 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
         ),
       ],
+
+      // Meet Route
+    ),
+
+    // Schedule Meet Route
+    GoRoute(
+      path: AppRoutes.scheduleMeetScreen,
+      name: '/scedule-meet',
+      builder: (context, state) => const ScheduleMeet(),
+    ),
+
+    // Meet Tail Route
+    GoRoute(
+      path: AppRoutes.meetWidget,
+      name: '/meet-tail',
+      builder: (context, state) => const MeetWidget(),
     ),
   ],
 );
@@ -110,6 +130,7 @@ extension AuthNavigation on BuildContext {
   void goToHome() => go(AppRoutes.homeRoute);
   void goToLogin() => go(AppRoutes.loginRoute);
   void goToSplash() => go(AppRoutes.splashRoute);
+  void goToMeet() => go(AppRoutes.meetRoute);
 }
 
 /// ✨ Custom transition page helper

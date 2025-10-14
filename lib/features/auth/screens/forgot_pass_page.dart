@@ -17,7 +17,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _employeeIdController = TextEditingController();
-  bool _isLoading = false;
+  final bool _isLoading = false;
 
   @override
   void dispose() {
@@ -53,7 +53,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         padding: const EdgeInsets.only(left: 5),
                         child: Text(
                           'Employee ID',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       SizedBox(height: 5),
@@ -69,7 +72,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           : CustomButton(
                               text: 'Submit',
                               onPressed: () async {
-                                final employeeId = _employeeIdController.text.trim();
+                                final employeeId = _employeeIdController.text
+                                    .trim();
                                 if (employeeId.isEmpty) {
                                   AlertHelper.snackBarWarning(
                                     context,
@@ -78,12 +82,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                                   return;
                                 }
 
-                                final (success, message) = await authProvider.getOtp(employeeId);
+                                final (success, message) = await authProvider
+                                    .getOtp(employeeId);
 
                                 if (success) {
                                   AlertHelper.snackBarSuccess(context, message);
                                   if (context.mounted) {
-                                    context.goNamed('verify-otp', extra: employeeId);
+                                    context.goNamed(
+                                      'verify-otp',
+                                      extra: employeeId,
+                                    );
                                   }
                                 } else {
                                   AlertHelper.snackBarError(context, message);

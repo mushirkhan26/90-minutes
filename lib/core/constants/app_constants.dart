@@ -7,6 +7,12 @@ class AppConstants {
   static const String baseImg = "assets/images";
   static const String logo = "$baseImg/logo.jpg";
 
+  // Icons
+  static const String baseIcon = "assets/icons";
+  static const String deleteIcon = "$baseIcon/delete.png";
+  static const String scheduleIcon = "$baseIcon/schedule.png";
+  static const String updateIcon = "$baseIcon/updated.png";
+
   // UI Constants
   static const double defaultPadding = 16.0;
   static const double smallPadding = 8.0;
