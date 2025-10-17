@@ -12,8 +12,10 @@ import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
-import 'package:hrtz_hrms/splash_screen.dart';
+
 import 'package:provider/provider.dart';
+import '../../features/mail/screens/compose_mail_screen.dart';
+import '../../features/mail/widgets/mail_tile.dart';
 import '../../features/meet/screens/schedule_meet.dart';
 import '../../features/meet/widgets/meet_widget.dart';
 
@@ -38,7 +40,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
+      pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
       builder: (context, state) => const MeetScreen(),
       // MeetWidget(),
     ),
@@ -54,7 +56,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.forgotPasswordScreen,
       name: 'forgot-password',
-      pageBuilder: (context, state) => buildTransitionPage(const ForgotPasswordScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const ForgotPasswordScreen()),
     ),
 
     GoRoute(
@@ -85,25 +88,29 @@ final GoRouter appRouter = GoRouter(
           path: AppRoutes.homeRoute,
           name: 'home',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const HomeScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const HomeScreen()),
         ),
         GoRoute(
           path: AppRoutes.chatRoute,
           name: 'chat',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const ChatScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const ChatScreen()),
         ),
         GoRoute(
           path: AppRoutes.meetRoute,
           name: 'meet',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MeetScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MeetScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailRoute,
           name: 'mail',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MailScreen()),
         ),
       ],
 
@@ -122,6 +129,13 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.meetWidget,
       name: '/meet-tail',
       builder: (context, state) => const MeetWidget(),
+    ),
+
+    // Compose Mail Route
+    GoRoute(
+      path: AppRoutes.composeMail,
+      name: '/compose-mail',
+      builder: (context, state) => const ComposeMailScreen(),
     ),
   ],
 );

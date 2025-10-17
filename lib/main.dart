@@ -6,7 +6,10 @@ import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/config/theme/app_theme.dart';
+import 'package:hrtz_hrms/core/services/mail_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
+import 'package:hrtz_hrms/features/mail/repository/mail_repository.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -35,7 +38,14 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider<MailProvider>(
+          create: (_) =>
+              MailProvider(repository: MailRepository(service: MailService()))
+                ..fetchInbox(),
+        ),
+      ],
       child: MaterialApp.router(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,

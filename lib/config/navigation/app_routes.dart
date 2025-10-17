@@ -13,6 +13,7 @@ class AppRoutes {
   static const chatRoute = '/chat';
 
   static const mailRoute = '/mail';
+  static const String composeMail = '/compose-mail';
   static const String meetRoute = '/meet-view';
   static const String scheduleMeetScreen = '/scedule-meet';
   static const String meetWidget = '/meet-widget';

@@ -1,5 +1,9 @@
+import 'dart:convert';
+
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/employee.dart';
 
 class LocalStorageService {
   static final LocalStorageService _instance = LocalStorageService._internal();
@@ -31,6 +35,24 @@ class LocalStorageService {
   Future<void> saveString(String key, String value) async {
     await prefs.setString(key, value);
     _logger.logStorage('Saved string: $key');
+  }
+
+  Future<List<Employee>?> getEmployee() async {
+    final value = prefs.get('employee');
+    final list = <Employee>[];
+    if (value != null && value is String) {
+      list.addAll(
+        (jsonDecode(value)['data'] as List).map((e) => Employee.fromJson(e)),
+      );
+      return list;
+    } else {
+      return null;
+    }
+  }
+
+  Future<void> saveEmployee(List<Employee> list) async {
+    final value = jsonEncode({'data': list.map((e) => e.toJson()).toList()});
+    await prefs.setString('employee', value);
   }
 
   Future<String?> getString(String key) async {
