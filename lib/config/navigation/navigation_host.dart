@@ -3,7 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:provider/provider.dart';
 
 class NavigationHost extends StatefulWidget {
   final Widget child;
@@ -16,6 +20,37 @@ class NavigationHost extends StatefulWidget {
 class _NavigationHostState extends State<NavigationHost> {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
+
+  @override
+  void initState() {
+    super.initState();
+    _joinUserToSocket();
+  }
+
+  Future<void> _joinUserToSocket() async {
+    try {
+      // Fetch user data from SecureStorageService
+      final userData = await SecureStorageService().getUserData();
+
+      if (userData != null && userData['employeeId'] != null && userData['username'] != null) {
+        // Get SocketProvider from context and join the user
+        final socketProvider = context.read<SocketProvider>();
+        await socketProvider.joinUser(userData['employeeId'], userData['username']);
+        LoggingService.instance.logNetwork(
+          'User joined socket successfully: ${userData['employeeId']}',
+        );
+      } else {
+        // Log missing user data
+        LoggingService.instance.error(
+          'NavigationHost',
+          'Failed to fetch user details: employeeId or username is null',
+        );
+      }
+    } catch (e) {
+      // Log errors
+      LoggingService.instance.error('NavigationHost', 'Failed to join user to socket', error: e);
+    }
+  }
 
   @override
   void didChangeDependencies() {

@@ -164,7 +164,7 @@ class MeetWidget extends StatelessWidget {
                     ),
                     GestureDetector(
                       onTap: () async {
-                        final confirmed = await showDialog<bool>(
+                        await showDialog<bool>(
                           context: context,
                           builder: (context) => AlertDialog(
                             title: const Text("Delete Meeting"),

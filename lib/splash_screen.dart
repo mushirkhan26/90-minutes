@@ -20,14 +20,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-
     // Animation controller for logo and progress indicator
     _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2));
-
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
-
     _controller.repeat(reverse: true);
-
     _initAuthCheck();
   }
 
@@ -35,9 +31,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
     // Slight delay so animation is visible
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 1));
 
-    await authProvider.checkAuthState();
+    // Check auth state and fetch employee list in parallel
+    final authCheck = authProvider.checkAuthState();
+    final employeeFetch = authProvider.fetchAndCacheEmployeeList();
+
+    await Future.wait([authCheck, employeeFetch]);
 
     if (!mounted) return;
 
@@ -74,9 +74,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-
             // Pulsing progress indicator
             ScaleTransition(
               scale: Tween<double>(begin: 0.8, end: 1.2).animate(_animation),

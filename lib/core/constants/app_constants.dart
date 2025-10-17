@@ -3,6 +3,9 @@ class AppConstants {
   static const String appName = 'HrZ_hrms';
   static const String appVersion = '1.0.0';
 
+  //urls
+  static const String socketbaseurl = "https://hrms-socket.onrender.com";
+
   //Images
   static const String baseImg = "assets/images";
   static const String logo = "$baseImg/logo.jpg";

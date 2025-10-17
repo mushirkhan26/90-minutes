@@ -1,5 +1,6 @@
 import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
+import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class AuthService {
@@ -41,5 +42,17 @@ class AuthService {
     final body = {"employeeId": employeeId, "password": password};
     _logger.logAuth('Changing password for employeeId: $employeeId');
     return await _apiHelper.post<Map<String, dynamic>>('employee/changePassword', body);
+  }
+
+  /// 👥 Get employee list API
+  Future<ApiResponse<List<EmployeeModel>>> getEmployeeList() async {
+    _logger.logAuth('Fetching employee list');
+    final response = await _apiHelper.get<Map<String, dynamic>>('employee/employeeList');
+
+    // The ApiHelper already handled status codes and exceptions,
+    // so we can safely assume response is successful here
+    final List<dynamic> employeesJson = response.data!['message'];
+    final employees = employeesJson.map((json) => EmployeeModel.fromJson(json)).toList();
+    return ApiResponse.success(employees);
   }
 }

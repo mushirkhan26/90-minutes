@@ -3,10 +3,12 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/navigation/navigation_host.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
+import 'package:hrtz_hrms/core/extensions/secure_storage_extension.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
+import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
@@ -91,7 +93,7 @@ final GoRouter appRouter = GoRouter(
           path: AppRoutes.chatRoute,
           name: 'chat',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const ChatScreen()),
+          pageBuilder: (context, state) => buildTransitionPage(const ChatListScreen()),
         ),
         GoRoute(
           path: AppRoutes.meetRoute,
@@ -108,6 +110,25 @@ final GoRouter appRouter = GoRouter(
       ],
 
       // Meet Route
+    ),
+    // indiviaul chat route
+    GoRoute(
+      path: '${AppRoutes.chatRoute}/:otherUserId',
+      name: 'individual-chat',
+      redirect: (context, state) => authGuard(context, state),
+      builder: (context, state) {
+        final otherUserId = state.pathParameters['otherUserId']!;
+        final extra = state.extra as Map<String, dynamic>?;
+        final otherUserName = extra?['otherUserName'] ?? 'User';
+        final currentUserData = extra?['currentUserData'] as Map<String, dynamic>?;
+
+        return ChatScreen(
+          currentUserId: currentUserData?['employeeId'] ?? '',
+          currentUserName: currentUserData?['username'] ?? '',
+          otherUserId: otherUserId,
+          otherUserName: otherUserName,
+        );
+      },
     ),
 
     // Schedule Meet Route
@@ -131,6 +152,23 @@ extension AuthNavigation on BuildContext {
   void goToLogin() => go(AppRoutes.loginRoute);
   void goToSplash() => go(AppRoutes.splashRoute);
   void goToMeet() => go(AppRoutes.meetRoute);
+
+  /// Navigate to individual chat with pre-fetched user data
+  Future<void> goToIndividualChat({
+    required String otherUserId,
+    required String otherUserName,
+  }) async {
+    // Pre-fetch user data before navigation
+    final currentUserData = await getCurrentUserData();
+
+    push(
+      '${AppRoutes.chatRoute}/$otherUserId',
+      extra: {'otherUserName': otherUserName, 'currentUserData': currentUserData},
+    );
+  }
+
+  /// Navigate to chat list
+  void goToChatList() => go(AppRoutes.chatRoute);
 }
 
 /// ✨ Custom transition page helper

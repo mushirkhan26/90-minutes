@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/config/theme/app_theme.dart';
+import 'package:hrtz_hrms/core/socket/socket_provider.dart';
+import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  await dotenv.load(fileName: "keys.env");
+
   // Initialize logging service
   await LoggingService.instance.initialize();
   // Initialize local storage before runApp
   await LocalStorageService.init();
+
+  // Initialize socket connection (will connect but not join)
+  SocketService.instance.init();
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -35,7 +43,10 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SocketProvider()),
+      ],
       child: MaterialApp.router(
         title: AppConstants.appName,
         debugShowCheckedModeBanner: false,

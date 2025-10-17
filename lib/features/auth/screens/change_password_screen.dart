@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
@@ -64,14 +65,14 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                           setState(() => _isLoading = false);
 
                           if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Password changed successfully')),
-                            );
-                            context.goToLogin();
+                            if (context.mounted) {
+                              AlertHelper.snackBarSuccess(context, "Password changed successfully");
+                              context.goToLogin();
+                            }
                           } else {
-                            ScaffoldMessenger.of(
-                              context,
-                            ).showSnackBar(SnackBar(content: Text('Failed to change password')));
+                            if (context.mounted) {
+                              AlertHelper.snackBarWarning(context, "Failed to change password");
+                            }
                           }
                         },
                       ),

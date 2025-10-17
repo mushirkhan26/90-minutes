@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
@@ -88,11 +89,13 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                                 setState(() => _isLoading = false);
 
                                 if (success) {
-                                  context.goNamed('change-password', extra: widget.employeeId);
+                                  if (context.mounted) {
+                                    context.goNamed('change-password', extra: widget.employeeId);
+                                  }
                                 } else {
-                                  ScaffoldMessenger.of(
-                                    context,
-                                  ).showSnackBar(SnackBar(content: Text('Invalid OTP or expired')));
+                                  if (context.mounted) {
+                                    AlertHelper.snackBarWarning(context, 'Invalid OTP or expired');
+                                  }
                                 }
                               },
                               width: Utils().width(context) * 0.38,
@@ -106,9 +109,9 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
                       setState(() => _isLoading = true);
                       await authProvider.resendOtp(widget.employeeId);
                       setState(() => _isLoading = false);
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text('OTP resent')));
+                      if (context.mounted) {
+                        AlertHelper.snackBarSuccess(context, "OTP Resent!");
+                      }
                     },
                     child: Text(
                       'Resend OTP',
