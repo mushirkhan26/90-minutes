@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
-import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
-import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
@@ -13,8 +11,8 @@ import 'package:hrtz_hrms/features/chat/widgtes/message_bubble.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:provider/provider.dart';
 import 'dart:io';
-
 import 'package:uuid/uuid.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -38,23 +36,20 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final SocketProvider _socketProvider;
+  late final SocketProvider _socketProvider;
   final FileUploadService _fileUploadService = FileUploadService();
   final Uuid _uuid = Uuid();
   final LoggingService _logger = LoggingService.instance;
-
   bool _isTyping = false;
   bool _isAtBottom = true;
   bool _isLoading = true;
   bool _showGoToBottomButton = false;
   String? _currentDateHeader;
-  // final Map<Key, GlobalKey> _messageKeys = {};
-
-  _ChatScreenState() : _socketProvider = SocketProvider();
 
   @override
   void initState() {
     super.initState();
+    _socketProvider = context.read<SocketProvider>();
     WidgetsBinding.instance.addObserver(this);
     _registerSocketEvents();
     _loadInitialMessages();
@@ -70,9 +65,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  void _registerSocketEvents() {
+    _socketProvider.addListener(() {
+      if (mounted) {
+        setState(() {});
+        if (_isAtBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        }
+      }
+    });
+  }
+
   Future<void> _loadInitialMessages() async {
     setState(() => _isLoading = true);
-
     try {
       final conversationId = _generateConversationId();
       await _socketProvider.loadConversationMessages(conversationId);
@@ -81,12 +86,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       _logger.error('CHAT_SCREEN', 'Failed to load messages', error: e);
       setState(() => _isLoading = false);
     }
-  }
-
-  void _registerSocketEvents() {
-    _socketProvider.addListener(() {
-      if (mounted) setState(() {});
-    });
   }
 
   void _handleTyping() {
@@ -145,7 +144,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final today = DateTime(now.year, now.month, now.day);
     final yesterday = DateTime(now.year, now.month, now.day - 1);
     final messageDate = DateTime(date.year, date.month, date.day);
-
     if (messageDate == today) {
       return 'Today';
     } else if (messageDate == yesterday) {
@@ -178,37 +176,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   Future<void> _sendMessage({String? text, String? fileUrl, String type = 'text'}) async {
     if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
-
     final conversationId = _generateConversationId();
-    final messageId = _uuid.v4(); // Generate ID on frontend
+    final messageId = _uuid.v4();
     final timestamp = DateTime.now();
 
-    // Create the message object
-    final message = ChatMessageModel(
-      message: text,
-      sender: widget.currentUserId,
-      timestamp: timestamp,
-      messageType: type,
-      fileUrl: fileUrl,
-      messageId: messageId,
-      conversationId: conversationId,
-      read: false,
-      delivered: false,
-      isDeleted: false,
-    );
-
-    // Send through socket provider with frontend-generated ID
     await _socketProvider.sendMessage(
       sender: widget.currentUserId,
       senderName: widget.currentUserName,
       receiver: widget.otherUserId,
       text: text ?? '',
-      messageId: messageId, // Pass the frontend-generated ID
+      messageId: messageId,
       conversationId: conversationId,
       messageType: type,
       fileUrl: fileUrl,
     );
-
     _messageController.clear();
     _scrollToBottom();
   }
@@ -249,7 +230,6 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       (m) => m.messageId == messageId,
       orElse: () => throw Exception('Message not found'),
     );
-
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -264,7 +244,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   children: [
                     Text(
                       "Choose what to do:",
-                      style: AppTextStyles.grey12_600.copyWith(fontSize: 16),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
@@ -278,7 +258,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   leading: const Icon(Icons.content_copy),
                   title: Text(
                     isMedia ? 'Copy Media URL' : 'Copy Message',
-                    style: AppTextStyles.black15_500,
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
                   ),
                   onTap: () {
                     Clipboard.setData(
@@ -294,7 +274,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: Text(
                   'Unsend Message',
-                  style: AppTextStyles.black15_500.copyWith(color: Colors.red),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.red),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -332,15 +312,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _deleteMessage(String messageId) async {
     final conversationId = _generateConversationId();
-
     try {
-      // Mark message as deleted through the provider
       await _socketProvider.markMessageAsDeleted(
         messageId: messageId,
         userId: widget.currentUserId,
         conversationId: conversationId,
       );
-
       if (mounted) setState(() {});
     } catch (e) {
       _logger.error('CHAT_SCREEN', 'Failed to delete message', error: e);
@@ -374,6 +351,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         children: [
           Column(
             children: [
+              // Typing indicator
               if (_socketProvider.typingIndicators[widget.otherUserId] == true)
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
@@ -396,11 +374,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                           final previousMessage = index > 0
                               ? conversationMessages[index - 1]
                               : null;
-
                           final showDateHeader =
                               previousMessage == null ||
                               !ChatUtils().isSameDay(previousMessage.timestamp, message.timestamp);
-
                           return Column(
                             children: [
                               if (showDateHeader) _buildDateHeader(message.timestamp),
