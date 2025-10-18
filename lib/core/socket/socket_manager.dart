@@ -62,11 +62,14 @@ class SocketManager {
 
   /// Sends a message to a receiver.
   /// Emits 'sendMessage' event to backend.
+  /// Sends a message to a receiver.
+  /// Emits 'sendMessage' event to backend.
   Future<void> sendMessage({
     required String sender,
     required String senderName,
     required String receiver,
     required String text,
+    required String messageId, // Added messageId parameter
     String? conversationId,
     String messageType = 'text',
     String? fileName,
@@ -78,22 +81,23 @@ class SocketManager {
       throw Exception("Socket not connected");
     }
 
-    socket.emit(
+    socket.emitWithAck(
       'sendMessage',
       {
         'sender': sender,
         'senderName': senderName,
         'receiver': receiver,
         'text': text,
+        'messageId': messageId, // Include messageId in payload
         'conversationId': conversationId,
         'messageType': messageType,
         'fileName': fileName,
         'fileUrl': fileUrl,
         'replyTo': replyTo,
       },
-      // ack: ([dynamic res]) {
-      //   LoggingService.instance.logNetwork("Message sent. Ack: $res");
-      // },
+      ack: ([dynamic res]) {
+        LoggingService.instance.logNetwork("Message sent. Ack: $res");
+      },
     );
   }
 

@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,8 +15,12 @@ class LocalStorageService {
 
   static const String _keyIsLoggedIn = 'is_logged_in';
 
+  // employee list data related keys
   static const String _keyEmployeeList = 'employee_list';
   static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
+
+  // chat messages storage related  keys
+  static const String _keyChatMessages = 'chat_messages_';
 
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
@@ -113,5 +118,68 @@ class LocalStorageService {
     await prefs.remove(_keyEmployeeList);
     await prefs.remove(_keyEmployeeListTimestamp);
     _logger.logStorage('Cleared employee list cache');
+  }
+
+  // chat message storage
+
+  /// Save chat messages for a specific conversation
+  Future<void> saveChatMessages(String conversationId, List<ChatMessageModel> messages) async {
+    final key = _getChatMessagesKey(conversationId);
+    final messageJsonList = messages.map((m) => m.toLocalMap()).toList();
+    await prefs.setString(key, jsonEncode(messageJsonList));
+    _logger.logStorage('Saved ${messages.length} messages for conversation $conversationId');
+  }
+
+  /// Get chat messages for a specific conversation
+  Future<List<ChatMessageModel>> getChatMessages(String conversationId) async {
+    final key = _getChatMessagesKey(conversationId);
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return [];
+
+    try {
+      final List<dynamic> messageJsonList = jsonDecode(jsonString);
+      final messages = messageJsonList.map((json) => ChatMessageModel.fromLocalMap(json)).toList();
+      _logger.logStorage('Retrieved ${messages.length} messages for conversation $conversationId');
+      return messages;
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse chat messages', error: e);
+      return [];
+    }
+  }
+
+  /// Add a single message to a conversation
+  Future<void> addChatMessage(String conversationId, ChatMessageModel message) async {
+    final existingMessages = await getChatMessages(conversationId);
+    existingMessages.add(message);
+    await saveChatMessages(conversationId, existingMessages);
+  }
+
+  /// Update a message in a conversation
+  Future<void> updateChatMessage(String conversationId, ChatMessageModel updatedMessage) async {
+    final existingMessages = await getChatMessages(conversationId);
+    final index = existingMessages.indexWhere((m) => m.messageId == updatedMessage.messageId);
+    if (index != -1) {
+      existingMessages[index] = updatedMessage;
+      await saveChatMessages(conversationId, existingMessages);
+    }
+  }
+
+  /// Delete a message from a conversation
+  Future<void> deleteChatMessage(String conversationId, String messageId) async {
+    final existingMessages = await getChatMessages(conversationId);
+    existingMessages.removeWhere((m) => m.messageId == messageId);
+    await saveChatMessages(conversationId, existingMessages);
+  }
+
+  /// Clear all messages for a conversation
+  Future<void> clearConversationMessages(String conversationId) async {
+    final key = _getChatMessagesKey(conversationId);
+    await prefs.remove(key);
+    _logger.logStorage('Cleared messages for conversation $conversationId');
+  }
+
+  /// Get the storage key for a conversation's messages
+  String _getChatMessagesKey(String conversationId) {
+    return '$_keyChatMessages$conversationId';
   }
 }
