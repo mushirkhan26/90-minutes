@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import 'package:hrtz_hrms/core/services/mail_service.dart';
+import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
+import 'package:hrtz_hrms/core/api/network/mail_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/mail/widgets/mail_tile.dart';
 import 'package:provider/provider.dart';
@@ -16,12 +18,17 @@ class MailScreen extends StatefulWidget {
 }
 
 class _MailScreenState extends State<MailScreen> {
-  final MailService employeeService = MailService();
+  final MailService employeeService = MailService(baseUrl2: ApiHelper.baseUrl2);
   late Future<List<Employee>> employeeFuture;
+  late String employeeID;
 
   @override
   void initState() {
     super.initState();
+  }
+
+  void getData() async {
+    employeeID = (await SecureStorageService().getUserData())?['employee_id'];
   }
 
   @override
@@ -32,7 +39,7 @@ class _MailScreenState extends State<MailScreen> {
         drawer: Drawer(
           child: ListView(
             padding: EdgeInsets.zero,
-            children: const [
+            children: [
               DrawerHeader(
                 decoration: BoxDecoration(color: AppColors.primary),
                 child: Text(
@@ -41,7 +48,13 @@ class _MailScreenState extends State<MailScreen> {
                 ),
               ),
               ListTile(leading: Icon(Icons.inbox), title: Text("Inbox")),
-              ListTile(leading: Icon(Icons.send), title: Text("Sent")),
+              ListTile(
+                leading: Icon(Icons.send),
+                title: Text("Sent"),
+                onTap: () {
+                  Provider.of<MailProvider>(context).fetchSent(employeeID);
+                },
+              ),
               ListTile(leading: Icon(Icons.delete), title: Text("Trash")),
             ],
           ),

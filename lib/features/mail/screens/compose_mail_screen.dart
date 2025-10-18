@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/core/services/local_storage_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 
 class ComposeMailScreen extends StatefulWidget {
   const ComposeMailScreen({super.key});
@@ -11,22 +13,14 @@ class ComposeMailScreen extends StatefulWidget {
 class _ComposeMailScreenState extends State<ComposeMailScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _fromController = TextEditingController(
-    text: "25060018 - John Doe",
-  );
+  final TextEditingController _fromController = TextEditingController();
   final TextEditingController _toController = TextEditingController();
   final TextEditingController _ccController = TextEditingController();
   final TextEditingController _bccController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
 
-  final List<String> employeeSuggestions = [
-    "25060019 - Jane Smith",
-    "25060020 - Mark Lee",
-    "25060021 - Lisa Kim",
-    "25060022 - Alex Brown",
-    "25060023 - David Johnson",
-  ];
+  final List<String> employeeSuggestions = [];
 
   bool showCc = false;
   bool showBcc = false;
@@ -163,6 +157,24 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
           ),
       ],
     );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    getEmployees();
+  }
+
+  getEmployees() async {
+    final data = await SecureStorageService().getUserData();
+    _fromController.text =
+        '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
+    // employeeSuggestions.addAll(
+    //   (await LocalStorageService().getEmployee())
+    //           ?.map((e) => '${e.employeeId} - ${e.name}')
+    //           .toList() ??
+    //       [],
+    // );
   }
 
   @override

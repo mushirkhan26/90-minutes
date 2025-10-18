@@ -1,18 +1,20 @@
 class MailResponse {
   final String message;
-  final Mail? data;
+  final List<Mail>? data;
 
   MailResponse({required this.message, this.data});
 
   factory MailResponse.fromJson(Map<String, dynamic> json) {
     return MailResponse(
       message: json['message'] ?? '',
-      data: json['data'] != null ? Mail.fromJson(json['data']) : null,
+      data: json['data'] != null && json['data'] is List
+          ? (json['data'] as List).map((e) => Mail.fromJson(e)).toList()
+          : null,
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'message': message, 'data': data?.toJson()};
+    return {'message': message, 'data': data?.map((e) => e.toJson()).toList()};
   }
 }
 

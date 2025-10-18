@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-// import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/config/theme/app_theme.dart';
-import 'package:hrtz_hrms/core/services/mail_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
-import 'package:hrtz_hrms/features/mail/repository/mail_repository.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -41,9 +38,7 @@ class MainApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider<MailProvider>(
-          create: (_) =>
-              MailProvider(repository: MailRepository(service: MailService()))
-                ..fetchInbox(),
+          create: (_) => MailProvider()..fetchInbox(),
         ),
       ],
       child: MaterialApp.router(

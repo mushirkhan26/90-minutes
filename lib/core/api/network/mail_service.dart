@@ -2,18 +2,16 @@ import 'dart:convert';
 import 'package:hrtz_hrms/core/models/employee.dart';
 import 'package:http/http.dart' as http;
 
-import '../models/mail_model.dart';
+import '../../models/mail_model.dart';
 
 class MailService {
-  // final String baseUrl;
-  // MailService({required this.baseUrl});
-
-  static const String baseUrl = "https://hrms-socket.onrender.com";
+  final String baseUrl2;
+  MailService({required this.baseUrl2});
 
   // Send a mail
   Future<Mail> sendMail(Map<String, dynamic> body) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/mail/send'),
+      Uri.parse('$baseUrl2/mail/send'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode(body),
     );
@@ -28,14 +26,12 @@ class MailService {
   // Get inbox mails
   Future<List<Mail>> getInbox(String employeeId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/mail/inbox/$employeeId'),
+      Uri.parse('$baseUrl2/mail/inbox/$employeeId'),
     );
 
     if (response.statusCode == 200) {
       final mailResponse = jsonDecode(response.body);
-      return (mailResponse['data'] as List)
-          .map((e) => Mail.fromJson(e))
-          .toList();
+      return MailResponse.fromJson(mailResponse).data ?? [];
     } else {
       throw Exception('Failed to fetch inbox mails');
     }
@@ -60,7 +56,7 @@ class MailService {
   // Get sent mails
   Future<List<Mail>> getSent(String employeeId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/mail/sent/$employeeId'),
+      Uri.parse('$baseUrl2/mail/sent/$employeeId'),
     );
 
     if (response.statusCode == 200) {
@@ -74,7 +70,7 @@ class MailService {
   // Get trash mails
   Future<List<Mail>> getTrash(String employeeId) async {
     final response = await http.get(
-      Uri.parse('$baseUrl/mail/trash/$employeeId'),
+      Uri.parse('$baseUrl2/mail/trash/$employeeId'),
     );
 
     if (response.statusCode == 200) {
@@ -87,14 +83,14 @@ class MailService {
 
   // Delete a mail
   Future<bool> deleteMail(String mailId) async {
-    final response = await http.delete(Uri.parse('$baseUrl/mail/$mailId'));
+    final response = await http.delete(Uri.parse('$baseUrl2/mail/$mailId'));
     return response.statusCode == 200;
   }
 
   // Move a mail to trash
   Future<bool> moveToTrash(String mailId) async {
     final response = await http.patch(
-      Uri.parse('$baseUrl/mail/move-to-trash/$mailId'),
+      Uri.parse('$baseUrl2/mail/move-to-trash/$mailId'),
     );
     return response.statusCode == 200;
   }
@@ -102,7 +98,7 @@ class MailService {
   // Restore a mail from trash
   Future<bool> restoreFromTrash(String mailId) async {
     final response = await http.patch(
-      Uri.parse('$baseUrl/mail/restore-from-trash/$mailId'),
+      Uri.parse('$baseUrl2/mail/restore-from-trash/$mailId'),
     );
     return response.statusCode == 200;
   }
@@ -110,7 +106,7 @@ class MailService {
   // Empty trash
   Future<bool> emptyTrash(String employeeId) async {
     final response = await http.delete(
-      Uri.parse('$baseUrl/mail/empty-trash/$employeeId'),
+      Uri.parse('$baseUrl2/mail/empty-trash/$employeeId'),
     );
     return response.statusCode == 200;
   }
@@ -118,7 +114,7 @@ class MailService {
   // Move many mails to trash
   Future<bool> moveManyToTrash(String employeeId, List<String> mailIds) async {
     final response = await http.patch(
-      Uri.parse('$baseUrl/mail/move-to-trash-many'),
+      Uri.parse('$baseUrl2/mail/move-to-trash-many'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'employeeId': employeeId, 'mailIds': mailIds}),
     );
@@ -131,7 +127,7 @@ class MailService {
     List<String> mailIds,
   ) async {
     final response = await http.put(
-      Uri.parse('$baseUrl/mail/restore-from-trash-many'),
+      Uri.parse('$baseUrl2/mail/restore-from-trash-many'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'employeeId': employeeId, 'mailIds': mailIds}),
     );

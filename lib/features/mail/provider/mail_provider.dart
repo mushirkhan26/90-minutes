@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/models/employee.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
+import 'package:hrtz_hrms/core/api/network/mail_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 
 import '../../../core/models/mail_model.dart';
-import '../repository/mail_repository.dart';
 
 class MailProvider extends ChangeNotifier {
-  final MailRepository repository;
+  final mailService = MailService(baseUrl2: ApiHelper.baseUrl2);
+
   final LocalStorageService _localStorage = LocalStorageService();
   final secureStorageService = SecureStorageService();
   List<Mail> _inbox = [];
@@ -17,8 +19,6 @@ class MailProvider extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _error;
-
-  MailProvider({required this.repository});
 
   bool get isLoading => _isLoading;
   String? get error => _error;
@@ -42,15 +42,15 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      // final employeeId = (await secureStorageService
-      //     .getUserData())!['employeeId'];
-      _inbox = await repository.getInbox('25060018');
-      if ((await _localStorage.getEmployee()) == null) {
-        _employee = await repository.getEmployee();
-        _localStorage.saveEmployee(_employee);
-      } else {
-        _employee = await _localStorage.getEmployee() ?? [];
-      }
+      final employeeId = (await secureStorageService
+          .getUserData())!['employeeId'];
+      _inbox = await mailService.getInbox(employeeId ?? '25060018');
+      // if ((await _localStorage.getEmployee()) == null) {
+      //   _employee = await mailService.getEmployee();
+      //   _localStorage.saveEmployee(_employee);
+      // } else {
+      //   _employee = await _localStorage.getEmployee() ?? [];
+      // }
     } catch (e) {
       _setError(e.toString());
     }
@@ -62,7 +62,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      _sent = await repository.getSent(employeeId);
+      _sent = await mailService.getSent(employeeId);
     } catch (e) {
       _setError(e.toString());
     }
@@ -74,7 +74,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      _trash = await repository.getTrash(employeeId);
+      _trash = await mailService.getTrash(employeeId);
     } catch (e) {
       _setError(e.toString());
     }
@@ -86,7 +86,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final sentMail = await repository.sendMail(body);
+      final sentMail = await mailService.sendMail(body);
       if (sentMail != null) {
         _sent.insert(0, sentMail);
       }
@@ -101,7 +101,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await repository.deleteMail(mailId);
+      final success = await mailService.deleteMail(mailId);
       if (success) {
         // _inbox.removeWhere((m) => m.data?.id == mailId);
         _sent.removeWhere((m) => m.id == mailId);
@@ -118,7 +118,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await repository.moveToTrash(mailId);
+      final success = await mailService.moveToTrash(mailId);
       if (success) {
         final mail = _inbox.firstWhere(
           (m) => m.id == mailId,
@@ -139,7 +139,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await repository.restoreFromTrash(mailId);
+      final success = await mailService.restoreFromTrash(mailId);
       if (success) {
         final mail = _trash.firstWhere((m) => m.id == mailId);
         _trash.remove(mail);
@@ -156,7 +156,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await repository.emptyTrash(employeeId);
+      final success = await mailService.emptyTrash(employeeId);
       if (success) {
         _trash.clear();
       }
@@ -171,7 +171,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await repository.moveManyToTrash(employeeId, mailIds);
+      final success = await mailService.moveManyToTrash(employeeId, mailIds);
       if (success) {
         _inbox.removeWhere((m) => mailIds.contains(m.id));
         _sent.removeWhere((m) => mailIds.contains(m.id));
@@ -198,7 +198,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await repository.restoreManyFromTrash(
+      final success = await mailService.restoreManyFromTrash(
         employeeId,
         mailIds,
       );

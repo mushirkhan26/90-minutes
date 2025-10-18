@@ -10,10 +10,13 @@ import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
+import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
+import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
+import '../../core/models/mail_model.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 import '../../features/mail/widgets/mail_tile.dart';
 import '../../features/meet/screens/schedule_meet.dart';
@@ -40,7 +43,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const SplashScreen()),
       builder: (context, state) => const MeetScreen(),
       // MeetWidget(),
     ),
@@ -111,6 +115,13 @@ final GoRouter appRouter = GoRouter(
           redirect: (context, state) => authGuard(context, state),
           pageBuilder: (context, state) =>
               buildTransitionPage(const MailScreen()),
+        ),
+        GoRoute(
+          path: AppRoutes.mailDetail,
+          name: '/mail_detail',
+          redirect: (context, state) => authGuard(context, state),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(MailDetail(mail: state.extra as Mail)),
         ),
       ],
 
