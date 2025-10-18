@@ -10,6 +10,7 @@ import 'package:hrtz_hrms/config/theme/app_theme.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -46,6 +47,7 @@ class MainApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketProvider()),
+        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
       ],
       child: MaterialApp.router(
         title: AppConstants.appName,

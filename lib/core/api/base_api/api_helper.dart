@@ -6,10 +6,15 @@ import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:http/http.dart' as http;
 
 class ApiHelper {
-  final String _baseUrl = "https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/";
+  final String _baseUrl =
+      "https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/";
+  static String baseUrl2 = "https://hrms-socket.onrender.com";
   final LoggingService _logger = LoggingService.instance;
 
-  Future<ApiResponse<T>> get<T>(String endpoint, {Map<String, String>? headers}) async {
+  Future<ApiResponse<T>> get<T>(
+    String endpoint, {
+    Map<String, String>? headers,
+  }) async {
     return _request<T>('GET', endpoint, headers: headers);
   }
 
@@ -29,7 +34,10 @@ class ApiHelper {
     return _request<T>('PUT', endpoint, body: body, headers: headers);
   }
 
-  Future<ApiResponse<T>> delete<T>(String endpoint, {Map<String, String>? headers}) async {
+  Future<ApiResponse<T>> delete<T>(
+    String endpoint, {
+    Map<String, String>? headers,
+  }) async {
     return _request<T>('DELETE', endpoint, headers: headers);
   }
 
@@ -41,7 +49,9 @@ class ApiHelper {
   }) async {
     final url = Uri.parse('$_baseUrl$endpoint');
     http.Response response;
-    final sanitizedBody = body != null ? _sanitizeRequestBody(jsonEncode(body)) : null;
+    final sanitizedBody = body != null
+        ? _sanitizeRequestBody(jsonEncode(body))
+        : null;
 
     _logger.logApi(
       '=== REQUEST START ===\nMethod: $method\nURL:\nHeaders: ${_sanitizeHeaders(headers ?? {})}\nBody: $sanitizedBody',
@@ -60,7 +70,11 @@ class ApiHelper {
           );
           break;
         case 'PUT':
-          response = await http.put(url, headers: _defaultHeaders(headers), body: jsonEncode(body));
+          response = await http.put(
+            url,
+            headers: _defaultHeaders(headers),
+            body: jsonEncode(body),
+          );
           break;
         case 'DELETE':
           response = await http.delete(url, headers: _defaultHeaders(headers));
@@ -76,13 +90,23 @@ class ApiHelper {
 
       return result;
     } on SocketException catch (e, s) {
-      _logger.error('NETWORK', 'No Internet Connection', error: e, stackTrace: s);
+      _logger.error(
+        'NETWORK',
+        'No Internet Connection',
+        error: e,
+        stackTrace: s,
+      );
       return ApiResponse.error('No Internet Connection');
     } on AppException catch (e, s) {
       _logger.error('API_EXCEPTION', e.message, error: e, stackTrace: s);
       return ApiResponse.error(e.message);
     } catch (e, s) {
-      _logger.error('UNEXPECTED', 'Unexpected error: $e', error: e, stackTrace: s);
+      _logger.error(
+        'UNEXPECTED',
+        'Unexpected error: $e',
+        error: e,
+        stackTrace: s,
+      );
       return ApiResponse.error('Something went wrong. Please try again later.');
     }
   }
@@ -93,7 +117,12 @@ class ApiHelper {
 
   Map<String, String> _sanitizeHeaders(Map<String, String> headers) {
     final sanitized = Map<String, String>.from(headers);
-    const sensitiveHeaders = ['authorization', 'x-api-key', 'cookie', 'set-cookie'];
+    const sensitiveHeaders = [
+      'authorization',
+      'x-api-key',
+      'cookie',
+      'set-cookie',
+    ];
     for (final key in sanitized.keys.toList()) {
       if (sensitiveHeaders.contains(key.toLowerCase())) {
         sanitized[key] = '***REDACTED***';
@@ -129,7 +158,9 @@ class ApiHelper {
         return jsonEncode(sanitized);
       }
     } catch (_) {}
-    return body.length > 1000 ? '${body.substring(0, 1000)}...[TRUNCATED]' : body;
+    return body.length > 1000
+        ? '${body.substring(0, 1000)}...[TRUNCATED]'
+        : body;
   }
 
   ApiResponse<T> _handleResponse<T>(http.Response response) {

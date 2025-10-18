@@ -1,3 +1,5 @@
+import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
+
 class AppRoutes {
   static const String splashRoute = '/splash';
   static const String welcomeRoute = '/welcome';
@@ -11,8 +13,9 @@ class AppRoutes {
 
   static const String homeRoute = '/home';
   static const chatRoute = '/chat';
-
   static const mailRoute = '/mail';
+  static const mailDetail = '/mail_detail';
+  static const String composeMail = '/compose-mail';
   static const String meetRoute = '/meet-view';
   static const String scheduleMeetScreen = '/scedule-meet';
   static const String meetWidget = '/meet-widget';

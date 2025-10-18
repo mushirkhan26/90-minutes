@@ -35,7 +35,10 @@ class AuthProvider extends ChangeNotifier {
 
     _logger.logAuth('Attempting login for employeeId: $employeeId');
 
-    final response = await _authService.login(employeeId: employeeId, password: password);
+    final response = await _authService.login(
+      employeeId: employeeId,
+      password: password,
+    );
 
     if (response.success && response.data != null) {
       final data = response.data!;
@@ -58,7 +61,10 @@ class AuthProvider extends ChangeNotifier {
     } else {
       _state = AuthState.error;
       _errorMessage = response.message;
-      _logger.logAuth('❌ Login failed: ${response.message}', level: LogLevel.error);
+      _logger.logAuth(
+        '❌ Login failed: ${response.message}',
+        level: LogLevel.error,
+      );
     }
 
     notifyListeners();
@@ -86,7 +92,7 @@ class AuthProvider extends ChangeNotifier {
       _logger.logAuth('User session found, authenticated');
     } else {
       _state = AuthState.unauthenticated;
-      _logger.logAuth('No user session found, unauthenticated');
+      _logger.logAuth('No  user session found, unauthenticated');
     }
     notifyListeners();
   }
@@ -99,11 +105,18 @@ class AuthProvider extends ChangeNotifier {
     if (response.success && response.data?['message'] == 'OTP sent') {
       _logger.logAuth('✅ OTP sent successfully');
       return (true, 'OTP sent successfully');
-    } else if (response.statusCode == 400 && response.message == 'User Not Found') {
-      _logger.logAuth('❌ User not found for employeeId: $employeeId', level: LogLevel.error);
+    } else if (response.statusCode == 400 &&
+        response.message == 'User Not Found') {
+      _logger.logAuth(
+        '❌ User not found for employeeId: $employeeId',
+        level: LogLevel.error,
+      );
       return (false, 'User not found. Please check your Employee ID.');
     } else {
-      _logger.logAuth('❌ Failed to get OTP: ${response.message}', level: LogLevel.error);
+      _logger.logAuth(
+        '❌ Failed to get OTP: ${response.message}',
+        level: LogLevel.error,
+      );
       return (false, response.message ?? 'Something went wrong');
     }
   }
@@ -111,13 +124,19 @@ class AuthProvider extends ChangeNotifier {
   // Verify OTP
   Future<bool> verifyOtp(String employeeId, int otp) async {
     _logger.logAuth('Verifying OTP for employeeId: $employeeId');
-    final response = await _authService.verifyOtp(employeeId: employeeId, otp: otp);
+    final response = await _authService.verifyOtp(
+      employeeId: employeeId,
+      otp: otp,
+    );
 
     if (response.success) {
       _logger.logAuth('OTP verified successfully');
       return true; // UI can navigate to change password page
     } else {
-      _logger.logAuth('OTP verification failed: ${response.message}', level: LogLevel.error);
+      _logger.logAuth(
+        'OTP verification failed: ${response.message}',
+        level: LogLevel.error,
+      );
       return false;
     }
   }
@@ -134,7 +153,10 @@ class AuthProvider extends ChangeNotifier {
       _logger.logAuth('Password changed successfully');
       return true; // UI can navigate to login page
     } else {
-      _logger.logAuth('Password change failed: ${response.message}', level: LogLevel.error);
+      _logger.logAuth(
+        'Password change failed: ${response.message}',
+        level: LogLevel.error,
+      );
       return false;
     }
   }
@@ -147,7 +169,10 @@ class AuthProvider extends ChangeNotifier {
     if (success) {
       _logger.logAuth('✅ OTP resent successfully');
     } else {
-      _logger.logAuth('❌ Failed to resend OTP: $message', level: LogLevel.error);
+      _logger.logAuth(
+        '❌ Failed to resend OTP: $message',
+        level: LogLevel.error,
+      );
     }
 
     return (success, message);
