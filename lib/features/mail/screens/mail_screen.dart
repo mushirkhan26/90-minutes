@@ -3,12 +3,13 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/network/mail_service.dart';
+import 'package:hrtz_hrms/core/extensions/secure_storage_extension.dart';
+import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/mail/widgets/mail_tile.dart';
 import 'package:provider/provider.dart';
 import '../../../config/navigation/app_routes.dart';
-import '../../../core/models/employee.dart';
 
 class MailScreen extends StatefulWidget {
   const MailScreen({super.key});
@@ -19,7 +20,7 @@ class MailScreen extends StatefulWidget {
 
 class _MailScreenState extends State<MailScreen> {
   final MailService employeeService = MailService(baseUrl2: ApiHelper.baseUrl2);
-  late Future<List<Employee>> employeeFuture;
+  late Future<List<EmployeeModel>> employeeFuture;
   late String employeeID;
 
   @override
@@ -28,7 +29,7 @@ class _MailScreenState extends State<MailScreen> {
   }
 
   void getData() async {
-    employeeID = (await SecureStorageService().getUserData())?['employee_id'];
+    employeeID = await context.getCurrentEmployeeId() ?? '';
   }
 
   @override

@@ -169,12 +169,12 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     final data = await SecureStorageService().getUserData();
     _fromController.text =
         '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
-    // employeeSuggestions.addAll(
-    //   (await LocalStorageService().getEmployee())
-    //           ?.map((e) => '${e.employeeId} - ${e.name}')
-    //           .toList() ??
-    //       [],
-    // );
+    employeeSuggestions.addAll(
+      (await LocalStorageService().getEmployeeList())
+              ?.map((e) => '${e.employeeID} - ${e.name}')
+              .toList() ??
+          [],
+    );
   }
 
   @override

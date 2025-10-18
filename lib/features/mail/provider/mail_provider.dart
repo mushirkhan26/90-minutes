@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
-import 'package:hrtz_hrms/core/models/employee.dart';
+import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/api/network/mail_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
@@ -15,7 +15,7 @@ class MailProvider extends ChangeNotifier {
   List<Mail> _inbox = [];
   List<Mail> _sent = [];
   List<Mail> _trash = [];
-  List<Employee> _employee = [];
+  List<EmployeeModel> _employee = [];
 
   bool _isLoading = false;
   String? _error;
@@ -25,7 +25,7 @@ class MailProvider extends ChangeNotifier {
   List<Mail> get inbox => _inbox;
   List<Mail> get sent => _sent;
   List<Mail> get trash => _trash;
-  List<Employee> get employee => _employee;
+  List<EmployeeModel> get employee => _employee;
 
   void _setLoading(bool loading) {
     _isLoading = loading;
@@ -45,12 +45,12 @@ class MailProvider extends ChangeNotifier {
       final employeeId = (await secureStorageService
           .getUserData())!['employeeId'];
       _inbox = await mailService.getInbox(employeeId ?? '25060018');
-      // if ((await _localStorage.getEmployee()) == null) {
-      //   _employee = await mailService.getEmployee();
-      //   _localStorage.saveEmployee(_employee);
-      // } else {
-      //   _employee = await _localStorage.getEmployee() ?? [];
-      // }
+      if ((await _localStorage.getEmployeeList()) == null) {
+        _employee = await mailService.getEmployee();
+        _localStorage.saveEmployeeList(_employee);
+      } else {
+        _employee = await _localStorage.getEmployeeList() ?? [];
+      }
     } catch (e) {
       _setError(e.toString());
     }

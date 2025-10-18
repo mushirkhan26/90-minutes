@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:hrtz_hrms/core/models/employee.dart';
+import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:http/http.dart' as http;
 
 import '../../models/mail_model.dart';
@@ -38,7 +38,7 @@ class MailService {
   }
 
   // Get Employee
-  Future<List<Employee>> getEmployee() async {
+  Future<List<EmployeeModel>> getEmployee() async {
     final response = await http.get(
       Uri.parse(
         'https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/employee/employeeList',
@@ -47,7 +47,7 @@ class MailService {
     if (response.statusCode == 200 &&
         jsonDecode(response.body)['message'] is List) {
       final data = (jsonDecode(response.body)['message'] as List);
-      return data.map((json) => Employee.fromJson(json)).toList();
+      return data.map((json) => EmployeeModel.fromJson(json)).toList();
     } else {
       throw Exception('Failed to get employee list');
     }
