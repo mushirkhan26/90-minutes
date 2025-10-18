@@ -29,25 +29,22 @@ class _NavigationHostState extends State<NavigationHost> {
 
   Future<void> _joinUserToSocket() async {
     try {
-      // Fetch user data from SecureStorageService
       final userData = await SecureStorageService().getUserData();
-
       if (userData != null && userData['employeeId'] != null && userData['username'] != null) {
-        // Get SocketProvider from context and join the user
         final socketProvider = context.read<SocketProvider>();
         await socketProvider.joinUser(userData['employeeId'], userData['username']);
+        // Initialize event listeners AFTER joining the room
+        socketProvider.init();
         LoggingService.instance.logNetwork(
-          'User joined socket successfully: ${userData['employeeId']}',
+          'User joined socket and initialized listeners: ${userData['employeeId']}, ${userData["userName"]}',
         );
       } else {
-        // Log missing user data
         LoggingService.instance.error(
           'NavigationHost',
           'Failed to fetch user details: employeeId or username is null',
         );
       }
     } catch (e) {
-      // Log errors
       LoggingService.instance.error('NavigationHost', 'Failed to join user to socket', error: e);
     }
   }
