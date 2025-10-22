@@ -5,7 +5,6 @@ import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/network/mail_service.dart';
 import 'package:hrtz_hrms/core/extensions/secure_storage_extension.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/mail/widgets/mail_tile.dart';
 import 'package:provider/provider.dart';
@@ -43,10 +42,7 @@ class _MailScreenState extends State<MailScreen> {
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(color: AppColors.primary),
-                child: Text(
-                  "Mail Menu",
-                  style: TextStyle(color: Colors.white, fontSize: 22),
-                ),
+                child: Text("Mail Menu", style: TextStyle(color: Colors.white, fontSize: 22)),
               ),
               ListTile(leading: Icon(Icons.inbox), title: Text("Inbox")),
               ListTile(
@@ -82,10 +78,7 @@ class _MailScreenState extends State<MailScreen> {
                   hintText: "Search mail...",
                   filled: true,
                   fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(
-                    vertical: 0,
-                    horizontal: 12,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
                     borderSide: BorderSide.none,

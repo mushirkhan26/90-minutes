@@ -21,14 +21,21 @@ class SocketProvider extends ChangeNotifier {
   /// Typing indicators (userId -> isTyping)
   final Map<String, bool> _typingIndicators = {};
 
+  /// ✨ Optional: Keep track of pending messages (for UI loaders etc.)
+  final Set<String> _pendingMessages = {};
+
   /// Getters
   List<String> get onlineUsers => List.unmodifiable(_onlineUsers);
   List<ChatMessageModel> get messages => List.unmodifiable(_messages);
   Map<String, bool> get typingIndicators => Map.unmodifiable(_typingIndicators);
+  Set<String> get pendingMessages => _pendingMessages;
 
   // Add a method to update a specific message
+  /// 🆕 Helper to update a message by either MongoDB _id or messageId (fallback)
   void _updateMessage(ChatMessageModel updatedMessage) {
-    final index = _messages.indexWhere((m) => m.messageId == updatedMessage.messageId);
+    final index = _messages.indexWhere(
+      (m) => m.id == updatedMessage.id || m.messageId == updatedMessage.messageId,
+    );
     if (index != -1) {
       _messages[index] = updatedMessage;
     }
@@ -36,31 +43,67 @@ class SocketProvider extends ChangeNotifier {
 
   /// Initializes socket event listeners.
   void init() {
+    /// 🟢 Online Users Listener
     _manager.registerEvent('onlineUsers', (data) {
       _onlineUsers = List<String>.from(data);
       notifyListeners();
-      _logger.logNetwork("Online users updated: $_onlineUsers");
+      _logger.logNetwork("[Socket] Online users updated: $_onlineUsers");
     });
 
+    /// 📨 Receive Message Listener (this is now the only place where message is added to local)
     _manager.registerEvent('receiveMessage', (data) async {
-      final message = ChatMessageModel.fromBackendMap(data);
-      _messages.add(message);
+      _logger.logNetwork("[Socket] Incoming raw message data: $data");
 
-      // Save to local storage if conversationId is available
+      final message = ChatMessageModel.fromBackendMap(data);
+
+      // 🆕 Check duplicates using either `id` (MongoDB) or `messageId` (client)
+      final exists = _messages.any(
+        (m) =>
+            (message.id != null && m.id == message.id) ||
+            (message.messageId != null && m.messageId == message.messageId),
+      );
+
+      if (exists) {
+        _logger.warning(
+          "[Socket] Duplicate message ignored: ",
+          "${message.id ?? message.messageId}",
+        );
+        return;
+      }
+
+      // 🟢 Remove pending state if matches client messageId
+      if (message.messageId != null) {
+        _pendingMessages.remove(message.messageId);
+      }
+
+      _messages.add(message);
+      _logger.logNetwork(
+        "[Socket] Message added locally: id=${message.id} | messageId=${message.messageId}",
+      );
+
       if (message.conversationId != null) {
         final existingMessages = await _localStorage.getChatMessages(message.conversationId!);
         existingMessages.add(message);
         await _localStorage.saveChatMessages(message.conversationId!, existingMessages);
+        _logger.logNetwork(
+          "[LocalStorage] Message saved for conversation: ${message.conversationId}",
+        );
       }
 
       notifyListeners();
-      _logger.logNetwork("New message received: ${message.messageId}");
     });
 
+    /// 📬 Status Updates (unchanged)
+    /// 📬 Status Update (read/delivered) — now lookup by id first
     _manager.registerEvent('messageStatusUpdate', (data) async {
-      final messageId = data['messageId'];
+      final mongoId = data['_id'];
+      final clientId = data['messageId'];
       final status = data['status'];
-      final index = _messages.indexWhere((m) => m.messageId == messageId);
+
+      final index = _messages.indexWhere(
+        (m) =>
+            (mongoId != null && m.id == mongoId) || (clientId != null && m.messageId == clientId),
+      );
 
       if (index != -1) {
         ChatMessageModel updatedMessage;
@@ -72,24 +115,27 @@ class SocketProvider extends ChangeNotifier {
           return;
         }
 
-        _updateMessage(updatedMessage);
-
-        // Update in local storage if conversationId is available
+        _messages[index] = updatedMessage;
         if (updatedMessage.conversationId != null) {
           await _localStorage.updateChatMessage(updatedMessage.conversationId!, updatedMessage);
         }
 
         notifyListeners();
-        _logger.logNetwork("Message status updated: $messageId -> $status");
+        _logger.logNetwork("[Socket] Message status updated: ${mongoId ?? clientId} -> $status");
       }
     });
 
+    /// 🗑️ Delete
     _manager.registerEvent('messageDeleted', (data) async {
-      final messageId = data['messageId'];
+      final mongoId = data['_id'];
+      final clientId = data['messageId'];
       final conversationId = data['conversationId'];
 
-      // Mark as deleted instead of removing
-      final index = _messages.indexWhere((m) => m.messageId == messageId);
+      final index = _messages.indexWhere(
+        (m) =>
+            (mongoId != null && m.id == mongoId) || (clientId != null && m.messageId == clientId),
+      );
+
       if (index != -1) {
         final updatedMessage = _messages[index].copyWith(
           isDeleted: true,
@@ -98,21 +144,19 @@ class SocketProvider extends ChangeNotifier {
         );
         _updateMessage(updatedMessage);
 
-        // Update in local storage if conversationId is available
         if (conversationId != null) {
           await _localStorage.updateChatMessage(conversationId, updatedMessage);
         }
       }
 
       notifyListeners();
-      _logger.logNetwork("Message deleted: $messageId");
+      _logger.logNetwork("Message deleted: ${mongoId ?? clientId}");
     });
 
     _manager.registerEvent('conversationCleared', (data) async {
       final conversationId = data['conversationId'];
       _messages.removeWhere((m) => m.conversationId == conversationId);
 
-      // Clear from local storage if conversationId is available
       if (conversationId != null) {
         await _localStorage.clearConversationMessages(conversationId);
       }
@@ -140,61 +184,53 @@ class SocketProvider extends ChangeNotifier {
     await _manager.leave();
   }
 
-  /// Sends a message to a receiver.
+  /// ✨ Send Message - No local save anymore, only emit
   Future<void> sendMessage({
     required String sender,
     required String senderName,
     required String receiver,
     required String text,
-    required String messageId, // Now required from frontend
+    required String messageId,
     String? conversationId,
     String messageType = 'text',
     String? fileName,
     String? fileUrl,
     String? replyTo,
   }) async {
-    final timestamp = DateTime.now();
+    // 🟡 Log the outgoing payload
+    final payload = {
+      'sender': sender,
+      'senderName': senderName,
+      'receiver': receiver,
+      'text': text,
+      'messageId': messageId,
+      'conversationId': conversationId,
+      'messageType': messageType,
+      'fileName': fileName,
+      'fileUrl': fileUrl,
+      'replyTo': replyTo,
+    };
+    _logger.logNetwork("[Socket] Sending message payload: $payload");
 
-    // Create the message object with frontend-generated ID
-    final message = ChatMessageModel(
-      message: text,
-      sender: sender,
-      timestamp: timestamp,
-      messageType: messageType,
-      fileUrl: fileUrl,
-      fileName: fileName,
-      messageId: messageId,
-      conversationId: conversationId,
-      replyTo: replyTo,
-      read: false,
-      delivered: false,
-      isDeleted: false,
-    );
-
-    // Add to local messages immediately
-    _messages.add(message);
+    // 🕒 Add to pending state (optional UI loader)
+    _pendingMessages.add(messageId);
     notifyListeners();
 
-    // Save to local storage if conversationId is available
-    if (conversationId != null) {
-      final existingMessages = await _localStorage.getChatMessages(conversationId);
-      existingMessages.add(message);
-      await _localStorage.saveChatMessages(conversationId, existingMessages);
-    }
-
-    // Send through socket
+    // 🚀 Send through socket manager
     await _manager.sendMessage(
       sender: sender,
       senderName: senderName,
       receiver: receiver,
       text: text,
-      messageId: messageId, // Pass the frontend-generated ID
+      messageId: messageId,
       conversationId: conversationId,
       messageType: messageType,
       fileName: fileName,
       fileUrl: fileUrl,
       replyTo: replyTo,
     );
+
+    _logger.logNetwork("[Socket] Message emit completed for: $messageId");
   }
 
   /// Marks a message as deleted (instead of actually deleting)
@@ -203,8 +239,8 @@ class SocketProvider extends ChangeNotifier {
     required String userId,
     String? conversationId,
   }) async {
-    // Find the message and update it
-    final index = _messages.indexWhere((m) => m.messageId == messageId);
+    final index = _messages.indexWhere((m) => m.id == messageId || m.messageId == messageId);
+
     if (index != -1) {
       final updatedMessage = _messages[index].copyWith(
         isDeleted: true,
@@ -213,7 +249,6 @@ class SocketProvider extends ChangeNotifier {
       );
       _updateMessage(updatedMessage);
 
-      // Update in local storage if conversationId is available
       if (conversationId != null) {
         await _localStorage.updateChatMessage(conversationId, updatedMessage);
       }
@@ -221,7 +256,6 @@ class SocketProvider extends ChangeNotifier {
       notifyListeners();
     }
 
-    // Send delete request to server
     await _manager.deleteMessage(
       messageId: messageId,
       userId: userId,
@@ -242,13 +276,12 @@ class SocketProvider extends ChangeNotifier {
   Future<void> markMessageAsRead({required String messageId, required String userId}) async {
     await _manager.markMessageAsRead(messageId: messageId, userId: userId);
 
-    // Update local message status
-    final index = _messages.indexWhere((m) => m.messageId == messageId);
+    final index = _messages.indexWhere((m) => m.id == messageId || m.messageId == messageId);
+
     if (index != -1) {
       _messages[index] = _messages[index].copyWith(read: true);
       notifyListeners();
 
-      // Update in local storage if conversationId is available
       if (_messages[index].conversationId != null) {
         await _localStorage.updateChatMessage(_messages[index].conversationId!, _messages[index]);
       }
@@ -292,10 +325,25 @@ class SocketProvider extends ChangeNotifier {
     await _localStorage.clearConversationMessages(conversationId);
   }
 
+  void clearConversationMemory(String conversationId, {bool notify = true}) {
+    _messages.removeWhere((m) => m.conversationId == conversationId);
+    if (notify) notifyListeners();
+  }
+
   /// Load messages for a specific conversation
   Future<void> loadConversationMessages(String conversationId) async {
     final messages = await _localStorage.getChatMessages(conversationId);
-    _messages.addAll(messages);
+
+    // Clear old messages of this conversation
+    _messages.removeWhere((m) => m.conversationId == conversationId);
+
+    // Deduplicate just in case
+    final existingIds = _messages.map((m) => m.id ?? m.messageId).toSet();
+    final uniqueMessages = messages
+        .where((m) => !existingIds.contains(m.id ?? m.messageId))
+        .toList();
+
+    _messages.addAll(uniqueMessages);
     notifyListeners();
   }
 

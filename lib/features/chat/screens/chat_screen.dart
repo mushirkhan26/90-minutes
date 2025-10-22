@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
+import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
@@ -36,6 +37,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late final VoidCallback _socketListener;
   late final SocketProvider _socketProvider;
   final FileUploadService _fileUploadService = FileUploadService();
   final Uuid _uuid = Uuid();
@@ -50,6 +52,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _socketProvider = context.read<SocketProvider>();
+    _socketListener = () {
+      _logger.info('CHAT_SCREEN', '🔔 SocketProvider listener triggered - messages updated');
+      if (mounted) setState(() {});
+    };
+    _socketProvider.addListener(_socketListener);
+
     WidgetsBinding.instance.addObserver(this);
     _registerSocketEvents();
     _loadInitialMessages();
@@ -62,11 +70,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();
+    // Remove listener
+    _socketProvider.removeListener(_socketListener);
+    // Clear conversation messages from provider memory
+    _socketProvider.clearConversationMemory(_generateConversationId(), notify: false);
     super.dispose();
   }
 
+  // 🆕 inside _registerSocketEvents()
+  // Add log to see when new message received or socket state updated
   void _registerSocketEvents() {
     _socketProvider.addListener(() {
+      _logger.info('CHAT_SCREEN', '🔔 SocketProvider listener triggered - messages updated');
+      _logger.info('CHAT_SCREEN', '📥 Total messages now: ${_socketProvider.messages.length}');
+
       if (mounted) {
         setState(() {});
         if (_isAtBottom) {
@@ -76,14 +93,20 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     });
   }
 
+  // 🆕 inside _loadInitialMessages()
+  // Added logs to track what conversationId is loaded and how many messages received
   Future<void> _loadInitialMessages() async {
     setState(() => _isLoading = true);
+    final conversationId = _generateConversationId();
+    _logger.info('CHAT_SCREEN', '📡 Loading messages for conversationId: $conversationId');
+
     try {
-      final conversationId = _generateConversationId();
       await _socketProvider.loadConversationMessages(conversationId);
+      final totalMessages = _socketProvider.getConversationMessages(conversationId).length;
+      _logger.info('CHAT_SCREEN', '✅ Messages loaded successfully. Count: $totalMessages');
       setState(() => _isLoading = false);
     } catch (e) {
-      _logger.error('CHAT_SCREEN', 'Failed to load messages', error: e);
+      _logger.error('CHAT_SCREEN', '❌ Failed to load messages', error: e);
       setState(() => _isLoading = false);
     }
   }
@@ -174,11 +197,26 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
+  // 🆕 inside _sendMessage()
+  // Added detailed logs to see exactly what data is being sent to the socket
   Future<void> _sendMessage({String? text, String? fileUrl, String type = 'text'}) async {
     if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
+
     final conversationId = _generateConversationId();
     final messageId = _uuid.v4();
     final timestamp = DateTime.now();
+
+    _logger.logNetwork(
+      '✉️ Sending message:\n'
+      '  conversationId: $conversationId\n'
+      '  sender: ${widget.currentUserId}\n'
+      '  receiver: ${widget.otherUserId}\n'
+      '  type: $type\n'
+      '  messageId: $messageId\n'
+      '  text: $text\n'
+      '  fileUrl: $fileUrl\n'
+      '  timestamp: $timestamp',
+    );
 
     await _socketProvider.sendMessage(
       sender: widget.currentUserId,
@@ -190,6 +228,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       messageType: type,
       fileUrl: fileUrl,
     );
+
+    _logger.info('CHAT_SCREEN', '✅ Message sent successfully - ID: $messageId');
+
     _messageController.clear();
     _scrollToBottom();
   }
@@ -222,14 +263,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   void _showMessageOptionsBottomSheet(
     BuildContext context,
-    String messageId, {
+    String localMessageId, {
     String? textToCopy,
     bool isMedia = false,
   }) {
     final message = _socketProvider.messages.firstWhere(
-      (m) => m.messageId == messageId,
+      (m) => m.messageId == localMessageId || m.id == localMessageId,
       orElse: () => throw Exception('Message not found'),
     );
+
+    // 👇 always prefer mongoId when doing backend operations
+    final backendId = message.id ?? message.messageId;
+
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -278,7 +323,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _confirmDeleteMessage(messageId);
+                  _confirmDeleteMessage(backendId!);
                 },
               ),
             ],
@@ -310,17 +355,28 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     );
   }
 
-  void _deleteMessage(String messageId) async {
+  // 🆕 inside _deleteMessage()
+  // Added logs to track delete request and response
+  void _deleteMessage(String backendMessageId) async {
     final conversationId = _generateConversationId();
+    _logger.logNetwork(
+      '🗑️ Unsend message request:\n'
+      '  mongoId: $backendMessageId\n'
+      '  conversationId: $conversationId\n'
+      '  userId: ${widget.currentUserId}',
+    );
+
     try {
       await _socketProvider.markMessageAsDeleted(
-        messageId: messageId,
+        messageId: backendMessageId, // mongoId
         userId: widget.currentUserId,
         conversationId: conversationId,
       );
+      _logger.info('CHAT_SCREEN', '✅ Message unsent successfully - ID: $backendMessageId');
+
       if (mounted) setState(() {});
     } catch (e) {
-      _logger.error('CHAT_SCREEN', 'Failed to delete message', error: e);
+      _logger.error('CHAT_SCREEN', '❌ Failed to unsend message', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -329,6 +385,18 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           ),
         );
       }
+    }
+  }
+
+  void _markMessageAsRead(ChatMessageModel message) async {
+    // 👇 only if it's not sent by me, not already read, and we have a mongoId
+    final isNotMine = message.sender != widget.currentUserId;
+    final isUnread = message.read != true;
+    final hasMongoId = message.id != null;
+
+    if (isNotMine && isUnread && hasMongoId) {
+      await _socketProvider.markMessageAsRead(messageId: message.id!, userId: widget.currentUserId);
+      _logger.logNetwork("👁 Marked message as read [${message.id}]");
     }
   }
 
@@ -371,6 +439,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                         itemBuilder: (context, index) {
                           final message = conversationMessages[index];
                           final isMe = message.sender == widget.currentUserId;
+                          // 👇 Mark as read when rendering other user's messages
+                          if (!isMe) _markMessageAsRead(message);
                           final previousMessage = index > 0
                               ? conversationMessages[index - 1]
                               : null;

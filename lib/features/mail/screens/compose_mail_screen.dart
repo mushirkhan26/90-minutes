@@ -36,15 +36,10 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
         title: const Text("Add Attachment URL"),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(
-            hintText: "https://example.com/file.pdf",
-          ),
+          decoration: const InputDecoration(hintText: "https://example.com/file.pdf"),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancel"),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -64,18 +59,18 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
   void _sendMail() {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSending = true);
-    final temp = {
-      "sender": "25060018",
-      "senderName": "John Doe",
-      "senderProfileUrl": "https://example.com/profiles/25060018.png",
-      "receiver": ["25060019", "25060020"],
-      "receiverName": ["Jane Smith", "Mark Lee"],
-      "cc": ["25060021"],
-      "bcc": [],
-      "subject": "Project Kickoff Meeting",
-      "body": "Hi team, please find the meeting schedule attached.",
-      "attachmentUrls": ["https://example.com/docs/meeting-schedule.pdf"],
-    };
+    // final temp = {
+    //   "sender": "25060018",
+    //   "senderName": "John Doe",
+    //   "senderProfileUrl": "https://example.com/profiles/25060018.png",
+    //   "receiver": ["25060019", "25060020"],
+    //   "receiverName": ["Jane Smith", "Mark Lee"],
+    //   "cc": ["25060021"],
+    //   "bcc": [],
+    //   "subject": "Project Kickoff Meeting",
+    //   "body": "Hi team, please find the meeting schedule attached.",
+    //   "attachmentUrls": ["https://example.com/docs/meeting-schedule.pdf"],
+    // };
     final mailData = {
       "sender": _fromController.text,
       "to": _toController.text.split(',').map((e) => e.trim()).toList(),
@@ -91,9 +86,9 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Mail sent successfully!")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Mail sent successfully!")));
         Navigator.pop(context);
       }
     });
@@ -107,8 +102,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     final filtered = employeeSuggestions
         .where(
           (s) =>
-              controller.text.isNotEmpty &&
-              s.toLowerCase().contains(controller.text.toLowerCase()),
+              controller.text.isNotEmpty && s.toLowerCase().contains(controller.text.toLowerCase()),
         )
         .toList();
     return Column(
@@ -167,8 +161,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
 
   getEmployees() async {
     final data = await SecureStorageService().getUserData();
-    _fromController.text =
-        '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
+    _fromController.text = '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
     employeeSuggestions.addAll(
       (await LocalStorageService().getEmployeeList())
               ?.map((e) => '${e.employeeID} - ${e.name}')
@@ -184,10 +177,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
         appBar: AppBar(
           title: const Text("Compose Mail"),
           actions: [
-            IconButton(
-              icon: const Icon(Icons.attach_file),
-              onPressed: _addAttachmentDialog,
-            ),
+            IconButton(icon: const Icon(Icons.attach_file), onPressed: _addAttachmentDialog),
             IconButton(icon: const Icon(Icons.send), onPressed: _sendMail),
           ],
         ),
@@ -203,10 +193,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                   decoration: const InputDecoration(
                     labelText: "From",
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: AppColors.primary,
-                        width: 1.0,
-                      ),
+                      borderSide: BorderSide(color: AppColors.primary, width: 1.0),
                     ),
                   ),
                 ),
@@ -232,9 +219,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                         "Cc",
                         style: TextStyle(
                           color: showCc ? AppColors.primary : Colors.grey[600],
-                          fontWeight: showCc
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight: showCc ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -249,9 +234,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                         "Bcc",
                         style: TextStyle(
                           color: showBcc ? AppColors.primary : Colors.grey[600],
-                          fontWeight: showBcc
-                              ? FontWeight.bold
-                              : FontWeight.normal,
+                          fontWeight: showBcc ? FontWeight.bold : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -281,14 +264,10 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                   decoration: const InputDecoration(
                     labelText: "Subject",
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(
-                        color: AppColors.primary,
-                        width: 1.0,
-                      ),
+                      borderSide: BorderSide(color: AppColors.primary, width: 1.0),
                     ),
                   ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? "Subject required" : null,
+                  validator: (v) => v == null || v.isEmpty ? "Subject required" : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
@@ -299,26 +278,21 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                     labelText: "Message",
                     alignLabelWithHint: true,
                   ),
-                  validator: (v) =>
-                      v == null || v.isEmpty ? "Message body required" : null,
+                  validator: (v) => v == null || v.isEmpty ? "Message body required" : null,
                 ),
                 const SizedBox(height: 20),
                 if (attachments.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        "Attachments:",
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
+                      const Text("Attachments:", style: TextStyle(fontWeight: FontWeight.bold)),
                       ...attachments.map(
                         (url) => ListTile(
                           leading: const Icon(Icons.insert_drive_file),
                           title: Text(url, overflow: TextOverflow.ellipsis),
                           trailing: IconButton(
                             icon: const Icon(Icons.close),
-                            onPressed: () =>
-                                setState(() => attachments.remove(url)),
+                            onPressed: () => setState(() => attachments.remove(url)),
                           ),
                         ),
                       ),

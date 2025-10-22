@@ -42,8 +42,7 @@ class MailProvider extends ChangeNotifier {
     _setLoading(true);
     _setError(null);
     try {
-      final employeeId = (await secureStorageService
-          .getUserData())!['employeeId'];
+      final employeeId = (await secureStorageService.getUserData())!['employeeId'];
       _inbox = await mailService.getInbox(employeeId ?? '25060018');
       if ((await _localStorage.getEmployeeList()) == null) {
         _employee = await mailService.getEmployee();
@@ -87,9 +86,7 @@ class MailProvider extends ChangeNotifier {
     _setError(null);
     try {
       final sentMail = await mailService.sendMail(body);
-      if (sentMail != null) {
-        _sent.insert(0, sentMail);
-      }
+      _sent.insert(0, sentMail);
     } catch (e) {
       _setError(e.toString());
     }
@@ -191,21 +188,13 @@ class MailProvider extends ChangeNotifier {
   }
 
   /// Restore many mails from trash
-  Future<void> restoreManyFromTrash(
-    String employeeId,
-    List<String> mailIds,
-  ) async {
+  Future<void> restoreManyFromTrash(String employeeId, List<String> mailIds) async {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await mailService.restoreManyFromTrash(
-        employeeId,
-        mailIds,
-      );
+      final success = await mailService.restoreManyFromTrash(employeeId, mailIds);
       if (success) {
-        final mailsToRestore = _trash
-            .where((m) => mailIds.contains(m.id))
-            .toList();
+        final mailsToRestore = _trash.where((m) => mailIds.contains(m.id)).toList();
         _trash.removeWhere((m) => mailIds.contains(m.id));
         _inbox.addAll(mailsToRestore);
       }
