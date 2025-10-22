@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
+import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart' show AuthProvider;
 import 'package:hrtz_hrms/features/chat/widgtes/employee_list_card.dart';
 import 'package:hrtz_hrms/widgets/custom_search_bar.dart';
@@ -108,6 +109,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     itemCount: _filteredEmployees.length,
                     itemBuilder: (context, index) {
                       final employee = _filteredEmployees[index];
+
+                      final unreadCount =
+                          context.watch<SocketProvider>().unreadCounts[employee.employeeID] ?? 0;
                       return EmployeeListCard(
                         name: employee.name,
                         message: 'Tap to start chat',
@@ -120,7 +124,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                             otherUserName: employee.name,
                           );
                         },
-                        unreadCount: 0, // You can implement unread count logic later
+                        unreadCount: unreadCount, // You can implement unread count logic later
                         isAccountDeleted: false,
                       );
                     },

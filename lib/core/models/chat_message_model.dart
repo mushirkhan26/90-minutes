@@ -1,8 +1,7 @@
-import 'package:hrtz_hrms/core/services/logger_service.dart';
+// import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class ChatMessageModel {
   /// 🆔 MongoDB `_id` — only present for messages received from the backend
-  /// Used for read / deliver / delete operations via sockets
   String? id;
 
   /// 📝 Message content
@@ -10,6 +9,9 @@ class ChatMessageModel {
 
   /// 👤 Sender's ID
   String? sender;
+
+  /// 🧑 Sender's display name ✅ (new)
+  String? senderName;
 
   /// 🕒 Timestamp when the message was sent
   DateTime timestamp;
@@ -42,9 +44,10 @@ class ChatMessageModel {
   String? replyTo;
 
   ChatMessageModel({
-    this.id, // null when sending a new message
+    this.id,
     this.message,
     this.sender,
+    this.senderName, // ✅ added
     required this.timestamp,
     this.messageType = 'text',
     this.fileUrl,
@@ -60,9 +63,10 @@ class ChatMessageModel {
   /// 🏗️ From backend message (includes MongoDB _id)
   factory ChatMessageModel.fromBackendMap(Map<String, dynamic> map) {
     final msg = ChatMessageModel(
-      id: map['_id'], // ✅ id is only set here
+      id: map['_id'],
       message: map['text'],
       sender: map['sender'],
+      senderName: map['senderName'], // ✅ capture name from backend
       timestamp: DateTime.parse(map['timestamp']),
       messageType: map['messageType'] ?? 'text',
       fileUrl: map['fileUrl'],
@@ -75,20 +79,21 @@ class ChatMessageModel {
       replyTo: map['replyTo'],
     );
 
-    LoggingService.instance.logNetwork(
-      "📥 Received message from backend: ${msg.toString()}",
-      level: LogLevel.debug,
-    );
+    // LoggingService.instance.logNetwork(
+    //   "📥 Received message from backend: ${msg.toString()}",
+    //   level: LogLevel.debug,
+    // );
 
     return msg;
   }
 
-  /// 💾 From local storage (id may be null for unsent messages)
+  /// 💾 From local storage
   factory ChatMessageModel.fromLocalMap(Map<String, dynamic> map) {
     final msg = ChatMessageModel(
-      id: map['_id'], // May be null
+      id: map['_id'],
       message: map['message'],
       sender: map['sender'],
+      senderName: map['senderName'], // ✅ load from local
       timestamp: DateTime.parse(map['timestamp']),
       messageType: map['type'] ?? map['messageType'] ?? 'text',
       fileUrl: map['mediaUrl'] ?? map['fileUrl'],
@@ -101,20 +106,21 @@ class ChatMessageModel {
       replyTo: map['replyTo'],
     );
 
-    LoggingService.instance.logStorage(
-      "💾 Loaded message from local: ${msg.toString()}",
-      level: LogLevel.debug,
-    );
+    // LoggingService.instance.logStorage(
+    //   "💾 Loaded message from local: ${msg.toString()}",
+    //   level: LogLevel.debug,
+    // );
 
     return msg;
   }
 
-  /// 🧭 To local map (id might be null for new messages)
+  /// 🧭 To local map
   Map<String, dynamic> toLocalMap() {
     final map = {
       '_id': id,
       'message': message,
       'sender': sender,
+      'senderName': senderName, // ✅ save name locally
       'timestamp': timestamp.toIso8601String(),
       'type': messageType,
       'messageType': messageType,
@@ -129,16 +135,16 @@ class ChatMessageModel {
       'replyTo': replyTo,
     };
 
-    LoggingService.instance.logStorage("💽 Saved message to local: $map", level: LogLevel.debug);
-
+    // LoggingService.instance.logStorage("💽 Saved message to local: $map", level: LogLevel.debug);
     return map;
   }
 
-  /// 🌐 To backend map (id only if already assigned by server)
+  /// 🌐 To backend map (senderName included ✅)
   Map<String, dynamic> toBackendMap() {
     final map = {
-      if (id != null) '_id': id, // ✅ only include if exists
+      if (id != null) '_id': id,
       'sender': sender,
+      'senderName': senderName, // ✅ include when sending
       'receiver': '', // Will be set dynamically when sending
       'text': message,
       'timestamp': timestamp.toIso8601String(),
@@ -150,11 +156,10 @@ class ChatMessageModel {
       'delivered': delivered,
       'read': read,
       'isDeleted': isDeleted,
-      'messageId': messageId, // client generated id always included
+      'messageId': messageId,
     };
 
-    LoggingService.instance.logNetwork("📤 Sending message to backend: $map", level: LogLevel.info);
-
+    // LoggingService.instance.logNetwork("📤 Sending message to backend: $map", level: LogLevel.info);
     return map;
   }
 
@@ -163,6 +168,7 @@ class ChatMessageModel {
     String? id,
     String? message,
     String? sender,
+    String? senderName, // ✅ added
     DateTime? timestamp,
     String? messageType,
     String? fileUrl,
@@ -178,6 +184,7 @@ class ChatMessageModel {
       id: id ?? this.id,
       message: message ?? this.message,
       sender: sender ?? this.sender,
+      senderName: senderName ?? this.senderName, // ✅
       timestamp: timestamp ?? this.timestamp,
       messageType: messageType ?? this.messageType,
       fileUrl: fileUrl ?? this.fileUrl,
@@ -194,9 +201,10 @@ class ChatMessageModel {
   @override
   String toString() {
     return 'ChatMessageModel('
-        '_id: $id, ' // ✅ id may be null for unsent messages
+        '_id: $id, '
         'message: $message, '
         'sender: $sender, '
+        'senderName: $senderName, ' // ✅ added in log
         'timestamp: $timestamp, '
         'messageType: $messageType, '
         'fileUrl: $fileUrl, '

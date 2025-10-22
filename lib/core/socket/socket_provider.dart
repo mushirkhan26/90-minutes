@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/models/chat_message_model.dart';
+import 'package:hrtz_hrms/core/services/local_notifications_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'socket_manager.dart';
 
 /// Provider class to manage socket state and notify listeners.
@@ -11,6 +13,7 @@ class SocketProvider extends ChangeNotifier {
   final SocketManager _manager = SocketManager.instance;
   final LocalStorageService _localStorage = LocalStorageService();
   final LoggingService _logger = LoggingService.instance;
+  final LocalNotificationService _notificationService = LocalNotificationService();
 
   /// List of online users
   List<String> _onlineUsers = [];
@@ -24,14 +27,18 @@ class SocketProvider extends ChangeNotifier {
   /// ✨ Optional: Keep track of pending messages (for UI loaders etc.)
   final Set<String> _pendingMessages = {};
 
+  // 🆕 unread tracking
+  final Map<String, int> _unreadCounts = {}; // userId -> unreadCount
+
   /// Getters
   List<String> get onlineUsers => List.unmodifiable(_onlineUsers);
   List<ChatMessageModel> get messages => List.unmodifiable(_messages);
   Map<String, bool> get typingIndicators => Map.unmodifiable(_typingIndicators);
   Set<String> get pendingMessages => _pendingMessages;
 
-  // Add a method to update a specific message
-  /// 🆕 Helper to update a message by either MongoDB _id or messageId (fallback)
+  Map<String, int> get unreadCounts => Map.unmodifiable(_unreadCounts);
+
+  ///  Helper to update a message by either MongoDB _id or messageId (fallback)
   void _updateMessage(ChatMessageModel updatedMessage) {
     final index = _messages.indexWhere(
       (m) => m.id == updatedMessage.id || m.messageId == updatedMessage.messageId,
@@ -39,6 +46,13 @@ class SocketProvider extends ChangeNotifier {
     if (index != -1) {
       _messages[index] = updatedMessage;
     }
+  }
+
+  // 🆕 active chat user (null if no chat is open)
+  String? _activeChatUserId;
+  void setActiveChatUserId(String? userId) {
+    _activeChatUserId = userId;
+    _logger.logNetwork("[SocketProvider] Active chat user set: $_activeChatUserId");
   }
 
   /// Initializes socket event listeners.
@@ -91,6 +105,29 @@ class SocketProvider extends ChangeNotifier {
       }
 
       notifyListeners();
+
+      // 🧠 Check unread logic
+      if (message.sender != _activeChatUserId) {
+        _unreadCounts[message.sender!] = (_unreadCounts[message.sender!] ?? 0) + 1;
+        _logger.logNetwork(
+          "[SocketProvider] Unread count for ${message.sender}: ${_unreadCounts[message.sender!]}",
+        );
+
+        final totalUnread = _unreadCounts.values.fold<int>(0, (sum, c) => sum + c);
+        final totalUsers = _unreadCounts.length;
+        // ✅ Fetch current user info before sending payload
+        final currentUserData = await SecureStorageService().getUserData();
+
+        await _notificationService.showConsolidatedNotification(
+          totalUnreadCount: totalUnread,
+          totalUsers: totalUsers,
+          singleUserId: totalUsers == 1 ? message.sender : null,
+          singleUserName: totalUsers == 1 ? message.senderName : null,
+          currentUserData: currentUserData,
+        );
+      } else {
+        _logger.logNetwork("[SocketProvider] User is on the active chat. No notification.");
+      }
     });
 
     /// 📬 Status Updates (unchanged)
@@ -182,6 +219,27 @@ class SocketProvider extends ChangeNotifier {
   /// Leaves the user's room.
   Future<void> leaveUser() async {
     await _manager.leave();
+  }
+
+  /// 🧹 When chat is opened → reset unread + clear notifications
+  void resetUnreadCount(String userId, {bool notify = true}) {
+    if (_unreadCounts.containsKey(userId)) {
+      _unreadCounts.remove(userId);
+      _logger.logNetwork("[SocketProvider] Reset unread count for $userId");
+      if (notify) notifyListeners();
+    }
+
+    if (_unreadCounts.isEmpty) {
+      _notificationService.clearNotifications();
+    } else {
+      // update remaining users’ notification
+      final totalUnread = _unreadCounts.values.fold<int>(0, (sum, c) => sum + c);
+      final totalUsers = _unreadCounts.length;
+      _notificationService.showConsolidatedNotification(
+        totalUnreadCount: totalUnread,
+        totalUsers: totalUsers,
+      );
+    }
   }
 
   /// ✨ Send Message - No local save anymore, only emit

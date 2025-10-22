@@ -70,7 +70,7 @@ class EmployeeListCard extends StatelessWidget {
                       ? CircleAvatar(
                           radius: 10,
                           backgroundColor: AppColors.activeGreen,
-                          child: Text("2", style: AppTextStyles.black12_400),
+                          child: Text(unreadCount.toString(), style: AppTextStyles.black12_400),
                         )
                       : SizedBox.shrink(),
                 ],

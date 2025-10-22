@@ -52,6 +52,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _socketProvider = context.read<SocketProvider>();
+    // Set this chat as active
+    _socketProvider.setActiveChatUserId(widget.otherUserId);
+
     _socketListener = () {
       _logger.info('CHAT_SCREEN', '🔔 SocketProvider listener triggered - messages updated');
       if (mounted) setState(() {});
@@ -70,10 +73,14 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _messageController.dispose();
     _scrollController.dispose();
+    // Clear active chat
+    _socketProvider.setActiveChatUserId(null);
+    _socketProvider.resetUnreadCount(widget.otherUserId, notify: false);
     // Remove listener
     _socketProvider.removeListener(_socketListener);
     // Clear conversation messages from provider memory
     _socketProvider.clearConversationMemory(_generateConversationId(), notify: false);
+
     super.dispose();
   }
 

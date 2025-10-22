@@ -4,6 +4,7 @@ import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/navigation/navigation_host.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/core/extensions/secure_storage_extension.dart';
+import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
@@ -24,6 +25,8 @@ import '../../features/mail/screens/compose_mail_screen.dart';
 import '../../features/meet/screens/schedule_meet.dart';
 import '../../features/meet/widgets/meet_widget.dart';
 
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// 👮 Auth guard: redirect user based on login state
 String? authGuard(BuildContext context, GoRouterState state) {
   final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -36,6 +39,7 @@ String? authGuard(BuildContext context, GoRouterState state) {
 }
 
 final GoRouter appRouter = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splashRoute,
   errorBuilder: (context, state) =>
       ErrorScreen(error: state.error?.toString() ?? 'Unknown error occurred'),
@@ -166,6 +170,16 @@ final GoRouter appRouter = GoRouter(
   ],
 );
 
+extension GlobalRouter on GoRouter {
+  /// Returns the global app router
+  static GoRouter get router => appRouter;
+
+  /// Push by path from anywhere
+  void pushByPath(String path, {Object? extra}) {
+    router.push(path, extra: extra);
+  }
+}
+
 extension AuthNavigation on BuildContext {
   void goToHome() => go(AppRoutes.homeRoute);
   void goToLogin() => go(AppRoutes.loginRoute);
@@ -179,6 +193,10 @@ extension AuthNavigation on BuildContext {
   }) async {
     // Pre-fetch user data before navigation
     final currentUserData = await getCurrentUserData();
+    LoggingService.instance.info(
+      'NAVIGATION',
+      '👤 Opening chat with [$otherUserName] - ID: $otherUserId',
+    );
 
     push(
       '${AppRoutes.chatRoute}/$otherUserId',
