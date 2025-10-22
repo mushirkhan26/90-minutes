@@ -106,8 +106,14 @@ class SocketProvider extends ChangeNotifier {
 
       notifyListeners();
 
-      // 🧠 Check unread logic
-      if (message.sender != _activeChatUserId) {
+      // ✅ Fetch current user info
+      final currentUserData = await SecureStorageService().getUserData();
+      final currentUserID = currentUserData?['employeeId'] ?? "";
+      final currentUserName = currentUserData?["username"] ?? "";
+
+      // 🧠 Show notification only if message is NOT from current user
+      if (message.sender != _activeChatUserId &&
+          !(currentUserID == message.sender && currentUserName == message.senderName)) {
         _unreadCounts[message.sender!] = (_unreadCounts[message.sender!] ?? 0) + 1;
         _logger.logNetwork(
           "[SocketProvider] Unread count for ${message.sender}: ${_unreadCounts[message.sender!]}",
@@ -115,8 +121,6 @@ class SocketProvider extends ChangeNotifier {
 
         final totalUnread = _unreadCounts.values.fold<int>(0, (sum, c) => sum + c);
         final totalUsers = _unreadCounts.length;
-        // ✅ Fetch current user info before sending payload
-        final currentUserData = await SecureStorageService().getUserData();
 
         await _notificationService.showConsolidatedNotification(
           totalUnreadCount: totalUnread,
