@@ -1,5 +1,3 @@
-import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
-
 class AppRoutes {
   static const String splashRoute = '/splash';
   static const String welcomeRoute = '/welcome';
