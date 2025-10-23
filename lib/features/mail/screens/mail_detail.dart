@@ -1,7 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
-import 'package:hrtz_hrms/core/api/network/mail_service.dart';
-import 'package:hrtz_hrms/widgets/custom_button.dart';
 
 import '../../../core/models/mail_model.dart';
 
@@ -33,14 +30,6 @@ class MailDetail extends StatelessWidget {
               Text(mail.subject, style: TextStyle(fontWeight: FontWeight.bold)),
               Text('Body:'),
               Text(mail.body, style: TextStyle(fontWeight: FontWeight.bold)),
-              CustomButton(
-                text: 'Delete',
-                onPressed: () {
-                  MailService(
-                    baseUrl2: ApiHelper.baseUrl2,
-                  ).moveToTrash(mail.id ?? '');
-                },
-              ),
             ],
           ),
         ),

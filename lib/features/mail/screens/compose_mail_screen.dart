@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:provider/provider.dart';
+
+import '../provider/mail_provider.dart';
 
 class ComposeMailScreen extends StatefulWidget {
   const ComposeMailScreen({super.key});
@@ -59,26 +62,17 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
   void _sendMail() {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _isSending = true);
-    // final temp = {
-    //   "sender": "25060018",
-    //   "senderName": "John Doe",
-    //   "senderProfileUrl": "https://example.com/profiles/25060018.png",
-    //   "receiver": ["25060019", "25060020"],
-    //   "receiverName": ["Jane Smith", "Mark Lee"],
-    //   "cc": ["25060021"],
-    //   "bcc": [],
-    //   "subject": "Project Kickoff Meeting",
-    //   "body": "Hi team, please find the meeting schedule attached.",
-    //   "attachmentUrls": ["https://example.com/docs/meeting-schedule.pdf"],
-    // };
+
     final mailData = {
-      "sender": _fromController.text,
-      "to": _toController.text.split(',').map((e) => e.trim()).toList(),
-      "cc": _ccController.text.split(',').map((e) => e.trim()).toList(),
-      "bcc": _bccController.text.split(',').map((e) => e.trim()).toList(),
+      "sender": _fromController.text.split(' - ')[0],
+      "senderName": _fromController.text.split(' - ')[1],
+      "receiver": _toController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
+      "receiverName": _toController.text.split(',').map((e) => e.trim().split(' - ')[1]).toList(),
+      "cc": _ccController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
+      "bcc": _bccController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
       "subject": _subjectController.text,
       "body": _bodyController.text,
-      "attachments": attachments,
+      "attachmentUrls": attachments,
     };
 
     debugPrint("Mail Data: $mailData");
@@ -105,6 +99,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
               controller.text.isNotEmpty && s.toLowerCase().contains(controller.text.toLowerCase()),
         )
         .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -124,6 +119,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
             return null;
           },
         ),
+
         if (filtered.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 4, left: 8, right: 8),
@@ -137,12 +133,14 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                 return ListTile(
                   title: Text(s),
                   onTap: () {
+                    // ignore: unused_local_variable
                     final currentText = controller.text.trim();
-                    final updatedText = currentText.isEmpty
-                        ? s
-                        : "$currentText, $s"; // Add with comma separation
+
                     setState(() {
-                      controller.text = updatedText;
+                      controller.text = s;
+                      controller.selection = TextSelection.fromPosition(
+                        TextPosition(offset: controller.text.length),
+                      );
                     });
                   },
                 );

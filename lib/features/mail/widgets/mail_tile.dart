@@ -1,13 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-
 import '../../../config/theme/app_colors.dart';
 import '../../../core/models/mail_model.dart';
 
 class MailTile extends StatelessWidget {
   final Mail mail;
-  const MailTile({required this.mail, super.key});
+  final bool isTrash;
+  final VoidCallback onMoveToTrash;
+  final VoidCallback onRestore;
+  final VoidCallback onDelete;
+
+  const MailTile({
+    super.key,
+    required this.mail,
+    required this.isTrash,
+    required this.onMoveToTrash,
+    required this.onRestore,
+    required this.onDelete,
+    // required Future<Null> Function() onPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +46,7 @@ class MailTile extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(
                 mail.senderName[0],
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -50,7 +62,7 @@ class MailTile extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        SizedBox(height: 5),
+                        const SizedBox(height: 5),
                         RichText(
                           text: TextSpan(
                             children: [
@@ -96,6 +108,39 @@ class MailTile extends StatelessWidget {
                   ),
                 ],
               ),
+            ),
+
+            PopupMenuButton<String>(
+              onSelected: (value) {
+                if (value == 'moveToTrash') {
+                  onMoveToTrash();
+                } else if (value == 'restore') {
+                  onRestore();
+                } else if (value == 'delete') {
+                  onDelete();
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                if (isTrash) {
+                  return [
+                    const PopupMenuItem(
+                      value: 'restore',
+                      child: Text('Restore'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Delete Permanently'),
+                    ),
+                  ];
+                } else {
+                  return [
+                    const PopupMenuItem(
+                      value: 'moveToTrash',
+                      child: Text('Move to Trash'),
+                    ),
+                  ];
+                }
+              },
             ),
           ],
         ),
