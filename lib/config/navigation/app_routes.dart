@@ -17,4 +17,6 @@ class AppRoutes {
   static const String meetRoute = '/meet-view';
   static const String scheduleMeetScreen = '/scedule-meet';
   static const String meetWidget = '/meet-widget';
+
+  static const permissionsRoute = '/permissions';
 }

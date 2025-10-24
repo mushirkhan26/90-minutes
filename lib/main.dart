@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -8,10 +12,12 @@ import 'package:hrtz_hrms/core/services/local_notifications_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/config/theme/app_theme.dart';
+import 'package:hrtz_hrms/core/services/push_notification_service.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
+import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -24,8 +30,16 @@ void main() async {
   // Initialize local storage before runApp
   await LocalStorageService.init();
 
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  //  Initialize Push Notification Service early (for terminated-state handling)
+  await PushNotificationService().init();
+
   // Initialize socket connection (will connect but not join)
   SocketService.instance.init();
+
+  // 🧩 Register background FCM handler (important for background/terminated messages)
+  FirebaseMessaging.onBackgroundMessage(PushNotificationService.firebaseMessagingBackgroundHandler);
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -50,9 +64,16 @@ class _MainAppState extends State<MainApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       // 🛎 Initialize local notification service after first build
       LocalNotificationService().init();
+      // 🆕 Re-check Firebase notification events (important when app launches via notification)
+      await Future.delayed(const Duration(milliseconds: 500));
+      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      if (initialMessage != null) {
+        LoggingService.instance.logNetwork("🕹️ Launched via notification tap");
+        PushNotificationService.handleNotificationTap(jsonEncode(initialMessage.data));
+      }
     });
   }
 

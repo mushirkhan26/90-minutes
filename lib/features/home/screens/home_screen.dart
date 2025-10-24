@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
@@ -21,6 +22,12 @@ class HomeScreen extends StatelessWidget {
               if (context.mounted) context.go(AppRoutes.loginRoute);
             },
             icon: const Icon(Icons.logout),
+          ),
+          IconButton(
+            onPressed: () {
+              context.goToPermissions();
+            },
+            icon: Icon(Icons.settings),
           ),
         ],
       ),

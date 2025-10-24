@@ -55,4 +55,20 @@ class AuthService {
     final employees = employeesJson.map((json) => EmployeeModel.fromJson(json)).toList();
     return ApiResponse.success(employees);
   }
+
+  ///  Update FCM Token (appToken)
+  Future<ApiResponse<Map<String, dynamic>>> updateFCMToken({
+    required String employeeId,
+    required String appToken,
+  }) async {
+    _logger.logNetwork("🔁 Updating FCM token for employeeId: $employeeId");
+    final body = {"appToken": appToken};
+
+    final response = await _apiHelper.put<Map<String, dynamic>>(
+      'employee/profile/$employeeId',
+      body,
+    );
+
+    return response;
+  }
 }

@@ -16,6 +16,7 @@ import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
+import 'package:hrtz_hrms/features/settings/screens/permission_screen.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -167,6 +168,13 @@ final GoRouter appRouter = GoRouter(
       name: '/compose-mail',
       builder: (context, state) => const ComposeMailScreen(),
     ),
+
+    GoRoute(
+      path: AppRoutes.permissionsRoute,
+      name: '/permissions',
+      redirect: (context, state) => authGuard(context, state),
+      pageBuilder: (context, state) => buildTransitionPage(const PermissionsScreen()),
+    ),
   ],
 );
 
@@ -206,6 +214,9 @@ extension AuthNavigation on BuildContext {
 
   /// Navigate to chat list
   void goToChatList() => go(AppRoutes.chatRoute);
+
+  /// ⚙️ Go to Permissions Screen (new)
+  void goToPermissions() => push(AppRoutes.permissionsRoute);
 }
 
 /// ✨ Custom transition page helper
