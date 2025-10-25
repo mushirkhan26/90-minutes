@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
+import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
-
-import '../provider/mail_provider.dart';
 
 class ComposeMailScreen extends StatefulWidget {
   const ComposeMailScreen({super.key});
@@ -39,10 +39,15 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
         title: const Text("Add Attachment URL"),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: "https://example.com/file.pdf"),
+          decoration: const InputDecoration(
+            hintText: "https://example.com/file.pdf",
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
           ElevatedButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -66,26 +71,47 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     final mailData = {
       "sender": _fromController.text.split(' - ')[0],
       "senderName": _fromController.text.split(' - ')[1],
-      "receiver": _toController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
-      "receiverName": _toController.text.split(',').map((e) => e.trim().split(' - ')[1]).toList(),
-      "cc": _ccController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
-      "bcc": _bccController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
+      "receiver": _toController.text
+          .split(',')
+          .map((e) => e.trim().split(' - ')[0])
+          .toList(),
+      "receiverName": _toController.text
+          .split(',')
+          .map((e) => e.trim().split(' - ')[1])
+          .toList(),
+      "cc": _ccController.text
+          .split(',')
+          .map((e) => e.trim().split(' - ')[0])
+          .toList(),
+      "bcc": _bccController.text
+          .split(',')
+          .map((e) => e.trim().split(' - ')[0])
+          .toList(),
       "subject": _subjectController.text,
       "body": _bodyController.text,
       "attachmentUrls": attachments,
     };
 
-    debugPrint("Mail Data: $mailData");
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _isSending = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Mail sent successfully!")));
-        Navigator.pop(context);
-      }
-    });
+    Provider.of<MailProvider>(context, listen: false)
+        .sendMail(mailData)
+        .then((_) {
+          Provider.of<MailProvider>(context, listen: false).fetchInbox();
+          if (mounted) {
+            setState(() => _isSending = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Mail sent successfully!")),
+            );
+            Navigator.pop(context);
+          }
+        })
+        .catchError((error) {
+          if (mounted) {
+            setState(() => _isSending = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Failed to send mail: $error")),
+            );
+          }
+        });
   }
 
   Widget _buildRecipientField({
@@ -96,21 +122,17 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     final filtered = employeeSuggestions
         .where(
           (s) =>
-              controller.text.isNotEmpty && s.toLowerCase().contains(controller.text.toLowerCase()),
+              controller.text.isNotEmpty &&
+              s.toLowerCase().contains(controller.text.toLowerCase()),
         )
         .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextFormField(
+        CustomTextField(
           controller: controller,
-          decoration: InputDecoration(
-            labelText: label,
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.primary, width: 1.0),
-            ),
-          ),
+          hintText: label,
           onChanged: onChanged,
           validator: (v) {
             if (label == "To" && (v == null || v.isEmpty)) {
@@ -119,7 +141,6 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
             return null;
           },
         ),
-
         if (filtered.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 4, left: 8, right: 8),
@@ -159,7 +180,8 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
 
   getEmployees() async {
     final data = await SecureStorageService().getUserData();
-    _fromController.text = '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
+    _fromController.text =
+        '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
     employeeSuggestions.addAll(
       (await LocalStorageService().getEmployeeList())
               ?.map((e) => '${e.employeeID} - ${e.name}')
@@ -175,7 +197,10 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
         appBar: AppBar(
           title: const Text("Compose Mail"),
           actions: [
-            IconButton(icon: const Icon(Icons.attach_file), onPressed: _addAttachmentDialog),
+            IconButton(
+              icon: const Icon(Icons.attach_file),
+              onPressed: _addAttachmentDialog,
+            ),
             IconButton(icon: const Icon(Icons.send), onPressed: _sendMail),
           ],
         ),
@@ -185,16 +210,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
             key: _formKey,
             child: ListView(
               children: [
-                TextFormField(
-                  controller: _fromController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: "From",
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.primary, width: 1.0),
-                    ),
-                  ),
-                ),
+                CustomTextField(controller: _fromController, readOnly: true),
                 const SizedBox(height: 10),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -217,7 +233,9 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                         "Cc",
                         style: TextStyle(
                           color: showCc ? AppColors.primary : Colors.grey[600],
-                          fontWeight: showCc ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: showCc
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -232,7 +250,9 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                         "Bcc",
                         style: TextStyle(
                           color: showBcc ? AppColors.primary : Colors.grey[600],
-                          fontWeight: showBcc ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: showBcc
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                         ),
                       ),
                     ),
@@ -257,15 +277,12 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                     ),
                   ),
                 const SizedBox(height: 15),
-                TextFormField(
+
+                CustomTextField(
                   controller: _subjectController,
-                  decoration: const InputDecoration(
-                    labelText: "Subject",
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.primary, width: 1.0),
-                    ),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? "Subject required" : null,
+                  hintText: "Subject",
+                  validator: (v) =>
+                      v == null || v.isEmpty ? "Subject required" : null,
                 ),
                 const SizedBox(height: 15),
                 TextFormField(
@@ -276,21 +293,32 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                     labelText: "Message",
                     alignLabelWithHint: true,
                   ),
-                  validator: (v) => v == null || v.isEmpty ? "Message body required" : null,
+                  validator: (v) =>
+                      v == null || v.isEmpty ? "Message body required" : null,
                 ),
+                // CustomTextField(
+                //   controller: _bodyController,
+                //   hintText: 'Message',
+                //   validator: (v) =>
+                //       v == null || v.isEmpty ? "Message body required" : null,
+                // ),
                 const SizedBox(height: 20),
                 if (attachments.isNotEmpty)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Attachments:", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Attachments:",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       ...attachments.map(
                         (url) => ListTile(
                           leading: const Icon(Icons.insert_drive_file),
                           title: Text(url, overflow: TextOverflow.ellipsis),
                           trailing: IconButton(
                             icon: const Icon(Icons.close),
-                            onPressed: () => setState(() => attachments.remove(url)),
+                            onPressed: () =>
+                                setState(() => attachments.remove(url)),
                           ),
                         ),
                       ),

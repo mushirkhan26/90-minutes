@@ -5,8 +5,6 @@ import 'package:provider/provider.dart';
 
 import '../../../config/navigation/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
-import '../../../core/api/base_api/api_helper.dart';
-import '../../../core/api/network/mail_service.dart';
 import '../../../core/models/employee_model.dart';
 import '../provider/mail_provider.dart';
 import '../widgets/mail_tile.dart';
@@ -19,21 +17,37 @@ class MailScreen extends StatefulWidget {
 }
 
 class _MailScreenState extends State<MailScreen> {
-  final MailService employeeService = MailService(baseUrl2: ApiHelper.baseUrl2);
   late Future<List<EmployeeModel>> employeeFuture;
   late String employeeID;
   String selectedMailbox = 'Inbox';
 
+  // void getData() async {
+  //   employeeID = await context.getCurrentEmployeeId() ?? '';
+  // }
   void getData() async {
     employeeID = await context.getCurrentEmployeeId() ?? '';
+    if (selectedMailbox == 'Inbox') {
+      Provider.of<MailProvider>(context, listen: false).fetchInbox();
+    } else if (selectedMailbox == 'Sent') {
+      Provider.of<MailProvider>(context, listen: false).fetchSent(employeeID);
+    } else if (selectedMailbox == 'Trash') {
+      Provider.of<MailProvider>(context, listen: false).fetchTrash(employeeID);
+    }
   }
 
   @override
+  // void initState() {
+  //   super.initState();
+  //   getData();
+  //   WidgetsBinding.instance.addPostFrameCallback((_) {
+  //     Provider.of<MailProvider>(context, listen: false).fetchInbox();
+  //   });
+  // }
+  @override
   void initState() {
     super.initState();
-    getData();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<MailProvider>(context, listen: false).fetchInbox();
+      getData(); // Only call getData() here
     });
   }
 
@@ -49,8 +63,12 @@ class _MailScreenState extends State<MailScreen> {
             children: [
               DrawerHeader(
                 decoration: BoxDecoration(color: AppColors.primary),
-                child: Text("Mail Menu", style: TextStyle(color: Colors.white, fontSize: 22)),
+                child: Text(
+                  "Mail Menu",
+                  style: TextStyle(color: Colors.white, fontSize: 22),
+                ),
               ),
+
               ListTile(
                 leading: const Icon(Icons.inbox),
                 title: const Text("Inbox"),
@@ -59,7 +77,10 @@ class _MailScreenState extends State<MailScreen> {
                   setState(() {
                     selectedMailbox = 'Inbox';
                   });
-                  Provider.of<MailProvider>(context, listen: false).fetchInbox();
+                  Provider.of<MailProvider>(
+                    context,
+                    listen: false,
+                  ).fetchInbox();
                   Navigator.pop(context);
                 },
               ),
@@ -71,11 +92,13 @@ class _MailScreenState extends State<MailScreen> {
                   setState(() {
                     selectedMailbox = 'Sent';
                   });
-                  Provider.of<MailProvider>(context, listen: false).fetchSent(employeeID);
+                  Provider.of<MailProvider>(
+                    context,
+                    listen: false,
+                  ).fetchSent(employeeID);
                   Navigator.pop(context);
                 },
               ),
-
               ListTile(
                 leading: const Icon(Icons.delete),
                 title: const Text("Trash"),
@@ -84,7 +107,10 @@ class _MailScreenState extends State<MailScreen> {
                   setState(() {
                     selectedMailbox = 'Trash';
                   });
-                  Provider.of<MailProvider>(context, listen: false).moveToTrash(employeeID);
+                  Provider.of<MailProvider>(
+                    context,
+                    listen: false,
+                  ).fetchTrash(employeeID);
                   Navigator.pop(context);
                 },
               ),
@@ -112,7 +138,10 @@ class _MailScreenState extends State<MailScreen> {
                   hintText: "Search mail...",
                   filled: true,
                   fillColor: Colors.grey.shade100,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 0,
+                    horizontal: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(25),
                     borderSide: BorderSide.none,
@@ -161,43 +190,62 @@ class _MailScreenState extends State<MailScreen> {
               mail: mail,
               isTrash: selectedMailbox == 'Trash',
               onMoveToTrash: () async {
-                final provider = Provider.of<MailProvider>(context, listen: false);
+                if (mail.id == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Mail ID is missing")),
+                  );
+                  return;
+                }
+                final provider = Provider.of<MailProvider>(
+                  context,
+                  listen: false,
+                );
                 final success = await provider.moveToTrash(mail.id ?? '');
-                if (success) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("Mail moved to trash")));
+                if (success && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Mail moved to trash")),
+                  );
                 } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("Failed to move mail to trash")));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Failed to move mail to trash"),
+                      ),
+                    );
+                  }
                 }
               },
               onRestore: () async {
-                final provider = Provider.of<MailProvider>(context, listen: false);
-                await provider.restoreFromTrash(mail.id ?? '');
-                ScaffoldMessenger.of(
+                final provider = Provider.of<MailProvider>(
                   context,
-                ).showSnackBar(const SnackBar(content: Text("Mail restored from trash")));
+                  listen: false,
+                );
+                await provider.restoreFromTrash(mail.id ?? '');
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Mail restored from trash")),
+                );
               },
 
               onDelete: () async {
                 if (mail.id == null) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("Mail ID is missing")));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Mail ID is missing")),
+                  );
                   return;
                 }
-                final provider = Provider.of<MailProvider>(context, listen: false);
+                final provider = Provider.of<MailProvider>(
+                  context,
+                  listen: false,
+                );
                 final success = await provider.deleteMail(mail.id!);
                 if (success) {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("Mail deleted permanently")));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Mail deleted permanently")),
+                  );
                 } else {
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text("Failed to delete mail")));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Failed to delete mail")),
+                  );
                 }
               },
             );

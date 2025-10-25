@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
-import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/api/network/mail_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import '../../../core/models/mail_model.dart';
 
 class MailProvider extends ChangeNotifier {
   final mailService = MailService(baseUrl2: ApiHelper.baseUrl2);
-  final LocalStorageService _localStorage = LocalStorageService();
+  // final LocalStorageService _localStorage = LocalStorageService();
   final secureStorageService = SecureStorageService();
 
   List<Mail> _inbox = [];
@@ -36,22 +35,21 @@ class MailProvider extends ChangeNotifier {
   }
 
   // Fetch inbox mails
+
   Future<void> fetchInbox() async {
     _setLoading(true);
     _setError(null);
     try {
-      final employeeId = (await secureStorageService.getUserData())!['employeeId'];
-      final apiInbox = await mailService.getInbox(employeeId ?? '25060018');
+      final employeeId = (await secureStorageService
+          .getUserData())!['employeeId'];
+      if (employeeId == null) {
+        _setError("Employee ID is missing");
+        return;
+      }
+      final apiInbox = await mailService.getInbox(employeeId);
       _inbox = apiInbox.where((apiMail) {
         return !_trash.any((trashMail) => trashMail.id == apiMail.id);
       }).toList();
-
-      if ((await _localStorage.getEmployeeList()) == null) {
-        _employee = await mailService.getEmployee();
-        _localStorage.saveEmployeeList(_employee);
-      } else {
-        _employee = await _localStorage.getEmployeeList() ?? [];
-      }
     } catch (e) {
       _setError(e.toString());
     } finally {
@@ -87,6 +85,10 @@ class MailProvider extends ChangeNotifier {
 
   // Move one mail to trash
   Future<bool> moveToTrash(String mailId) async {
+    if (mailId.isEmpty) {
+      _setError("Mail ID is missing");
+      return false;
+    }
     _setLoading(true);
     _setError(null);
     try {
@@ -125,6 +127,7 @@ class MailProvider extends ChangeNotifier {
     _setError(null);
     try {
       final sentMail = await mailService.sendMail(body);
+      // ignore: unnecessary_null_comparison
       if (sentMail != null) {
         _sent.insert(0, sentMail);
       }
@@ -158,19 +161,33 @@ class MailProvider extends ChangeNotifier {
   }
 
   // Restore one mail from trash
-  Future<void> restoreFromTrash(String mailId) async {
+  Future<bool> restoreFromTrash(String mailId) async {
+    if (mailId.isEmpty) {
+      _setError("Mail ID is missing");
+      return false;
+    }
     _setLoading(true);
     _setError(null);
     try {
       final success = await mailService.restoreFromTrash(mailId);
       if (success) {
-        final mail = _trash.firstWhere((m) => m.id == mailId);
-        _trash.remove(mail);
-        _inbox.insert(0, mail);
-        notifyListeners();
+        final index = _trash.indexWhere((m) => m.id == mailId);
+        if (index != -1) {
+          final mail = _trash.removeAt(index);
+          _inbox.insert(0, mail);
+          notifyListeners();
+          return true;
+        } else {
+          _setError("Mail not found in trash");
+          return false;
+        }
+      } else {
+        _setError("Failed to restore mail from service");
+        return false;
       }
     } catch (e) {
       _setError(e.toString());
+      return false;
     } finally {
       _setLoading(false);
     }
@@ -221,13 +238,21 @@ class MailProvider extends ChangeNotifier {
   }
 
   /// Restore many mails from trash
-  Future<void> restoreManyFromTrash(String employeeId, List<String> mailIds) async {
+  Future<void> restoreManyFromTrash(
+    String employeeId,
+    List<String> mailIds,
+  ) async {
     _setLoading(true);
     _setError(null);
     try {
-      final success = await mailService.restoreManyFromTrash(employeeId, mailIds);
+      final success = await mailService.restoreManyFromTrash(
+        employeeId,
+        mailIds,
+      );
       if (success) {
-        final mailsToRestore = _trash.where((m) => mailIds.contains(m.id)).toList();
+        final mailsToRestore = _trash
+            .where((m) => mailIds.contains(m.id))
+            .toList();
         _trash.removeWhere((m) => mailIds.contains(m.id));
         _inbox.addAll(mailsToRestore);
         notifyListeners();

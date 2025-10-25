@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../models/mail_model.dart';
 import '../../models/employee_model.dart';
@@ -13,9 +14,12 @@ class MailService {
     final response = await http.post(
       Uri.parse('$baseUrl2/mail/send'),
       headers: {'Content-Type': 'application/json'},
+
       body: jsonEncode(body),
     );
+
     if (response.statusCode == 200 || response.statusCode == 201) {
+      debugPrint("response from send mail api:${response.body}");
       return Mail.fromJson(jsonDecode(response.body));
     } else {
       throw Exception('Failed to send mail: ${response.statusCode}');
@@ -28,6 +32,7 @@ class MailService {
       Uri.parse('$baseUrl2/mail/inbox/$employeeId'),
     );
     if (response.statusCode == 200) {
+      debugPrint("response get inbox api:${response.body}");
       final mailResponse = jsonDecode(response.body);
       return MailResponse.fromJson(mailResponse).data ?? [];
     } else {
@@ -41,6 +46,7 @@ class MailService {
       Uri.parse('$baseUrl2/mail/sent/$employeeId'),
     );
     if (response.statusCode == 200) {
+      debugPrint("response sent mail api:${response.body}");
       final data = jsonDecode(response.body);
       return (data['data'] as List).map((json) => Mail.fromJson(json)).toList();
     } else {
@@ -54,6 +60,7 @@ class MailService {
       Uri.parse('$baseUrl2/mail/trash/$employeeId'),
     );
     if (response.statusCode == 200) {
+      debugPrint("response get trash mail api:${response.body}");
       final data = jsonDecode(response.body);
       return (data['data'] as List).map((json) => Mail.fromJson(json)).toList();
     } else {
@@ -70,6 +77,7 @@ class MailService {
     );
     if (response.statusCode == 200 &&
         jsonDecode(response.body)['message'] is List) {
+      debugPrint("response from send mail api:${response.body}");
       final data = (jsonDecode(response.body)['message'] as List);
       return data.map((json) => EmployeeModel.fromJson(json)).toList();
     } else {
@@ -85,10 +93,15 @@ class MailService {
 
   // Move a mail to trash
   Future<bool> moveToTrash(String mailId) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl2/mail/move-to-trash/$mailId'),
-    );
-    return response.statusCode == 200;
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl2/mail/move-to-trash/$mailId'),
+      );
+      debugPrint("response from send mail api:${response.body}");
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
   }
 
   // Restore a mail from trash
@@ -96,6 +109,7 @@ class MailService {
     final response = await http.patch(
       Uri.parse('$baseUrl2/mail/restore-from-trash/$mailId'),
     );
+    debugPrint("response from send mail api:${response.body}");
     return response.statusCode == 200;
   }
 
@@ -114,6 +128,7 @@ class MailService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'employeeId': employeeId, 'mailIds': mailIds}),
     );
+    debugPrint("response from send mail api:${response.body}");
     return response.statusCode == 200;
   }
 
@@ -127,6 +142,7 @@ class MailService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'employeeId': employeeId, 'mailIds': mailIds}),
     );
+
     return response.statusCode == 200;
   }
 }
