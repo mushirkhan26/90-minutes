@@ -30,7 +30,7 @@ class MailTile extends StatelessWidget {
         },
         child: Card(
           color: Colors.white,
-          surfaceTintColor: Colors.white,
+          surfaceTintColor: Color(0xFFD7D7D7),
           margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           elevation: 4,
           shape: RoundedRectangleBorder(

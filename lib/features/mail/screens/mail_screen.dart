@@ -56,7 +56,7 @@ class _MailScreenState extends State<MailScreen> {
     return SafeArea(
       child: Scaffold(
         // appBar: AppBar(title: Text(selectedMailbox)),
-        backgroundColor: const Color(0xFFD7D7D7),
+        backgroundColor: Colors.white,
         drawer: Drawer(
           child: ListView(
             padding: EdgeInsets.zero,

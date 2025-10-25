@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
-
 import '../../../core/models/mail_model.dart';
 
 class MailDetail extends StatelessWidget {
@@ -27,7 +26,7 @@ class MailDetail extends StatelessWidget {
             children: [
               Container(
                 decoration: BoxDecoration(
-                  color: AppColors.borderColor,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: [
                     BoxShadow(
@@ -36,7 +35,7 @@ class MailDetail extends StatelessWidget {
                       offset: const Offset(0, 1),
                     ),
                   ],
-                  border: Border.all(color: Colors.grey.shade300, width: 0.5),
+                  border: Border.all(color: AppColors.borderColor, width: 0.5),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
@@ -92,7 +91,6 @@ class MailDetail extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 16),
-
                       // Email Body
                       Container(
                         width: double.infinity,
