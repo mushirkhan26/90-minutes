@@ -1,250 +1,368 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
-import 'package:hrtz_hrms/core/models/employee_model.dart';
-import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/api/network/mail_service.dart';
+import 'package:hrtz_hrms/core/services/local_storage_service.dart';
+import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import '../../../core/models/mail_model.dart';
 
+enum MailState { idle, loading, loaded, error }
+
 class MailProvider extends ChangeNotifier {
-  final mailService = MailService(baseUrl2: ApiHelper.baseUrl2);
-  final LocalStorageService _localStorage = LocalStorageService();
-  final secureStorageService = SecureStorageService();
+  final MailService _mailService = MailService();
+  final LoggingService _logger = LoggingService.instance;
+  final SecureStorageService _secureStorage = SecureStorageService();
+  final LocalStorageService _local = LocalStorageService();
 
-  List<Mail> _inbox = [];
-  List<Mail> _sent = [];
-  List<Mail> _trash = [];
-  List<EmployeeModel> _employee = [];
-  bool _isLoading = false;
-  String? _error;
+  MailState _state = MailState.idle;
+  String? _errorMessage;
+  List<MailModel> _inboxMails = [];
+  List<MailModel> _sentMails = [];
+  List<MailModel> _trashMails = [];
 
-  bool get isLoading => _isLoading;
-  String? get error => _error;
-  List<Mail> get inbox => _inbox;
-  List<Mail> get sent => _sent;
-  List<Mail> get trash => _trash;
-  List<EmployeeModel> get employee => _employee;
+  List<MailModel> _filteredMails = [];
 
-  void _setLoading(bool loading) {
-    _isLoading = loading;
+  MailState get state => _state;
+  String? get errorMessage => _errorMessage;
+  List<MailModel> get inboxMails => _filteredMails.isNotEmpty ? _filteredMails : _inboxMails;
+  List<MailModel> get sentMails => _sentMails;
+  List<MailModel> get trashMails => _trashMails;
+
+  /// Duration to consider cache as valid (e.g., 10 minutes)
+  static const cacheValidity = Duration(minutes: 10);
+
+  // ---------------------------------------------------------------------------
+  // 📨 FETCH INBOX MAILS
+  // ---------------------------------------------------------------------------
+  Future<void> fetchInbox({bool forceRefresh = false}) async {
+    _state = MailState.loading;
     notifyListeners();
-  }
 
-  void _setError(String? message) {
-    _error = message;
-    notifyListeners();
-  }
-
-  // Fetch inbox mails
-  Future<void> fetchInbox() async {
-    _setLoading(true);
-    _setError(null);
     try {
-      final employeeId = (await secureStorageService.getUserData())!['employeeId'];
-      final apiInbox = await mailService.getInbox(employeeId ?? '25060018');
-      _inbox = apiInbox.where((apiMail) {
-        return !_trash.any((trashMail) => trashMail.id == apiMail.id);
-      }).toList();
+      final cachedInbox = await _local.getMails(LocalStorageService.keyInboxMails);
+      final lastCacheTime = await _local.getMailCacheTimestamp(LocalStorageService.keyInboxMails);
+      final now = DateTime.now();
 
-      if ((await _localStorage.getEmployeeList()) == null) {
-        _employee = await mailService.getEmployee();
-        _localStorage.saveEmployeeList(_employee);
+      // ✅ Load cached data if available
+      if (cachedInbox != null && cachedInbox.isNotEmpty) {
+        _inboxMails = cachedInbox;
+        _state = MailState.loaded;
+        notifyListeners();
+      }
+
+      final shouldRefresh =
+          forceRefresh || lastCacheTime == null || now.difference(lastCacheTime) > cacheValidity;
+
+      if (!shouldRefresh && cachedInbox != null && cachedInbox.isNotEmpty) {
+        _logger.logStorage('🟢 Inbox cache still valid, skipping API call');
+        return;
+      }
+
+      // 🔄 Fetch from API
+      final employeeId = await _secureStorage.getEmployeeId();
+      if (employeeId == null) throw Exception('Employee ID not found');
+
+      final response = await _mailService.getInbox(employeeId: employeeId);
+      if (response.success && response.data != null) {
+        final List<dynamic> mailsJson = response.data!['data'];
+        _inboxMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
+        _filteredMails.clear();
+
+        await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
+
+        _state = MailState.loaded;
+        _logger.logNetwork('✅ Inbox refreshed (${_inboxMails.length} mails)');
       } else {
-        _employee = await _localStorage.getEmployeeList() ?? [];
+        throw Exception(response.message);
       }
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
+    } catch (e, s) {
+      _errorMessage = 'Failed to fetch inbox: $e';
+      _logger.error('MAIL_PROVIDER', 'fetchInbox failed', error: e, stackTrace: s);
+      if (_inboxMails.isEmpty) _state = MailState.error;
     }
+
+    notifyListeners();
   }
 
-  // Fetch sent mails
-  Future<void> fetchSent(String employeeId) async {
-    _setLoading(true);
-    _setError(null);
+  // ---------------------------------------------------------------------------
+  // 📤 FETCH SENT MAILS
+  // ---------------------------------------------------------------------------
+  Future<void> fetchSent({bool forceRefresh = false}) async {
+    _state = MailState.loading;
+    notifyListeners();
+
     try {
-      _sent = await mailService.getSent(employeeId);
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
+      final cachedSent = await _local.getMails(LocalStorageService.keySentMails);
+      final lastCacheTime = await _local.getMailCacheTimestamp(LocalStorageService.keySentMails);
+      final now = DateTime.now();
 
-  // Fetch trash mails
-  Future<void> fetchTrash(String employeeId) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      _trash = await mailService.getTrash(employeeId);
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Move one mail to trash
-  Future<bool> moveToTrash(String mailId) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final success = await mailService.moveToTrash(mailId);
-      if (success) {
-        final mailInInbox = _inbox.firstWhereOrNull((m) => m.id == mailId);
-        final mailInSent = _sent.firstWhereOrNull((m) => m.id == mailId);
-
-        if (mailInInbox != null) {
-          _inbox.remove(mailInInbox);
-          _trash.insert(0, mailInInbox);
-        } else if (mailInSent != null) {
-          _sent.remove(mailInSent);
-          _trash.insert(0, mailInSent);
-        } else {
-          _setError('Mail not found');
-          return false;
-        }
-
+      if (cachedSent != null && cachedSent.isNotEmpty) {
+        _sentMails = cachedSent;
+        _state = MailState.loaded;
         notifyListeners();
+      }
+
+      final shouldRefresh =
+          forceRefresh || lastCacheTime == null || now.difference(lastCacheTime) > cacheValidity;
+
+      if (!shouldRefresh && cachedSent != null && cachedSent.isNotEmpty) {
+        _logger.logStorage('🟢 Sent cache still valid, skipping API call');
+        return;
+      }
+
+      final employeeId = await _secureStorage.getEmployeeId();
+      if (employeeId == null) throw Exception('Employee ID not found');
+
+      final response = await _mailService.getSentMails(employeeId: employeeId);
+      if (response.success && response.data != null) {
+        final List<dynamic> mailsJson = response.data!['data'];
+        _sentMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
+
+        await _local.saveMails(LocalStorageService.keySentMails, _sentMails);
+        _state = MailState.loaded;
+        _logger.logNetwork('✅ Sent refreshed (${_sentMails.length} mails)');
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e, s) {
+      _errorMessage = 'Failed to fetch sent mails: $e';
+      _logger.error('MAIL_PROVIDER', 'fetchSent failed', error: e, stackTrace: s);
+      if (_sentMails.isEmpty) _state = MailState.error;
+    }
+
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // 🗑️ FETCH TRASH MAILS
+  // ---------------------------------------------------------------------------
+  Future<void> fetchTrash({bool forceRefresh = false}) async {
+    _state = MailState.loading;
+    notifyListeners();
+
+    try {
+      final cachedTrash = await _local.getMails(LocalStorageService.keyTrashMails);
+      final lastCacheTime = await _local.getMailCacheTimestamp(LocalStorageService.keyTrashMails);
+      final now = DateTime.now();
+
+      if (cachedTrash != null && cachedTrash.isNotEmpty) {
+        _trashMails = cachedTrash;
+        _state = MailState.loaded;
+        notifyListeners();
+      }
+
+      final shouldRefresh =
+          forceRefresh || lastCacheTime == null || now.difference(lastCacheTime) > cacheValidity;
+
+      if (!shouldRefresh && cachedTrash != null && cachedTrash.isNotEmpty) {
+        _logger.logStorage('🟢 Trash cache still valid, skipping API call');
+        return;
+      }
+
+      final employeeId = await _secureStorage.getEmployeeId();
+      if (employeeId == null) throw Exception('Employee ID not found');
+
+      final response = await _mailService.getTrashMails(employeeId: employeeId);
+      if (response.success && response.data != null) {
+        final List<dynamic> mailsJson = response.data!['data'];
+        _trashMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
+
+        await _local.saveMails(LocalStorageService.keyTrashMails, _trashMails);
+        _state = MailState.loaded;
+        _logger.logNetwork('✅ Trash refreshed (${_trashMails.length} mails)');
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e, s) {
+      _errorMessage = 'Failed to fetch trash mails: $e';
+      _logger.error('MAIL_PROVIDER', 'fetchTrash failed', error: e, stackTrace: s);
+      if (_trashMails.isEmpty) _state = MailState.error;
+    }
+
+    notifyListeners();
+  }
+
+  /// Refresh inbox mails
+  Future<void> refreshInbox() async {
+    await fetchInbox();
+  }
+
+  /// ---------------------------------------------------------------------------
+  /// 🔍 SEARCH MAILS (only in Inbox)
+  /// ---------------------------------------------------------------------------
+  void searchMails(String query) {
+    if (query.isEmpty) {
+      _filteredMails = [];
+    } else {
+      _filteredMails = _inboxMails.where((mail) {
+        return mail.subject.toLowerCase().contains(query.toLowerCase()) ||
+            mail.senderName.toLowerCase().contains(query.toLowerCase()) ||
+            mail.body.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    }
+    notifyListeners();
+  }
+  // ===========================================================================
+  // ♻️ MOVE / RESTORE / DELETE (with API + Local Sync)
+  // ===========================================================================
+
+  /// Move a single mail to trash (local + API)
+  Future<void> moveMailToTrash(MailModel mail) async {
+    _logger.logNetwork('🗑️ Moving mail to trash: ${mail.id}');
+    try {
+      // Local update first for quick UI feedback
+      _inboxMails.remove(mail);
+      _trashMails.add(mail);
+      await _saveAllLocally();
+
+      // 🔄 Call API
+      await _mailService.moveToTrash(mail.id);
+
+      _logger.logNetwork('✅ Mail moved to trash (${mail.id})');
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'moveMailToTrash failed', error: e, stackTrace: s);
+    }
+    notifyListeners();
+  }
+
+  /// Move multiple mails to trash
+  Future<void> moveManyToTrash(List<MailModel> mails) async {
+    _logger.logNetwork('🗑️ Moving ${mails.length} mails to trash');
+    try {
+      for (final mail in mails) {
+        _inboxMails.remove(mail);
+        _trashMails.add(mail);
+      }
+      await _saveAllLocally();
+      final employeeId = await _secureStorage.getEmployeeId();
+      if (employeeId == null) throw Exception('Employee ID not found');
+
+      final mailIds = mails.map((e) => e.id).toList();
+      await _mailService.moveManyToTrash(mailIds: mailIds, employeeId: employeeId);
+
+      _logger.logNetwork('✅ ${mails.length} mails moved to trash');
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'moveManyToTrash failed', error: e, stackTrace: s);
+    }
+    notifyListeners();
+  }
+
+  /// Restore a single mail from trash
+  Future<void> restoreMail(MailModel mail) async {
+    _logger.logNetwork('♻️ Restoring mail: ${mail.id}');
+    try {
+      _trashMails.remove(mail);
+      _inboxMails.add(mail);
+      await _saveAllLocally();
+
+      await _mailService.restoreFromTrash(mail.id);
+      _logger.logNetwork('✅ Mail restored (${mail.id})');
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'restoreMail failed', error: e, stackTrace: s);
+    }
+    notifyListeners();
+  }
+
+  /// Restore multiple mails from trash
+  Future<void> restoreMany(List<MailModel> mails) async {
+    _logger.logNetwork('♻️ Restoring ${mails.length} mails');
+    try {
+      for (final mail in mails) {
+        _trashMails.remove(mail);
+        _inboxMails.add(mail);
+      }
+      await _saveAllLocally();
+
+      final mailIds = mails.map((e) => e.id).toList();
+      final employeeId = await _secureStorage.getEmployeeId();
+      if (employeeId == null) throw Exception('Employee ID not found');
+
+      await _mailService.restoreManyFromTrash(mailIds: mailIds, employeeId: employeeId);
+
+      _logger.logNetwork('✅ ${mails.length} mails restored');
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'restoreMany failed', error: e, stackTrace: s);
+    }
+    notifyListeners();
+  }
+
+  /// Permanently delete a mail
+  Future<void> deleteMail(MailModel mail) async {
+    _logger.logNetwork('🗑️ Permanently deleting mail: ${mail.id}');
+    try {
+      _trashMails.remove(mail);
+      await _saveTrashLocally();
+
+      await _mailService.deleteMail(mailId: mail.id);
+      _logger.logNetwork('✅ Mail deleted permanently (${mail.id})');
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'deleteMail failed', error: e, stackTrace: s);
+    }
+    notifyListeners();
+  }
+
+  /// Permanently delete all mails in trash
+  Future<void> deleteAllTrash() async {
+    _logger.logNetwork('🗑️ Permanently deleting all trash mails');
+    try {
+      _trashMails.clear();
+      await _saveTrashLocally();
+      final employeeId = await _secureStorage.getEmployeeId();
+
+      await _mailService.emptyTrash(employeeId);
+      _logger.logNetwork('✅ All trash mails deleted');
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'deleteAllTrash failed', error: e, stackTrace: s);
+    }
+    notifyListeners();
+  }
+
+  // ===========================================================================
+  // 💾 LOCAL HELPERS
+  // ===========================================================================
+  Future<void> _saveAllLocally() async {
+    await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
+    await _local.saveMails(LocalStorageService.keyTrashMails, _trashMails);
+  }
+
+  Future<void> _saveTrashLocally() async {
+    await _local.saveMails(LocalStorageService.keyTrashMails, _trashMails);
+  }
+
+  /// Send mail
+  Future<bool> sendMail({
+    required String sender,
+    required String senderName,
+    required List<String> receiver,
+    required List<String> receiverName,
+    required List<String> cc,
+    required List<String> bcc,
+    required String subject,
+    required String body,
+    required List<String> attachmentUrls,
+  }) async {
+    try {
+      final response = await _mailService.sendMail(
+        sender: sender,
+        senderName: senderName,
+        receiver: receiver,
+        receiverName: receiverName,
+        cc: cc,
+        bcc: bcc,
+        subject: subject,
+        body: body,
+        attachmentUrls: attachmentUrls,
+      );
+
+      if (response.success) {
+        _logger.logNetwork('✅ Mail sent successfully');
         return true;
+      } else {
+        _logger.logNetwork('❌ Failed to send mail: ${response.message}', level: LogLevel.error);
+        return false;
       }
+    } catch (e, s) {
+      _logger.error('MAIL_PROVIDER', 'Failed to send mail', error: e, stackTrace: s);
       return false;
-    } catch (e) {
-      _setError(e.toString());
-      notifyListeners();
-      return false;
-    } finally {
-      _setLoading(false);
     }
-  }
-
-  // Send a mail
-  Future<void> sendMail(Map<String, dynamic> body) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final sentMail = await mailService.sendMail(body);
-      if (sentMail != null) {
-        _sent.insert(0, sentMail);
-      }
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Delete a mail
-  Future<bool> deleteMail(String mailId) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final success = await mailService.deleteMail(mailId);
-      if (success) {
-        _sent.removeWhere((mail) => mail.id == mailId);
-        _trash.removeWhere((mail) => mail.id == mailId);
-        notifyListeners();
-        return true;
-      }
-      return false;
-    } catch (e) {
-      _setError(e.toString());
-      notifyListeners();
-      return false;
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Restore one mail from trash
-  Future<void> restoreFromTrash(String mailId) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final success = await mailService.restoreFromTrash(mailId);
-      if (success) {
-        final mail = _trash.firstWhere((m) => m.id == mailId);
-        _trash.remove(mail);
-        _inbox.insert(0, mail);
-        notifyListeners();
-      }
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Empty trash
-  Future<void> emptyTrash(String employeeId) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final success = await mailService.emptyTrash(employeeId);
-      if (success) {
-        _trash.clear();
-        notifyListeners();
-      }
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  // Move many mails to trash
-  Future<void> moveManyToTrash(String employeeId, List<String> mailIds) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final success = await mailService.moveManyToTrash(employeeId, mailIds);
-      if (success) {
-        final movedMails = <Mail>[];
-        for (var id in mailIds) {
-          final mail = _inbox.firstWhere(
-            (m) => m.id == id,
-            orElse: () => _sent.firstWhere((m) => m.id == id),
-          );
-          movedMails.add(mail);
-        }
-        _inbox.removeWhere((m) => mailIds.contains(m.id));
-        _sent.removeWhere((m) => mailIds.contains(m.id));
-        _trash.insertAll(0, movedMails);
-        notifyListeners();
-      }
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-
-  /// Restore many mails from trash
-  Future<void> restoreManyFromTrash(String employeeId, List<String> mailIds) async {
-    _setLoading(true);
-    _setError(null);
-    try {
-      final success = await mailService.restoreManyFromTrash(employeeId, mailIds);
-      if (success) {
-        final mailsToRestore = _trash.where((m) => mailIds.contains(m.id)).toList();
-        _trash.removeWhere((m) => mailIds.contains(m.id));
-        _inbox.addAll(mailsToRestore);
-        notifyListeners();
-      }
-    } catch (e) {
-      _setError(e.toString());
-    } finally {
-      _setLoading(false);
-    }
-  }
-}
-
-extension FirstWhereOrNull<T> on List<T> {
-  T? firstWhereOrNull(bool Function(T) test) {
-    for (var element in this) {
-      if (test(element)) return element;
-    }
-    return null;
   }
 }

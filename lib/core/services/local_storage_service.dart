@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
+import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -18,6 +19,11 @@ class LocalStorageService {
   // employee list data related keys
   static const String _keyEmployeeList = 'employee_list';
   static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
+
+  // 📩 Mail caching related keys
+  static const String keyInboxMails = 'inbox_mails';
+  static const String keySentMails = 'sent_mails';
+  static const String keyTrashMails = 'trash_mails';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -118,6 +124,42 @@ class LocalStorageService {
     await prefs.remove(_keyEmployeeList);
     await prefs.remove(_keyEmployeeListTimestamp);
     _logger.logStorage('Cleared employee list cache');
+  }
+
+  // mail related save methods
+
+  // Save list of mails + timestamp
+  Future<void> saveMails(String key, List<MailModel> mails) async {
+    final jsonList = mails.map((e) => e.toJson()).toList();
+    await prefs.setString(key, jsonEncode(jsonList));
+    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+    _logger.logStorage('Saved ${mails.length} mails to cache ($key)');
+  }
+
+  // Get cached mails
+  Future<List<MailModel>?> getMails(String key) async {
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((json) => MailModel.fromJson(json)).toList();
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse cached mails', error: e);
+      return null;
+    }
+  }
+
+  // Get cache timestamp
+  Future<DateTime?> getMailCacheTimestamp(String key) async {
+    final ts = prefs.getInt('${key}_timestamp');
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+  }
+
+  // Clear a cache
+  Future<void> clearMailCache(String key) async {
+    await prefs.remove(key);
+    await prefs.remove('${key}_timestamp');
+    _logger.logStorage('Cleared mail cache for $key');
   }
 
   // chat message storage

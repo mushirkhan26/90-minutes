@@ -1,10 +1,18 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/core/models/employee_model.dart';
+import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
-import 'package:provider/provider.dart';
-
-import '../provider/mail_provider.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
+import 'package:hrtz_hrms/features/mail/widgets/attachments_chips.dart';
+import 'package:hrtz_hrms/features/mail/widgets/cc_bcc_filds.dart';
+import 'package:hrtz_hrms/features/mail/widgets/reciepient_selector.dart';
+import 'package:hrtz_hrms/widgets/custom_textfield.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class ComposeMailScreen extends StatefulWidget {
   const ComposeMailScreen({super.key});
@@ -16,293 +24,209 @@ class ComposeMailScreen extends StatefulWidget {
 class _ComposeMailScreenState extends State<ComposeMailScreen> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController _fromController = TextEditingController();
-  final TextEditingController _toController = TextEditingController();
-  final TextEditingController _ccController = TextEditingController();
-  final TextEditingController _bccController = TextEditingController();
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
+  final TextEditingController _ccController = TextEditingController();
+  final TextEditingController _bccController = TextEditingController();
 
-  final List<String> employeeSuggestions = [];
+  final FileUploadService _fileUploadService = FileUploadService();
+  final SecureStorageService _secureStorage = SecureStorageService();
+  final MailProvider _mailProvider = MailProvider();
 
-  bool showCc = false;
-  bool showBcc = false;
+  List<EmployeeModel> _employees = [];
+  List<EmployeeModel> _filteredEmployees = [];
+  final List<EmployeeModel> _selectedReceivers = [];
+
+  List<String> _ccList = [];
+  List<String> _bccList = [];
+  final List<String> _attachmentUrls = [];
+
+  bool _showDropdown = false;
+  bool _showCcBcc = false;
   bool _isSending = false;
-
-  List<String> attachments = [];
-
-  void _addAttachmentDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text("Add Attachment URL"),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: "https://example.com/file.pdf"),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
-          ElevatedButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                setState(() {
-                  attachments.add(controller.text);
-                });
-              }
-              Navigator.pop(context);
-            },
-            child: const Text("Add"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _sendMail() {
-    if (!_formKey.currentState!.validate()) return;
-    setState(() => _isSending = true);
-
-    final mailData = {
-      "sender": _fromController.text.split(' - ')[0],
-      "senderName": _fromController.text.split(' - ')[1],
-      "receiver": _toController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
-      "receiverName": _toController.text.split(',').map((e) => e.trim().split(' - ')[1]).toList(),
-      "cc": _ccController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
-      "bcc": _bccController.text.split(',').map((e) => e.trim().split(' - ')[0]).toList(),
-      "subject": _subjectController.text,
-      "body": _bodyController.text,
-      "attachmentUrls": attachments,
-    };
-
-    debugPrint("Mail Data: $mailData");
-
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() => _isSending = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Mail sent successfully!")));
-        Navigator.pop(context);
-      }
-    });
-  }
-
-  Widget _buildRecipientField({
-    required String label,
-    required TextEditingController controller,
-    required Function(String) onChanged,
-  }) {
-    final filtered = employeeSuggestions
-        .where(
-          (s) =>
-              controller.text.isNotEmpty && s.toLowerCase().contains(controller.text.toLowerCase()),
-        )
-        .toList();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        TextFormField(
-          controller: controller,
-          decoration: InputDecoration(
-            labelText: label,
-            focusedBorder: const UnderlineInputBorder(
-              borderSide: BorderSide(color: AppColors.primary, width: 1.0),
-            ),
-          ),
-          onChanged: onChanged,
-          validator: (v) {
-            if (label == "To" && (v == null || v.isEmpty)) {
-              return "At least one recipient is required";
-            }
-            return null;
-          },
-        ),
-
-        if (filtered.isNotEmpty)
-          Container(
-            margin: const EdgeInsets.only(top: 4, left: 8, right: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.grey.shade300),
-            ),
-            child: Column(
-              children: filtered.map((s) {
-                return ListTile(
-                  title: Text(s),
-                  onTap: () {
-                    // ignore: unused_local_variable
-                    final currentText = controller.text.trim();
-
-                    setState(() {
-                      controller.text = s;
-                      controller.selection = TextSelection.fromPosition(
-                        TextPosition(offset: controller.text.length),
-                      );
-                    });
-                  },
-                );
-              }).toList(),
-            ),
-          ),
-      ],
-    );
-  }
+  bool _isUploading = false;
+  double _uploadProgress = 0;
 
   @override
   void initState() {
     super.initState();
-    getEmployees();
+    _loadEmployees();
   }
 
-  getEmployees() async {
-    final data = await SecureStorageService().getUserData();
-    _fromController.text = '${data?['employeeId'] ?? ''} - ${data?['username'] ?? ''}';
-    employeeSuggestions.addAll(
-      (await LocalStorageService().getEmployeeList())
-              ?.map((e) => '${e.employeeID} - ${e.name}')
-              .toList() ??
-          [],
+  Future<void> _loadEmployees() async {
+    final employees = await LocalStorageService().getEmployeeList();
+    if (employees != null) {
+      setState(() {
+        _employees = employees;
+        _filteredEmployees = employees;
+      });
+    }
+  }
+
+  void _filterEmployees(String query) {
+    setState(() {
+      _filteredEmployees = _employees
+          .where(
+            (e) =>
+                e.name.toLowerCase().contains(query.toLowerCase()) ||
+                e.employeeID.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
+    });
+  }
+
+  Future<void> _pickFiles() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+      type: FileType.any,
     );
+
+    if (result != null) {
+      setState(() {
+        _isUploading = true;
+        _uploadProgress = 0;
+      });
+
+      int totalFiles = result.files.length;
+      int completed = 0;
+
+      for (var file in result.files) {
+        if (file.path != null) {
+          final uploadedUrl = await _fileUploadService.uploadFile(File(file.path!));
+          if (uploadedUrl != null) {
+            _attachmentUrls.add(uploadedUrl);
+          }
+
+          completed++;
+          setState(() {
+            _uploadProgress = completed / totalFiles;
+          });
+        }
+      }
+
+      setState(() => _isUploading = false);
+    }
+  }
+
+  Future<void> _sendMail() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedReceivers.isEmpty) {
+      AlertHelper.snackBarError(context, 'Please select at least one recipient.');
+      return;
+    }
+
+    setState(() => _isSending = true);
+
+    try {
+      final senderId = await _secureStorage.getEmployeeId() ?? '';
+      final senderName = await _secureStorage.getUserName() ?? '';
+
+      final success = await _mailProvider.sendMail(
+        sender: senderId,
+        senderName: senderName,
+        receiver: _selectedReceivers.map((e) => e.employeeID).toList(),
+        receiverName: _selectedReceivers.map((e) => e.name).toList(),
+        cc: _ccList,
+        bcc: _bccList,
+        subject: _subjectController.text.trim(),
+        body: _bodyController.text.trim(),
+        attachmentUrls: _attachmentUrls,
+      );
+
+      if (success) {
+        if (mounted) {
+          AlertHelper.snackBarSuccess(context, 'Mail sent successfully!');
+          //  Refresh Sent Mails after success
+          await _mailProvider.fetchSent(forceRefresh: true);
+        }
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      } else {
+        if (mounted) {
+          AlertHelper.snackBarError(context, 'Failed to send mail.');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        AlertHelper.snackBarError(context, 'Error: $e');
+      }
+    } finally {
+      setState(() => _isSending = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text("Compose Mail"),
-          actions: [
-            IconButton(icon: const Icon(Icons.attach_file), onPressed: _addAttachmentDialog),
-            IconButton(icon: const Icon(Icons.send), onPressed: _sendMail),
-          ],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                TextFormField(
-                  controller: _fromController,
-                  readOnly: true,
-                  decoration: const InputDecoration(
-                    labelText: "From",
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.primary, width: 1.0),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(
-                      child: _buildRecipientField(
-                        label: "To",
-                        controller: _toController,
-                        onChanged: (_) => setState(() {}),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          showCc = !showCc;
-                        });
-                      },
-                      child: Text(
-                        "Cc",
-                        style: TextStyle(
-                          color: showCc ? AppColors.primary : Colors.grey[600],
-                          fontWeight: showCc ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          showBcc = !showBcc;
-                        });
-                      },
-                      child: Text(
-                        "Bcc",
-                        style: TextStyle(
-                          color: showBcc ? AppColors.primary : Colors.grey[600],
-                          fontWeight: showBcc ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                if (showCc)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: _buildRecipientField(
-                      label: "CC",
-                      controller: _ccController,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                if (showBcc)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: _buildRecipientField(
-                      label: "BCC",
-                      controller: _bccController,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                  ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _subjectController,
-                  decoration: const InputDecoration(
-                    labelText: "Subject",
-                    focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: AppColors.primary, width: 1.0),
-                    ),
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? "Subject required" : null,
-                ),
-                const SizedBox(height: 15),
-                TextFormField(
-                  controller: _bodyController,
-                  maxLines: 8,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    labelText: "Message",
-                    alignLabelWithHint: true,
-                  ),
-                  validator: (v) => v == null || v.isEmpty ? "Message body required" : null,
-                ),
-                const SizedBox(height: 20),
-                if (attachments.isNotEmpty)
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Attachments:", style: TextStyle(fontWeight: FontWeight.bold)),
-                      ...attachments.map(
-                        (url) => ListTile(
-                          leading: const Icon(Icons.insert_drive_file),
-                          title: Text(url, overflow: TextOverflow.ellipsis),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () => setState(() => attachments.remove(url)),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                if (_isSending)
-                  const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Compose Mail'),
+        actions: [
+          IconButton(icon: const Icon(Icons.attach_file), onPressed: _pickFiles),
+          IconButton(
+            icon: _isSending
+                ? LoadingAnimationWidget.staggeredDotsWave(color: AppColors.primary, size: 22)
+                : const Icon(Icons.send),
+            onPressed: _isSending ? null : _sendMail,
+          ),
+        ],
+      ),
+      body: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RecipientSelector(
+                showDropdown: _showDropdown,
+                employees: _filteredEmployees,
+                selectedReceivers: _selectedReceivers,
+                onToggleDropdown: () => setState(() => _showDropdown = !_showDropdown),
+                onFilter: _filterEmployees,
+              ),
+
+              const SizedBox(height: 10),
+
+              CcBccFields(
+                showCcBcc: _showCcBcc,
+                ccController: _ccController,
+                bccController: _bccController,
+                onToggle: () => setState(() => _showCcBcc = !_showCcBcc),
+                onCcChanged: (v) => _ccList = v.split(',').map((e) => e.trim()).toList(),
+                onBccChanged: (v) => _bccList = v.split(',').map((e) => e.trim()).toList(),
+              ),
+
+              const SizedBox(height: 20),
+
+              CustomTextField(
+                controller: _subjectController,
+                hintText: 'Subject',
+                validator: (v) => v == null || v.trim().isEmpty ? 'Subject cannot be empty' : null,
+              ),
+              const SizedBox(height: 16),
+
+              CustomTextField(
+                controller: _bodyController,
+                hintText: 'Compose your mail...',
+                minLines: 10,
+                maxLines: 20,
+                validator: (v) => v == null || v.trim().isEmpty ? 'Body cannot be empty' : null,
+              ),
+              const SizedBox(height: 16),
+
+              if (_isUploading) ...[
+                const Text('Uploading attachments...'),
+                const SizedBox(height: 6),
+                LinearProgressIndicator(value: _uploadProgress),
+                const SizedBox(height: 12),
               ],
-            ),
+
+              AttachmentChips(
+                attachments: _attachmentUrls,
+                onRemove: (url) => setState(() => _attachmentUrls.remove(url)),
+              ),
+            ],
           ),
         ),
       ),

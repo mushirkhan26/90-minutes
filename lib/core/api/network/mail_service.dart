@@ -1,132 +1,104 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../models/mail_model.dart';
-import '../../models/employee_model.dart';
+import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
+import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
+
+import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class MailService {
-  final String baseUrl2;
+  final ApiHelper _apiHelper = ApiHelper(baseUrl: ApiHelper.mailBaseUrl);
+  final LoggingService _logger = LoggingService.instance;
 
-  MailService({required this.baseUrl2});
-
-  // Send a mail
-  Future<Mail> sendMail(Map<String, dynamic> body) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl2/mail/send'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(body),
-    );
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return Mail.fromJson(jsonDecode(response.body));
-    } else {
-      throw Exception('Failed to send mail: ${response.statusCode}');
-    }
+  /// Get inbox mails for a specific employee (returns raw response)
+  Future<ApiResponse<Map<String, dynamic>>> getInbox({required String employeeId}) async {
+    _logger.logNetwork('Fetching inbox for employeeId: $employeeId');
+    return await _apiHelper.get<Map<String, dynamic>>('mail/inbox/$employeeId');
   }
 
-  // Get inbox mails
-  Future<List<Mail>> getInbox(String employeeId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl2/mail/inbox/$employeeId'),
-    );
-    if (response.statusCode == 200) {
-      final mailResponse = jsonDecode(response.body);
-      return MailResponse.fromJson(mailResponse).data ?? [];
-    } else {
-      throw Exception('Failed to fetch inbox mails: ${response.statusCode}');
-    }
+  /// 📤 Get sent mails for a specific employee
+  Future<ApiResponse<Map<String, dynamic>>> getSentMails({required String employeeId}) async {
+    _logger.logNetwork('Fetching sent mails for employeeId: $employeeId');
+    return await _apiHelper.get<Map<String, dynamic>>('mail/sent/$employeeId');
   }
 
-  // Get sent mails
-  Future<List<Mail>> getSent(String employeeId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl2/mail/sent/$employeeId'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data['data'] as List).map((json) => Mail.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to fetch sent mails: ${response.statusCode}');
-    }
+  /// 🗑️ Get trash mails for a specific employee
+  Future<ApiResponse<Map<String, dynamic>>> getTrashMails({required String employeeId}) async {
+    _logger.logNetwork('Fetching trash mails for employeeId: $employeeId');
+    return await _apiHelper.get<Map<String, dynamic>>('mail/trash/$employeeId');
   }
 
-  // Get trash mails
-  Future<List<Mail>> getTrash(String employeeId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl2/mail/trash/$employeeId'),
-    );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return (data['data'] as List).map((json) => Mail.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to fetch trash mails: ${response.statusCode}');
-    }
+  /// ---------------------------------------------------------------------------
+  /// ✉️ SEND MAIL
+  /// ---------------------------------------------------------------------------
+  Future<ApiResponse<Map<String, dynamic>>> sendMail({
+    required String sender,
+    required String senderName,
+    required List<String> receiver,
+    required List<String> receiverName,
+    required List<String> cc,
+    required List<String> bcc,
+    required String subject,
+    required String body,
+    required List<String> attachmentUrls,
+  }) async {
+    _logger.logNetwork('Sending mail from $sender to $receiver');
+    final response = await _apiHelper.post<Map<String, dynamic>>('mail/send', {
+      "sender": sender,
+      "senderName": senderName,
+      "receiver": receiver,
+      "receiverName": receiverName,
+      "cc": cc,
+      "bcc": bcc,
+      "subject": subject,
+      "body": body,
+      "attachmentUrls": attachmentUrls,
+    });
+    return response;
   }
 
-  // Get employee list
-  Future<List<EmployeeModel>> getEmployee() async {
-    final response = await http.get(
-      Uri.parse(
-        'https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/employee/employeeList',
-      ),
-    );
-    if (response.statusCode == 200 &&
-        jsonDecode(response.body)['message'] is List) {
-      final data = (jsonDecode(response.body)['message'] as List);
-      return data.map((json) => EmployeeModel.fromJson(json)).toList();
-    } else {
-      throw Exception('Failed to get employee list: ${response.statusCode}');
-    }
+  /// 🗑️ Move single mail to trash
+  Future<ApiResponse<Map<String, dynamic>>> moveToTrash(String mailId) async {
+    _logger.logNetwork('Moving mail to trash: $mailId');
+    return await _apiHelper.patch<Map<String, dynamic>>('mail/move-to-trash/$mailId', {});
   }
 
-  // Delete a mail
-  Future<bool> deleteMail(String mailId) async {
-    final response = await http.delete(Uri.parse('$baseUrl2/mail/$mailId'));
-    return response.statusCode == 200;
+  /// 🔁 Restore single mail from trash
+  Future<ApiResponse<Map<String, dynamic>>> restoreFromTrash(String mailId) async {
+    _logger.logNetwork('Restoring mail from trash: $mailId');
+    return await _apiHelper.patch<Map<String, dynamic>>('mail/restore-from-trash/$mailId', {});
   }
 
-  // Move a mail to trash
-  Future<bool> moveToTrash(String mailId) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl2/mail/move-to-trash/$mailId'),
-    );
-    return response.statusCode == 200;
+  /// 🧹 Empty entire trash for an employee
+  Future<ApiResponse<Map<String, dynamic>>> emptyTrash(String? employeeId) async {
+    _logger.logNetwork('Emptying trash for employeeId: $employeeId');
+    return await _apiHelper.delete<Map<String, dynamic>>('mail/empty-trash/$employeeId');
   }
 
-  // Restore a mail from trash
-  Future<bool> restoreFromTrash(String mailId) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl2/mail/restore-from-trash/$mailId'),
-    );
-    return response.statusCode == 200;
+  /// 🗑️ Move multiple mails to trash
+  Future<ApiResponse<Map<String, dynamic>>> moveManyToTrash({
+    required List<String> mailIds,
+    required String employeeId,
+  }) async {
+    _logger.logNetwork('Moving many mails to trash: $mailIds');
+    return await _apiHelper.patch<Map<String, dynamic>>('mail/move-to-trash-many', {
+      "mailIds": mailIds,
+      "employeeId": employeeId,
+    });
   }
 
-  // Empty trash
-  Future<bool> emptyTrash(String employeeId) async {
-    final response = await http.delete(
-      Uri.parse('$baseUrl2/mail/empty-trash/$employeeId'),
-    );
-    return response.statusCode == 200;
+  /// 🔁 Restore multiple mails from trash
+  Future<ApiResponse<Map<String, dynamic>>> restoreManyFromTrash({
+    required List<String> mailIds,
+    required String employeeId,
+  }) async {
+    _logger.logNetwork('Restoring many mails from trash: $mailIds');
+    return await _apiHelper.put<Map<String, dynamic>>('mail/restore-from-trash-many', {
+      "mailIds": mailIds,
+      "employeeId": employeeId,
+    });
   }
 
-  // Move many mails to trash
-  Future<bool> moveManyToTrash(String employeeId, List<String> mailIds) async {
-    final response = await http.patch(
-      Uri.parse('$baseUrl2/mail/move-to-trash-many'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'employeeId': employeeId, 'mailIds': mailIds}),
-    );
-    return response.statusCode == 200;
-  }
-
-  // Restore many mails from trash
-  Future<bool> restoreManyFromTrash(
-    String employeeId,
-    List<String> mailIds,
-  ) async {
-    final response = await http.put(
-      Uri.parse('$baseUrl2/mail/restore-from-trash-many'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'employeeId': employeeId, 'mailIds': mailIds}),
-    );
-    return response.statusCode == 200;
+  /// ❌ Delete mail permanently by ID
+  Future<ApiResponse<Map<String, dynamic>>> deleteMail({required String mailId}) async {
+    _logger.logNetwork('Deleting mail permanently with id: $mailId');
+    return await _apiHelper.delete<Map<String, dynamic>>('mail/$mailId');
   }
 }

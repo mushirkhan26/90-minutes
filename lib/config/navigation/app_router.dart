@@ -4,6 +4,7 @@ import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/navigation/navigation_host.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/core/extensions/secure_storage_extension.dart';
+import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
@@ -20,7 +21,7 @@ import 'package:hrtz_hrms/features/settings/screens/permission_screen.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
-import '../../core/models/mail_model.dart';
+
 import '../../features/mail/screens/compose_mail_screen.dart';
 
 import '../../features/meet/screens/schedule_meet.dart';
@@ -122,7 +123,7 @@ final GoRouter appRouter = GoRouter(
           name: '/mail_detail',
           redirect: (context, state) => authGuard(context, state),
           pageBuilder: (context, state) =>
-              buildTransitionPage(MailDetail(mail: state.extra as Mail)),
+              buildTransitionPage(MailDetailsScreen(mail: state.extra as MailModel)),
         ),
       ],
 
