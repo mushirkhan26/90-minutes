@@ -20,6 +20,7 @@ import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
 import '../../core/models/mail_model.dart';
+import '../../features/clock/screens/face_verification.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
 import '../../features/meet/screens/schedule_meet.dart';
@@ -49,7 +50,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const SplashScreen()),
       builder: (context, state) => const MeetScreen(),
       // MeetWidget(),
     ),
@@ -65,7 +67,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.forgotPasswordScreen,
       name: 'forgot-password',
-      pageBuilder: (context, state) => buildTransitionPage(const ForgotPasswordScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const ForgotPasswordScreen()),
     ),
 
     GoRoute(
@@ -96,25 +99,29 @@ final GoRouter appRouter = GoRouter(
           path: AppRoutes.homeRoute,
           name: 'home',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const HomeScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const HomeScreen()),
         ),
         GoRoute(
           path: AppRoutes.chatRoute,
           name: 'chat',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const ChatListScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const ChatListScreen()),
         ),
         GoRoute(
           path: AppRoutes.meetRoute,
           name: 'meet',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MeetScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MeetScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailRoute,
           name: 'mail',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MailScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailDetail,
@@ -136,7 +143,8 @@ final GoRouter appRouter = GoRouter(
         final otherUserId = state.pathParameters['otherUserId']!;
         final extra = state.extra as Map<String, dynamic>?;
         final otherUserName = extra?['otherUserName'] ?? 'User';
-        final currentUserData = extra?['currentUserData'] as Map<String, dynamic>?;
+        final currentUserData =
+            extra?['currentUserData'] as Map<String, dynamic>?;
 
         return ChatScreen(
           currentUserId: currentUserData?['employeeId'] ?? '',
@@ -166,6 +174,12 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.composeMail,
       name: '/compose-mail',
       builder: (context, state) => const ComposeMailScreen(),
+    ),
+    //Clock-in
+    GoRoute(
+      path: AppRoutes.clockinout,
+      name: '/clock-in-out',
+      builder: (context, state) => const FaceVerification(),
     ),
   ],
 );
@@ -200,7 +214,10 @@ extension AuthNavigation on BuildContext {
 
     push(
       '${AppRoutes.chatRoute}/$otherUserId',
-      extra: {'otherUserName': otherUserName, 'currentUserData': currentUserData},
+      extra: {
+        'otherUserName': otherUserName,
+        'currentUserData': currentUserData,
+      },
     );
   }
 
