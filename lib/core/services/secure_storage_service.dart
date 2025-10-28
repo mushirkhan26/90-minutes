@@ -13,6 +13,7 @@ class SecureStorageService {
   static const String _keyUsername = 'username';
   static const String _keyEmail = 'email';
   static const String _keyRole = 'role';
+  static const String _keyAppToken = 'app_token'; // 🔥 Added for FCM
 
   /// ✅ Save user data securely
   Future<void> saveUserData({
@@ -52,4 +53,17 @@ class SecureStorageService {
   Future<String?> getToken() async {
     return _secureStorage.read(key: _keyToken);
   }
+
+  // get userID or employeed ID
+  Future<String?> getEmployeeId() async => _secureStorage.read(key: _keyEmployeeId);
+  // get current username or employee name
+  Future<String?> getUserName() async => _secureStorage.read(key: _keyUsername);
+
+  // 🔥 FCM Token Methods
+  Future<void> saveAppToken(String token) async =>
+      _secureStorage.write(key: _keyAppToken, value: token);
+
+  Future<String?> getAppToken() async => _secureStorage.read(key: _keyAppToken);
+
+  Future<void> deleteAppToken() async => _secureStorage.delete(key: _keyAppToken);
 }

@@ -27,7 +27,7 @@ class SocketManager {
     // Use emitWithAck with a resilient ack callback
     socket.emitWithAck(
       'join',
-      {'userId': userId, 'name': username},
+      {'userId': userId, 'name': username, "source": "app"},
       ack: ([dynamic res]) {
         // Make the argument optional
         LoggingService.instance.logNetwork('Join response: $res');

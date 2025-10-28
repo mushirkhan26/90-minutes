@@ -1,116 +1,181 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import '../../../core/models/mail_model.dart';
+import 'package:flutter_initicon/flutter_initicon.dart';
 
-class MailDetail extends StatelessWidget {
-  final Mail mail;
+import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
+import 'package:hrtz_hrms/core/models/mail_model.dart';
+import 'package:hrtz_hrms/features/mail/widgets/attachment_tile.dart';
+import 'package:intl/intl.dart';
 
-  const MailDetail({required this.mail, super.key});
+class MailDetailsScreen extends StatefulWidget {
+  final MailModel mail;
+
+  const MailDetailsScreen({super.key, required this.mail});
+
+  @override
+  State<MailDetailsScreen> createState() => _MailDetailsScreenState();
+}
+
+class _MailDetailsScreenState extends State<MailDetailsScreen> {
+  bool _showDetails = false;
+
+  String _getTimeAgo(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inDays >= 1) return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+    if (diff.inHours >= 1) return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+    if (diff.inMinutes >= 1) return '${diff.inMinutes} min ago';
+    return 'Just now';
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text(
-            'Mail',
-            style: TextStyle(fontWeight: FontWeight.w500, fontSize: 20),
-          ),
-          backgroundColor: Colors.white,
-          elevation: 0.5,
-          iconTheme: const IconThemeData(color: Colors.black87),
+    final mail = widget.mail;
+    final formattedDate = DateFormat('EEE, MMM d • h:mm a').format(mail.createdAt);
+    final timeAgo = _getTimeAgo(mail.createdAt);
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        titleSpacing: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Column(
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
-                  border: Border.all(color: AppColors.borderColor, width: 0.5),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
+        title: Text('Inbox', style: AppTextStyles.black18_600),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 📌 Subject
+            Text(mail.subject, style: AppTextStyles.black24_700),
+            const SizedBox(height: 18),
+
+            // 🧍 Sender details row
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Initicon(text: mail.senderName),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(
-                              mail.senderName,
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                              ),
-                              overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(mail.senderName, style: AppTextStyles.black16_600),
+                                ),
+                                Text(timeAgo, style: AppTextStyles.black60alpha_12_500),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        mail.sender,
-                        style: TextStyle(
-                          // color: AppColors.black2E2E2E,
-                          fontSize: 15,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Subject
-                      Text(
-                        mail.subject,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Receiver
-                      Row(
-                        children: [
-                          const Text('To : ', style: TextStyle(fontSize: 16)),
-                          Text(
-                            // '${mail.receiver} - ${mail.receiverName}',
-                            "Me",
-                            style: const TextStyle(fontSize: 16),
+                          IconButton(
+                            icon: Icon(
+                              _showDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              size: 22,
+                              color: Colors.black54,
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _showDetails = !_showDetails;
+                              });
+                            },
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 16),
-                      // Email Body
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: AppColors.messageBox,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          mail.body,
-                          style: const TextStyle(fontSize: 15, height: 1.5),
-                        ),
                       ),
                     ],
                   ),
                 ),
+              ],
+            ),
+
+            // 📬 Expandable sender details like Gmail
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 250),
+              crossFadeState: _showDetails ? CrossFadeState.showFirst : CrossFadeState.showSecond,
+              firstChild: Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(top: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildDetailRow('From', mail.sender),
+                    _buildDetailRow('To', mail.receiver.join(', ')),
+                    if (mail.cc.isNotEmpty) _buildDetailRow('Cc', mail.cc.join(', ')),
+                    if (mail.perUserStatus['bcc'] != null)
+                      _buildDetailRow('Bcc', (mail.perUserStatus['bcc'] as List).join(', ')),
+                    _buildDetailRow('Date', formattedDate),
+                  ],
+                ),
+              ),
+              secondChild: const SizedBox.shrink(),
+            ),
+
+            const Divider(height: 32, thickness: 0.6),
+
+            // ✉️ Mail Body Container
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: .08),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: SelectableText(
+                mail.body,
+                style: AppTextStyles.black14_400.copyWith(height: 1.5),
+              ),
+            ),
+
+            const SizedBox(height: 24),
+
+            // 📎 Attachments
+            if (mail.attachmentUrls.isNotEmpty) ...[
+              const Divider(thickness: 0.5),
+              const SizedBox(height: 8),
+              Text('Attachments', style: AppTextStyles.black16_600),
+              const SizedBox(height: 12),
+
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: mail.attachmentUrls.map((url) => AttachmentTile(url: url)).toList(),
               ),
             ],
-          ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 50, child: Text(label, style: AppTextStyles.grey12_600)),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTextStyles.black12_400.copyWith(color: Colors.black.withValues(alpha: 0.8)),
+            ),
+          ),
+        ],
       ),
     );
   }
