@@ -5,6 +5,7 @@ import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:provider/provider.dart';
@@ -32,9 +33,12 @@ class _NavigationHostState extends State<NavigationHost> {
       final userData = await SecureStorageService().getUserData();
       if (userData != null && userData['employeeId'] != null && userData['username'] != null) {
         final socketProvider = context.read<SocketProvider>();
+        final groupSocketProvider = context.read<GroupSocketProvider>();
         await socketProvider.joinUser(userData['employeeId'], userData['username']);
         // Initialize event listeners AFTER joining the room
         socketProvider.init();
+        groupSocketProvider.init();
+
         LoggingService.instance.logNetwork(
           'User joined socket and initialized listeners: ${userData['employeeId']}, ${userData["userName"]}',
         );

@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
+import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
+import 'package:hrtz_hrms/core/models/group_message_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -27,6 +29,10 @@ class LocalStorageService {
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
+
+  // group chat related keys
+  static const String _keyGroupChats = 'group_chats';
+  static const String _keyGroupMessages = 'group_messages_';
 
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
@@ -223,5 +229,91 @@ class LocalStorageService {
   /// Get the storage key for a conversation's messages
   String _getChatMessagesKey(String conversationId) {
     return '$_keyChatMessages$conversationId';
+  }
+
+  // --------------------------------------------------------------------------
+  // group functionality related saving methods
+  //---------------------------------------------------------------------------
+
+  /// Save group chats to local storage
+  Future<void> saveGroupChats(List<GroupChatModel> groups) async {
+    final groupJsonList = groups.map((g) => g.toLocalMap()).toList();
+    await prefs.setString(_keyGroupChats, jsonEncode(groupJsonList));
+    _logger.logStorage('Saved ${groups.length} group chats');
+  }
+
+  /// Get group chats from local storage
+  Future<List<GroupChatModel>> getGroupChats() async {
+    final jsonString = prefs.getString(_keyGroupChats);
+    if (jsonString == null) return [];
+    try {
+      final List<dynamic> groupJsonList = jsonDecode(jsonString);
+      final groups = groupJsonList.map((json) => GroupChatModel.fromLocalMap(json)).toList();
+      _logger.logStorage('Retrieved ${groups.length} group chats');
+      return groups;
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse group chats', error: e);
+      return [];
+    }
+  }
+
+  /// Save group messages for a specific group
+  Future<void> saveGroupMessages(String groupId, List<GroupMessageModel> messages) async {
+    final key = _getGroupMessagesKey(groupId);
+    final messageJsonList = messages.map((m) => m.toLocalMap()).toList();
+    await prefs.setString(key, jsonEncode(messageJsonList));
+    _logger.logStorage('Saved ${messages.length} messages for group $groupId');
+  }
+
+  /// Get group messages for a specific group
+  Future<List<GroupMessageModel>> getGroupMessages(String groupId) async {
+    final key = _getGroupMessagesKey(groupId);
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return [];
+    try {
+      final List<dynamic> messageJsonList = jsonDecode(jsonString);
+      final messages = messageJsonList.map((json) => GroupMessageModel.fromLocalMap(json)).toList();
+      _logger.logStorage('Retrieved ${messages.length} messages for group $groupId');
+      return messages;
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse group messages', error: e);
+      return [];
+    }
+  }
+
+  /// Add a single group message to a group
+  Future<void> addGroupMessage(String groupId, GroupMessageModel message) async {
+    final existingMessages = await getGroupMessages(groupId);
+    existingMessages.add(message);
+    await saveGroupMessages(groupId, existingMessages);
+  }
+
+  /// Update a group message
+  Future<void> updateGroupMessage(String groupId, GroupMessageModel updatedMessage) async {
+    final existingMessages = await getGroupMessages(groupId);
+    final index = existingMessages.indexWhere((m) => m.messageId == updatedMessage.messageId);
+    if (index != -1) {
+      existingMessages[index] = updatedMessage;
+      await saveGroupMessages(groupId, existingMessages);
+    }
+  }
+
+  /// Delete a group message
+  Future<void> deleteGroupMessage(String groupId, String messageId) async {
+    final existingMessages = await getGroupMessages(groupId);
+    existingMessages.removeWhere((m) => m.messageId == messageId);
+    await saveGroupMessages(groupId, existingMessages);
+  }
+
+  /// Clear all messages for a group
+  Future<void> clearGroupMessages(String groupId) async {
+    final key = _getGroupMessagesKey(groupId);
+    await prefs.remove(key);
+    _logger.logStorage('Cleared messages for group $groupId');
+  }
+
+  /// Get the storage key for a group's messages
+  String _getGroupMessagesKey(String groupId) {
+    return '$_keyGroupMessages$groupId';
   }
 }

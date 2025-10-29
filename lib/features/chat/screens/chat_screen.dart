@@ -249,7 +249,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final file = File(pickedFile.path);
       final imageUrl = await _fileUploadService.uploadFile(file);
       if (imageUrl != null) {
-        await _sendMessage(fileUrl: imageUrl, type: 'image');
+        await _sendMessage(fileUrl: imageUrl, type: 'image', text: "Image");
       }
     }
   }
@@ -263,7 +263,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final file = File(result.files.single.path!);
       final documentUrl = await _fileUploadService.uploadFile(file);
       if (documentUrl != null) {
-        await _sendMessage(fileUrl: documentUrl, type: 'document');
+        await _sendMessage(fileUrl: documentUrl, type: 'document', text: "document");
       }
     }
   }

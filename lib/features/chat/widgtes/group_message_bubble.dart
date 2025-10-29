@@ -1,0 +1,103 @@
+// lib/widgets/group_message_bubble.dart
+import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
+import 'package:hrtz_hrms/core/models/group_message_model.dart';
+import 'package:hrtz_hrms/features/chat/widgtes/deleted_message_bubble.dart';
+import 'package:intl/intl.dart';
+
+class GroupMessageBubble extends StatelessWidget {
+  final GroupMessageModel message;
+  final bool isMe;
+  final VoidCallback? onLongPress;
+
+  const GroupMessageBubble({
+    super.key,
+    required this.message,
+    required this.isMe,
+    this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isRead = message.read;
+    return message.isDeleted
+        ? DeletedMessageBubble(
+            isMe: isMe,
+            timestamp: DateFormat('hh:mm a').format(message.timestamp),
+          )
+        : GestureDetector(
+            onLongPress: onLongPress,
+            child: Row(
+              mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      margin: const EdgeInsets.only(top: 20, bottom: 15, left: 10, right: 10),
+                      padding: const EdgeInsets.only(left: 20, right: 10, top: 10, bottom: 10),
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isMe
+                            ? AppColors.senderMessageBubbleColor
+                            : AppColors.recieverMessageBubble,
+                        borderRadius: BorderRadius.only(
+                          topLeft: const Radius.circular(16),
+                          topRight: const Radius.circular(16),
+                          bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(0),
+                          bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(16),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Show sender name for group messages (if not sent by current user)
+                          if (!isMe)
+                            Text(
+                              message.senderName,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          const SizedBox(height: 4),
+                          // Message text
+                          Text(
+                            message.text,
+                            style: TextStyle(
+                              color: isMe ? Colors.white : Colors.black.withAlpha(153),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Timestamp and read status
+                    Positioned(
+                      bottom: -1,
+                      right: isMe ? 10 : null,
+                      left: isMe ? null : 10,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            DateFormat('hh:mm a').format(message.timestamp),
+                            style: AppTextStyles.greyAAAAAA_10_400.copyWith(fontSize: 8.5),
+                          ),
+                          if (isMe)
+                            Icon(Icons.check, color: isRead ? Colors.blue : Colors.grey, size: 16),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+  }
+}

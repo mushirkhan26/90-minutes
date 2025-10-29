@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 
@@ -227,5 +228,262 @@ class SocketManager {
   void unregisterEvent(String eventName) {
     socket.off(eventName);
     LoggingService.instance.logNetwork('Unregistered socket event: $eventName');
+  }
+
+  // group functionality related sockets events
+  /// Joins a group room
+  Future<void> joinGroup({required String groupId, required String userId}) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot join group: socket not connected");
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'joinGroup',
+      {'groupId': groupId, 'userId': userId},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to join group: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Joined group: $groupId");
+      },
+    );
+  }
+
+  /// Leaves a group room
+  Future<void> leaveGroup({required String groupId, required String userId}) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot leave group: socket not connected");
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'leaveGroup',
+      {'groupId': groupId, 'userId': userId},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to leave group: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Left group: $groupId");
+      },
+    );
+  }
+
+  // get user groups
+  Future<void> getUserGroups(String userId) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot fetch user groups: socket not connected");
+      throw Exception("Socket not connected");
+    }
+
+    try {
+      socket.emitWithAck(
+        'getUserGroups',
+        {'userId': userId},
+        ack: ([dynamic res]) {
+          LoggingService.instance.info("Socket", "Ack received for getUserGroups: $res");
+        },
+      );
+    } catch (e, st) {
+      LoggingService.instance.error(
+        "Socket",
+        "Exception during emitWithAck",
+        error: e,
+        stackTrace: st,
+      );
+    }
+  }
+
+  /// Creates a new group
+  /// 🚀 Emits a createGroup event — handled by `groupCreated` listener
+  Future<void> createGroup({
+    required String name,
+    required String createdBy,
+    required List<String> members,
+    String? description,
+    String? icon,
+  }) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "❌ Cannot create group: socket not connected");
+      throw Exception("Socket not connected");
+    }
+
+    try {
+      socket.emit('createGroup', {
+        'name': name,
+        'createdBy': createdBy,
+        'members': members,
+        if (description != null) 'description': description,
+        if (icon != null) 'icon': icon,
+      });
+
+      LoggingService.instance.logNetwork("[SocketManager] 📤 createGroup event emitted");
+    } catch (e, st) {
+      LoggingService.instance.error(
+        "SocketManager",
+        "⚠️ Failed to emit createGroup event",
+        error: e,
+        stackTrace: st,
+      );
+      rethrow;
+    }
+  }
+
+  /// Deletes a group
+  Future<void> deleteGroup({required String groupId, required String deletedBy}) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot delete group: socket not connected");
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'deleteGroup',
+      {'groupId': groupId, 'deletedBy': deletedBy},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to delete group: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Deleted group: $groupId");
+      },
+    );
+  }
+
+  /// Sends a group message
+  Future<void> sendGroupMessage({
+    required String groupId,
+    required String sender,
+    required String senderName,
+    required String text,
+    required String messageId,
+    String messageType = 'text',
+    String? fileName,
+    String? fileUrl,
+    String? replyTo,
+    List<String>? mentions,
+  }) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot send group message: socket not connected");
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'sendGroupMessage',
+      {
+        'groupId': groupId,
+        'sender': sender,
+        'senderName': senderName,
+        'text': text,
+        'messageId': messageId,
+        'messageType': messageType,
+        'fileName': fileName,
+        'fileUrl': fileUrl,
+        'replyTo': replyTo,
+        'mentions': mentions,
+      },
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to send group message: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Group message sent: $messageId");
+      },
+    );
+  }
+
+  /// Marks a group message as read
+  Future<void> markGroupMessageAsRead({required String messageId, required String userId}) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error(
+        "Socket",
+        "Cannot mark group message as read: socket not connected",
+      );
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'groupMessageRead',
+      {'messageId': messageId, 'userId': userId},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to mark group message as read: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Group message marked as read: $messageId");
+      },
+    );
+  }
+
+  /// Deletes a group message
+  Future<void> deleteGroupMessage({
+    required String messageId,
+    required String userId,
+    required String groupId,
+  }) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot delete group message: socket not connected");
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'deleteGroupMessage',
+      {'messageId': messageId, 'userId': userId, 'groupId': groupId},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to delete group message: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Group message deleted: $messageId");
+      },
+    );
+  }
+
+  /// Clears a group chat
+  Future<void> clearGroupChat({required String groupId, required String userId}) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot clear group chat: socket not connected");
+      throw Exception("Socket not connected");
+    }
+    socket.emitWithAck(
+      'clearGroupChat',
+      {'groupId': groupId, 'userId': userId},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to clear group chat: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Group chat cleared: $groupId");
+      },
+    );
+  }
+
+  /// Sends group typing status
+  void sendGroupTypingStatus({
+    required String userId,
+    required String userName,
+    required String groupId,
+    required bool isTyping,
+  }) {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error(
+        "Socket",
+        "Cannot send group typing status: socket not connected",
+      );
+      return;
+    }
+    socket.emit('groupTyping', {
+      'userId': userId,
+      'userName': userName,
+      'groupId': groupId,
+      'isTyping': isTyping,
+    });
+  }
+
+  /// Registers a callback for a group socket event
+  void registerGroupEvent(String eventName, Function(dynamic data) callback) {
+    socket.on(eventName, callback);
+    LoggingService.instance.logNetwork('Registered group socket event: $eventName');
+  }
+
+  /// Unregisters a callback for a group socket event
+  void unregisterGroupEvent(String eventName) {
+    socket.off(eventName);
+    LoggingService.instance.logNetwork('Unregistered group socket event: $eventName');
   }
 }

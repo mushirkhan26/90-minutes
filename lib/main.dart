@@ -13,6 +13,7 @@ import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/config/theme/app_theme.dart';
 import 'package:hrtz_hrms/core/services/push_notification_service.dart';
+import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
@@ -83,6 +84,7 @@ class _MainAppState extends State<MainApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketProvider()),
+        ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
         ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
       ],
       child: MaterialApp.router(

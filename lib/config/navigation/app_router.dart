@@ -12,6 +12,7 @@ import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
+import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
@@ -148,6 +149,23 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    // Group chat route
+    GoRoute(
+      path: '${AppRoutes.chatRoute}/group/:groupId',
+      name: 'group-chat',
+      redirect: (context, state) => authGuard(context, state),
+      builder: (context, state) {
+        final groupId = state.pathParameters['groupId']!;
+        final extra = state.extra as Map<String, dynamic>?;
+
+        return GroupChatScreen(
+          groupId: groupId,
+          groupName: extra?['groupName'] ?? 'Group Chat',
+          currentUserId: extra?['currentUserId'] ?? '',
+          currentUserName: extra?['currentUserName'] ?? '',
+        );
+      },
+    ),
 
     // Schedule Meet Route
     GoRoute(
@@ -210,6 +228,23 @@ extension AuthNavigation on BuildContext {
     push(
       '${AppRoutes.chatRoute}/$otherUserId',
       extra: {'otherUserName': otherUserName, 'currentUserData': currentUserData},
+    );
+  }
+
+  Future<void> goToGroupChat({required String groupId, required String groupName}) async {
+    final currentUserData = await getCurrentUserData();
+    LoggingService.instance.info(
+      'NAVIGATION',
+      '💬 Opening group chat: [$groupName] - ID: $groupId',
+    );
+
+    push(
+      '${AppRoutes.chatRoute}/group/$groupId',
+      extra: {
+        'groupName': groupName,
+        'currentUserId': currentUserData?['employeeId'] ?? '',
+        'currentUserName': currentUserData?['username'] ?? '',
+      },
     );
   }
 
