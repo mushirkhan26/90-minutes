@@ -37,23 +37,24 @@ class GroupMessageModel {
   factory GroupMessageModel.fromMap(Map<String, dynamic> map) {
     return GroupMessageModel(
       id: map['_id']?.toString(),
-      messageId: map['messageId'] ?? map['_id'].toString(),
-      groupId: map['groupId'],
-      sender: map['sender'],
-      senderName: map['senderName'],
-      text: map['text'],
-      timestamp: DateTime.parse(map['timestamp'].toString()),
-      messageType: map['messageType'] ?? 'text',
-      fileName: map['fileName'],
-      fileUrl: map['fileUrl'],
-      replyTo: map['replyTo'],
-      mentions: map['mentions'] != null ? List<String>.from(map['mentions']) : null,
+      groupId: map['groupId']?.toString() ?? '',
+      sender: map['sender']?.toString() ?? '',
+      senderName: map['senderName']?.toString() ?? '',
+      text: map['text']?.toString() ?? '',
+      messageId: map['messageId']?.toString() ?? '',
+      messageType: map['messageType']?.toString() ?? 'text',
+      fileName: map['fileName']?.toString(),
+      fileUrl: map['fileUrl']?.toString(),
+      replyTo: map['replyTo']?.toString(),
+      mentions: List<String>.from(map['mentions'] ?? []),
       read: map['read'] ?? false,
       delivered: map['delivered'] ?? false,
       isDeleted: map['isDeleted'] ?? false,
+      timestamp: map['timestamp'] is String
+          ? DateTime.tryParse(map['timestamp']) ?? DateTime.now()
+          : DateTime.fromMillisecondsSinceEpoch(map['timestamp'] ?? 0),
     );
   }
-
   // Convert to local storage map
   Map<String, dynamic> toLocalMap() {
     return {

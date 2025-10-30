@@ -1,5 +1,9 @@
 // lib/screens/group_chat_screen.dart
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/navigation/app_router.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
+import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
@@ -21,6 +25,7 @@ class GroupChatScreen extends StatefulWidget {
   final String groupName;
   final String currentUserId;
   final String currentUserName;
+  final GroupChatModel? groupModel;
 
   const GroupChatScreen({
     super.key,
@@ -28,6 +33,7 @@ class GroupChatScreen extends StatefulWidget {
     required this.groupName,
     required this.currentUserId,
     required this.currentUserName,
+    this.groupModel,
   });
 
   @override
@@ -249,23 +255,23 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
     }
   }
 
-  /// Records and sends a voice message.
-  Future<void> _sendVoiceMessage() async {
-    // Placeholder: Implement voice recording logic
-    // For example, use a package like `sound_record` or `audioplayers`
-    // After recording, upload the voice file and send the URL
-    final voiceUrl = await _recordAndUploadVoice();
-    if (voiceUrl != null) {
-      await _sendMessage(fileUrl: voiceUrl, type: 'voice');
-    }
-  }
+  // /// Records and sends a voice message.
+  // Future<void> _sendVoiceMessage() async {
+  //   // Placeholder: Implement voice recording logic
+  //   // For example, use a package like `sound_record` or `audioplayers`
+  //   // After recording, upload the voice file and send the URL
+  //   final voiceUrl = await _recordAndUploadVoice();
+  //   if (voiceUrl != null) {
+  //     await _sendMessage(fileUrl: voiceUrl, type: 'voice');
+  //   }
+  // }
 
-  /// Placeholder for voice recording and upload logic.
-  Future<String?> _recordAndUploadVoice() async {
-    // Implement voice recording and upload logic here
-    // Return the URL of the uploaded voice file
-    return null;
-  }
+  // /// Placeholder for voice recording and upload logic.
+  // Future<String?> _recordAndUploadVoice() async {
+  //   // Implement voice recording and upload logic here
+  //   // Return the URL of the uploaded voice file
+  //   return null;
+  // }
 
   /// Shows a bottom sheet with message options (copy, delete, etc.).
   void _showMessageOptionsBottomSheet(
@@ -441,7 +447,26 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
   Widget build(BuildContext context) {
     final groupMessages = _groupSocketProvider.getGroupMessages(widget.groupId);
     return Scaffold(
-      appBar: AppBar(title: Text(widget.groupName)),
+      appBar: AppBar(
+        surfaceTintColor: AppColors.background,
+        backgroundColor: AppColors.background,
+        elevation: 1,
+        title: GestureDetector(
+          onTap: () {
+            if (widget.groupModel != null) {
+              // Navigate to GroupDetailsScreen
+              context.goToGroupDetails(group: widget.groupModel!);
+            }
+          },
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(widget.groupName, style: AppTextStyles.black16_500),
+              Text("Tap here to see details", style: AppTextStyles.grey12_600),
+            ],
+          ),
+        ),
+      ),
       body: Stack(
         children: [
           Column(

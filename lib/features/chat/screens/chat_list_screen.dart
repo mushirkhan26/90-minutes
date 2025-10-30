@@ -409,7 +409,11 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
           time: groupChat.createdAt,
           unreadCount: unreadCount,
           onTap: () {
-            context.goToGroupChat(groupId: groupChat.groupId, groupName: groupChat.name);
+            context.goToGroupChat(
+              groupId: groupChat.groupId,
+              groupName: groupChat.name,
+              groupModel: groupChat,
+            );
           },
         );
       },

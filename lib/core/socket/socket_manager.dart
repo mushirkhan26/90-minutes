@@ -229,8 +229,10 @@ class SocketManager {
     socket.off(eventName);
     LoggingService.instance.logNetwork('Unregistered socket event: $eventName');
   }
-
+  //============================================================================
   // group functionality related sockets events
+  //============================================================================
+
   /// Joins a group room
   Future<void> joinGroup({required String groupId, required String userId}) async {
     if (!SocketService.instance.isConnected) {
@@ -327,25 +329,6 @@ class SocketManager {
       );
       rethrow;
     }
-  }
-
-  /// Deletes a group
-  Future<void> deleteGroup({required String groupId, required String deletedBy}) async {
-    if (!SocketService.instance.isConnected) {
-      LoggingService.instance.error("Socket", "Cannot delete group: socket not connected");
-      throw Exception("Socket not connected");
-    }
-    socket.emitWithAck(
-      'deleteGroup',
-      {'groupId': groupId, 'deletedBy': deletedBy},
-      ack: ([dynamic res]) {
-        if (res is String) {
-          LoggingService.instance.error("Socket", "Failed to delete group: $res");
-          throw Exception(res);
-        }
-        LoggingService.instance.logNetwork("Deleted group: $groupId");
-      },
-    );
   }
 
   /// Sends a group message
@@ -473,6 +456,102 @@ class SocketManager {
       'groupId': groupId,
       'isTyping': isTyping,
     });
+  }
+
+  //============================================================================
+  // Group Management Operations
+  //============================================================================
+
+  /// Edit group name
+  Future<void> editGroupName({
+    required String groupId,
+    required String newName,
+    required String userId,
+  }) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot edit group name: socket not connected");
+      throw Exception("Socket not connected");
+    }
+
+    socket.emitWithAck(
+      'editGroupName',
+      {'groupId': groupId, 'newName': newName, 'userId': userId},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to edit group name: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Group name edited: $groupId → $newName");
+      },
+    );
+  }
+
+  /// Add members to group
+  Future<void> addGroupMembers({
+    required String groupId,
+    required List<String> newMembers,
+    required String addedBy,
+  }) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot add members: socket not connected");
+      throw Exception("Socket not connected");
+    }
+
+    socket.emitWithAck(
+      'addGroupMembers',
+      {'groupId': groupId, 'newMembers': newMembers, 'addedBy': addedBy},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to add members: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Members added to group: $groupId");
+      },
+    );
+  }
+
+  /// Remove a member from group
+  Future<void> removeGroupMember({
+    required String groupId,
+    required String userToRemove,
+    required String removedBy,
+  }) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot remove member: socket not connected");
+      throw Exception("Socket not connected");
+    }
+
+    socket.emitWithAck(
+      'removeGroupMember',
+      {'groupId': groupId, 'userToRemove': userToRemove, 'removedBy': removedBy},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to remove member: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Member removed from group: $groupId");
+      },
+    );
+  }
+
+  /// Delete a group
+  Future<void> deleteGroup({required String groupId, required String deletedBy}) async {
+    if (!SocketService.instance.isConnected) {
+      LoggingService.instance.error("Socket", "Cannot delete group: socket not connected");
+      throw Exception("Socket not connected");
+    }
+
+    socket.emitWithAck(
+      'deleteGroup',
+      {'groupId': groupId, 'deletedBy': deletedBy},
+      ack: ([dynamic res]) {
+        if (res is String) {
+          LoggingService.instance.error("Socket", "Failed to delete group: $res");
+          throw Exception(res);
+        }
+        LoggingService.instance.logNetwork("Group deleted: $groupId");
+      },
+    );
   }
 
   /// Registers a callback for a group socket event

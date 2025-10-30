@@ -4,6 +4,7 @@ import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/navigation/navigation_host.dart';
 import 'package:hrtz_hrms/core/errors/error_screen.dart';
 import 'package:hrtz_hrms/core/extensions/secure_storage_extension.dart';
+import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
@@ -12,6 +13,7 @@ import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
+import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
@@ -157,13 +159,25 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) {
         final groupId = state.pathParameters['groupId']!;
         final extra = state.extra as Map<String, dynamic>?;
+        final groupModel = extra?['groupModel'] as GroupChatModel?;
 
         return GroupChatScreen(
           groupId: groupId,
           groupName: extra?['groupName'] ?? 'Group Chat',
           currentUserId: extra?['currentUserId'] ?? '',
           currentUserName: extra?['currentUserName'] ?? '',
+          groupModel: groupModel,
         );
+      },
+    ),
+
+    GoRoute(
+      path: '${AppRoutes.chatRoute}/group/:groupId/details',
+      name: 'group-details',
+      redirect: (context, state) => authGuard(context, state),
+      builder: (context, state) {
+        final group = state.extra as GroupChatModel;
+        return GroupDetailsScreen(group: group);
       },
     ),
 
@@ -231,7 +245,11 @@ extension AuthNavigation on BuildContext {
     );
   }
 
-  Future<void> goToGroupChat({required String groupId, required String groupName}) async {
+  Future<void> goToGroupChat({
+    required String groupId,
+    required String groupName,
+    GroupChatModel? groupModel,
+  }) async {
     final currentUserData = await getCurrentUserData();
     LoggingService.instance.info(
       'NAVIGATION',
@@ -244,8 +262,18 @@ extension AuthNavigation on BuildContext {
         'groupName': groupName,
         'currentUserId': currentUserData?['employeeId'] ?? '',
         'currentUserName': currentUserData?['username'] ?? '',
+        'groupModel': groupModel,
       },
     );
+  }
+
+  /// Navigate to group details screen
+  Future<void> goToGroupDetails({required GroupChatModel group}) async {
+    LoggingService.instance.info(
+      'NAVIGATION',
+      '📋 Opening group details for: [${group.name}] - ID: ${group.groupId}',
+    );
+    push('${AppRoutes.chatRoute}/group/${group.groupId}/details', extra: group);
   }
 
   /// Navigate to chat list

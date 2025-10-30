@@ -1,6 +1,7 @@
 // lib/providers/group_socket_provider.dart
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
+import 'package:hrtz_hrms/core/services/local_notifications_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
@@ -102,14 +103,56 @@ class GroupSocketProvider extends ChangeNotifier {
     });
 
     _manager.registerGroupEvent('receiveGroupMessage', (data) async {
-      _logger.logNetwork("[GroupSocket] Group message received: ${data['_id']}");
-      final message = GroupMessageModel.fromMap(data);
-      _groupMessages.add(message);
-      await _localStorage.addGroupMessage(message.groupId, message);
-      if (message.groupId != _activeGroupId) {
-        _groupUnreadCounts[message.groupId] = (_groupUnreadCounts[message.groupId] ?? 0) + 1;
+      _logger.logNetwork("[GroupSocket] Group message received: ${data.toString()}");
+
+      // Skip if the message ID is a timestamp (not a valid ObjectId)
+      if (data['_id'] is int || data['_id']?.toString().length == 13) {
+        _logger.logNetwork("[GroupSocket] ⚠️ Skipping non-message event: ${data['_id']}");
+        return;
       }
-      notifyListeners();
+
+      try {
+        final message = GroupMessageModel.fromMap(data);
+        _groupMessages.add(message);
+        await _localStorage.addGroupMessage(message.groupId, message);
+
+        // Show notification only if user is NOT on the active group chat
+        if (message.groupId != _activeGroupId) {
+          _groupUnreadCounts[message.groupId] = (_groupUnreadCounts[message.groupId] ?? 0) + 1;
+          _logger.logNetwork(
+            "[GroupSocket] Unread count for group ${message.groupId}: ${_groupUnreadCounts[message.groupId]}",
+          );
+
+          // Fetch current user info
+          final currentUserData = await SecureStorageService().getUserData();
+          final currentUserID = currentUserData?['employeeId'] ?? "";
+
+          // Show notification only if message is NOT from current user
+          if (message.sender != currentUserID) {
+            final group = _groupChats.firstWhere(
+              (g) => g.groupId == message.groupId,
+              orElse: () => GroupChatModel(
+                groupId: message.groupId,
+                name: "Unknown Group",
+                members: [],
+                createdBy: "",
+                createdAt: DateTime.now(),
+              ),
+            );
+
+            await LocalNotificationService().showGroupNotification(
+              groupId: message.groupId,
+              groupName: group.name,
+              senderName: message.senderName,
+              currentUserData: currentUserData,
+            );
+          }
+        }
+
+        notifyListeners();
+      } catch (e) {
+        _logger.error("GroupSocket", "❌ Failed to parse group message", error: e);
+      }
     });
 
     _manager.registerGroupEvent('groupMessageStatusUpdate', (data) async {
@@ -155,6 +198,82 @@ class GroupSocketProvider extends ChangeNotifier {
       notifyListeners();
     });
 
+    // --- groupNameChanged event ---
+    _manager.registerGroupEvent('groupNameChanged', (data) async {
+      _logger.logNetwork("[GroupSocket] 📝 Group name changed event: $data");
+
+      final groupId = data['groupId'];
+      final newName = data['newName'];
+
+      final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+      if (index != -1) {
+        _groupChats[index] = _groupChats[index].copyWith(name: newName);
+        await _localStorage.saveGroupChats(_groupChats);
+        notifyListeners();
+      }
+    });
+
+    // --- groupMembersAdded event ---
+    _manager.registerGroupEvent('groupMembersAdded', (data) async {
+      _logger.logNetwork("[GroupSocket] ➕ Members added event: $data");
+
+      final groupId = data['groupId'];
+      final updatedGroup = data['updatedGroup'];
+      final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+
+      if (index != -1 && updatedGroup != null) {
+        _groupChats[index] = GroupChatModel.fromMap(updatedGroup);
+        await _localStorage.saveGroupChats(_groupChats);
+        notifyListeners();
+      }
+    });
+
+    // --- addedToGroup event ---
+    _manager.registerGroupEvent('addedToGroup', (data) async {
+      _logger.logNetwork("[GroupSocket] 🆕 Added to new group event: $data");
+      final groupData = data['group'];
+      if (groupData != null) {
+        final newGroup = GroupChatModel.fromMap(groupData);
+        _groupChats.add(newGroup);
+        await _localStorage.saveGroupChats(_groupChats);
+        notifyListeners();
+      }
+    });
+
+    // --- groupMemberRemoved event ---
+    _manager.registerGroupEvent('groupMemberRemoved', (data) async {
+      _logger.logNetwork("[GroupSocket] 🚫 Member removed event: $data");
+      final groupId = data['groupId'];
+      final updatedGroup = data['updatedGroup'];
+
+      final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+      if (index != -1 && updatedGroup != null) {
+        _groupChats[index] = GroupChatModel.fromMap(updatedGroup);
+        await _localStorage.saveGroupChats(_groupChats);
+        notifyListeners();
+      }
+    });
+
+    // --- removedFromGroup event ---
+    _manager.registerGroupEvent('removedFromGroup', (data) async {
+      _logger.logNetwork("[GroupSocket] ⚠️ You were removed from group: $data");
+
+      final groupId = data['groupId'];
+      _groupChats.removeWhere((g) => g.groupId == groupId);
+      await _localStorage.saveGroupChats(_groupChats);
+      notifyListeners();
+    });
+
+    // --- groupDeleted event ---
+    _manager.registerGroupEvent('groupDeleted', (data) async {
+      _logger.logNetwork("[GroupSocket] 🗑️ Group deleted event: $data");
+
+      final groupId = data['groupId'];
+      _groupChats.removeWhere((g) => g.groupId == groupId);
+      await _localStorage.saveGroupChats(_groupChats);
+      notifyListeners();
+    });
+
     _logger.logNetwork("GroupSocketProvider initialized");
   }
 
@@ -193,16 +312,6 @@ class GroupSocketProvider extends ChangeNotifier {
     }
   }
 
-  // Delete a group
-  Future<void> deleteGroup({required String groupId, required String deletedBy}) async {
-    try {
-      await _manager.deleteGroup(groupId: groupId, deletedBy: deletedBy);
-    } catch (e) {
-      _logger.error("GroupSocket", "Failed to delete group", error: e);
-      rethrow;
-    }
-  }
-
   // Send a group message
   Future<void> sendGroupMessage({
     required String groupId,
@@ -237,6 +346,12 @@ class GroupSocketProvider extends ChangeNotifier {
 
   // Mark group message as read
   Future<void> markGroupMessageAsRead({required String messageId, required String userId}) async {
+    // Skip if the messageId is a timestamp (not a valid ObjectId)
+    if (messageId.length == 13 || int.tryParse(messageId) != null) {
+      _logger.logNetwork("[Socket] ⚠️ Skipping non-message ID: $messageId");
+      return;
+    }
+
     try {
       await _manager.markGroupMessageAsRead(messageId: messageId, userId: userId);
     } catch (e) {
@@ -300,6 +415,54 @@ class GroupSocketProvider extends ChangeNotifier {
     if (_groupUnreadCounts.containsKey(groupId)) {
       _groupUnreadCounts.remove(groupId);
       if (notify) notifyListeners();
+    }
+  }
+
+  Future<void> editGroupName(String groupId, String newName, String userId) async {
+    try {
+      _logger.logNetwork("[GroupSocket] ✏️ Editing group name → $groupId to '$newName'");
+      await _manager.editGroupName(groupId: groupId, newName: newName, userId: userId);
+      _logger.logNetwork("[GroupSocket] ✅ Group name updated successfully");
+    } catch (e, st) {
+      _logger.error("GroupSocket", "❌ Failed to edit group name", error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  Future<void> addGroupMembers(String groupId, List<String> newMembers, String addedBy) async {
+    try {
+      _logger.logNetwork("[GroupSocket] ➕ Adding ${newMembers.length} members to group $groupId");
+      await _manager.addGroupMembers(groupId: groupId, newMembers: newMembers, addedBy: addedBy);
+      _logger.logNetwork("[GroupSocket] ✅ Members added successfully");
+    } catch (e, st) {
+      _logger.error("GroupSocket", "❌ Failed to add members to group", error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  Future<void> removeGroupMember(String groupId, String userToRemove, String removedBy) async {
+    try {
+      _logger.logNetwork("[GroupSocket] 🚫 Removing member $userToRemove from group $groupId");
+      await _manager.removeGroupMember(
+        groupId: groupId,
+        userToRemove: userToRemove,
+        removedBy: removedBy,
+      );
+      _logger.logNetwork("[GroupSocket] ✅ Member removed successfully");
+    } catch (e, st) {
+      _logger.error("GroupSocket", "❌ Failed to remove group member", error: e, stackTrace: st);
+      rethrow;
+    }
+  }
+
+  Future<void> deleteGroup({required String groupId, required String deletedBy}) async {
+    try {
+      _logger.logNetwork("[GroupSocket] 🗑️ Deleting group → $groupId");
+      await _manager.deleteGroup(groupId: groupId, deletedBy: deletedBy);
+      _logger.logNetwork("[GroupSocket] ✅ Group deleted successfully");
+    } catch (e, st) {
+      _logger.error("GroupSocket", "❌ Failed to delete group", error: e, stackTrace: st);
+      rethrow;
     }
   }
 

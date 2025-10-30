@@ -80,17 +80,17 @@ class GroupMessageBubble extends StatelessWidget {
                     // Timestamp and read status
                     Positioned(
                       bottom: -1,
-                      right: isMe ? 10 : null,
-                      left: isMe ? null : 10,
+                      right: isMe ? 6 : null,
+                      left: isMe ? null : 6,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             DateFormat('hh:mm a').format(message.timestamp),
-                            style: AppTextStyles.greyAAAAAA_10_400.copyWith(fontSize: 8.5),
+                            style: AppTextStyles.greyAAAAAA_10_400.copyWith(fontSize: 8),
                           ),
                           if (isMe)
-                            Icon(Icons.check, color: isRead ? Colors.blue : Colors.grey, size: 16),
+                            Icon(Icons.check, color: isRead ? Colors.blue : Colors.grey, size: 14),
                         ],
                       ),
                     ),

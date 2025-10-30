@@ -34,30 +34,69 @@ class LocalNotificationService {
     await _plugin.initialize(
       initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        //     if (response.payload != null) {
+        //       _logger.logNetwork("[NotificationService] Notification tapped: ${response.payload}");
+        //       try {
+        //         final data = jsonDecode(response.payload!);
+        //         final path = '${AppRoutes.chatRoute}/${data['otherUserId']}';
+
+        //         // ✅ Navigate using root navigator key
+        //         rootNavigatorKey.currentState!.context.push(
+        //           path,
+        //           extra: {
+        //             'currentUserData': {
+        //               'employeeId': data['currentUserId'],
+        //               'username': data['currentUserName'],
+        //             },
+        //             'otherUserName': data['otherUserName'],
+        //           },
+        //         );
+        //       } catch (e) {
+        //         _logger.logNetwork("[NotificationService] ❌ Failed to navigate on tap: $e");
+        //       }
+        //     }
+        //   },
+        // );
         if (response.payload != null) {
           _logger.logNetwork("[NotificationService] Notification tapped: ${response.payload}");
           try {
             final data = jsonDecode(response.payload!);
-            final path = '${AppRoutes.chatRoute}/${data['otherUserId']}';
 
-            // ✅ Navigate using root navigator key
-            rootNavigatorKey.currentState!.context.push(
-              path,
-              extra: {
-                'currentUserData': {
-                  'employeeId': data['currentUserId'],
-                  'username': data['currentUserName'],
+            // Check if the notification is for a group chat
+            if (data.containsKey('groupId')) {
+              // Group chat notification tapped
+              final path = '${AppRoutes.chatRoute}/group/${data['groupId']}';
+              rootNavigatorKey.currentState!.context.push(
+                path,
+                extra: {
+                  'groupName': data['groupName'],
+                  'currentUserData': {
+                    'employeeId': data['currentUserId'],
+                    'username': data['currentUserName'],
+                  },
                 },
-                'otherUserName': data['otherUserName'],
-              },
-            );
+              );
+            }
+            // Individual chat notification tapped
+            else if (data.containsKey('otherUserId')) {
+              final path = '${AppRoutes.chatRoute}/${data['otherUserId']}';
+              rootNavigatorKey.currentState!.context.push(
+                path,
+                extra: {
+                  'currentUserData': {
+                    'employeeId': data['currentUserId'],
+                    'username': data['currentUserName'],
+                  },
+                  'otherUserName': data['otherUserName'],
+                },
+              );
+            }
           } catch (e) {
             _logger.logNetwork("[NotificationService] ❌ Failed to navigate on tap: $e");
           }
         }
       },
     );
-
     _logger.logNetwork("[NotificationService] ✅ Local Notification Service initialized");
 
     await _requestPermissions();
@@ -155,5 +194,56 @@ class LocalNotificationService {
   Future<void> clearNotifications() async {
     await _plugin.cancel(1001);
     _logger.logNetwork("[NotificationService] Cleared notifications");
+  }
+
+  /// Show notification for a group message
+  /// Show notification for a group message
+  Future<void> showGroupNotification({
+    required String groupId,
+    required String groupName,
+    required String senderName,
+    Map<String, dynamic>? currentUserData,
+  }) async {
+    try {
+      final title = "💬 New message in $groupName";
+      final body = "New message from $senderName";
+      final payload = jsonEncode({
+        'currentUserId': currentUserData?['employeeId'] ?? '',
+        'currentUserName': currentUserData?['username'] ?? '',
+        'groupId': groupId,
+        'groupName': groupName,
+      });
+
+      // Android notification details
+      final androidDetails = AndroidNotificationDetails(
+        'group_chat_channel',
+        'Group Chat Notifications',
+        channelDescription: 'Shows incoming group chat notifications',
+        importance: Importance.high,
+        priority: Priority.high,
+        ongoing: false,
+        styleInformation: BigTextStyleInformation(''),
+        icon: '@mipmap/ic_launcher',
+      );
+
+      // iOS notification details
+      final iosDetails = DarwinNotificationDetails();
+      final notificationDetails = NotificationDetails(android: androidDetails, iOS: iosDetails);
+
+      // Show notification with a unique ID for group notifications
+      await _plugin.show(
+        2001, // Unique ID for group notifications
+        title,
+        body,
+        notificationDetails,
+        payload: payload,
+      );
+
+      _logger.logNetwork(
+        "[NotificationService] Showed group notification → $title | $body | payload: $payload",
+      );
+    } catch (e) {
+      _logger.logNetwork("[NotificationService] ❌ Failed to show group notification: $e");
+    }
   }
 }

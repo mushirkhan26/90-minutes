@@ -17,20 +17,22 @@ class GroupChatModel {
     required this.createdAt,
   });
 
-  // Create from backend/server map
+  // 🏗️ Create from backend/server map
   factory GroupChatModel.fromMap(Map<String, dynamic> map) {
     return GroupChatModel(
-      groupId: map['_id']?.toString() ?? map['groupId']?.toString() ?? '', // Ensure it's a String
+      groupId: map['_id']?.toString() ?? map['groupId']?.toString() ?? '',
       name: map['name'] ?? '',
       description: map['description'],
       icon: map['icon'],
       members: List<String>.from(map['members'] ?? []),
-      createdBy: map['createdBy']?.toString() ?? '', // Ensure it's a String
-      createdAt: DateTime.parse(map['createdAt'].toString()), // Ensure it's a String or int
+      createdBy: map['createdBy']?.toString() ?? '',
+      createdAt: map['createdAt'] is String
+          ? DateTime.parse(map['createdAt'])
+          : DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
     );
   }
 
-  // Convert to local storage map
+  // 💾 Convert to local storage map
   Map<String, dynamic> toLocalMap() {
     return {
       'groupId': groupId,
@@ -43,7 +45,7 @@ class GroupChatModel {
     };
   }
 
-  // Create from local storage map
+  // 🧩 Create from local storage map
   factory GroupChatModel.fromLocalMap(Map<String, dynamic> map) {
     return GroupChatModel(
       groupId: map['groupId'],
@@ -53,6 +55,26 @@ class GroupChatModel {
       members: List<String>.from(map['members'] ?? []),
       createdBy: map['createdBy'],
       createdAt: DateTime.parse(map['createdAt']),
+    );
+  }
+  // ✏️ Copy existing model with changes
+  GroupChatModel copyWith({
+    String? groupId,
+    String? name,
+    String? description,
+    String? icon,
+    List<String>? members,
+    String? createdBy,
+    DateTime? createdAt,
+  }) {
+    return GroupChatModel(
+      groupId: groupId ?? this.groupId,
+      name: name ?? this.name,
+      description: description ?? this.description,
+      icon: icon ?? this.icon,
+      members: members ?? this.members,
+      createdBy: createdBy ?? this.createdBy,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }
