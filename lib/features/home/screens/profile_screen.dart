@@ -1,0 +1,289 @@
+// ignore_for_file: use_build_context_s, use_build_context_synchronously
+import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/widgets/custom_textfield.dart';
+import 'package:provider/provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+
+class ProfileScreen extends StatefulWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _nameController;
+  late TextEditingController _emailController;
+  late TextEditingController _mobileController;
+  late TextEditingController _alterMobileController;
+  late TextEditingController _genderController;
+  late TextEditingController _addressController;
+  bool _isLoading = false;
+  bool _isEditing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _emailController = TextEditingController();
+    _mobileController = TextEditingController();
+    _alterMobileController = TextEditingController();
+    _genderController = TextEditingController();
+    _addressController = TextEditingController();
+    _loadProfileData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _mobileController.dispose();
+    _alterMobileController.dispose();
+    _genderController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadProfileData() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final secureStorage = SecureStorageService();
+
+    // Fetch profile data from provider or secure storage
+    if (authProvider.profileData == null) {
+      final employeeId = await secureStorage.getEmployeeId() ?? '';
+      if (employeeId.isNotEmpty) {
+        await authProvider.fetchAndCacheProfileData(employeeId: employeeId);
+      }
+    }
+
+    // Load data into controllers
+    final profileData = authProvider.profileData;
+    final userData = await secureStorage.getUserData();
+
+    setState(() {
+      _nameController.text = userData?['username'] ?? '';
+      _emailController.text = userData?['email'] ?? '';
+      _mobileController.text = profileData?.mobile ?? '';
+      _alterMobileController.text = profileData?.alterMobile ?? '';
+      _genderController.text = profileData?.gender ?? '';
+      _addressController.text = profileData?.address ?? '';
+    });
+  }
+
+  Future<void> _toggleEdit() async {
+    setState(() {
+      _isEditing = !_isEditing;
+    });
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final secureStorage = SecureStorageService();
+      final employeeId = await secureStorage.getEmployeeId() ?? '';
+
+      final success = await authProvider.updateProfileData(
+        employeeId: employeeId,
+        name: _nameController.text,
+        email: _emailController.text,
+        mobile: _mobileController.text,
+        alterMobile: _alterMobileController.text,
+        gender: _genderController.text,
+        address: _addressController.text,
+      );
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() {
+          _isEditing = false;
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              authProvider.errorMessage ?? 'Failed to update profile',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('An error occurred while updating profile'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+    final profileData = authProvider.profileData;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('My Profile'),
+        actions: [
+          if (!_isEditing)
+            IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),
+          if (_isEditing)
+            IconButton(icon: const Icon(Icons.save), onPressed: _saveProfile),
+          if (_isEditing)
+            IconButton(icon: const Icon(Icons.close), onPressed: _toggleEdit),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Profile Image
+                    Center(
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundImage: profileData?.profileImage != null
+                            ? NetworkImage(profileData!.profileImage!)
+                            : const AssetImage(
+                                    'assets/images/default_profile.png',
+                                  )
+                                  as ImageProvider,
+                        child: profileData?.profileImage == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.white,
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Name Field
+                    CustomTextField(
+                      controller: _nameController,
+                      labelText: 'Full Name',
+                      prefixIcon: Icon(Icons.person),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your name';
+                        }
+                        return null;
+                      },
+                      readOnly: !_isEditing,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Email Field
+                    CustomTextField(
+                      controller: _emailController,
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value)) {
+                          return 'Please enter a valid email';
+                        }
+                        return null;
+                      },
+                      readOnly: !_isEditing,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Mobile Field
+                    CustomTextField(
+                      controller: _mobileController,
+                      labelText: 'Mobile Number',
+                      prefixIcon: Icon(Icons.phone),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your mobile number';
+                        }
+                        return null;
+                      },
+                      readOnly: !_isEditing,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Alternate Mobile Field
+                    CustomTextField(
+                      controller: _alterMobileController,
+                      labelText: 'Alternate Mobile Number',
+                      prefixIcon: Icon(Icons.phone_android),
+                      readOnly: !_isEditing,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Gender Field
+                    CustomTextField(
+                      controller: _genderController,
+                      labelText: 'Gender',
+                      prefixIcon: Icon(Icons.transgender),
+                      readOnly: !_isEditing,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Address Field
+                    CustomTextField(
+                      controller: _addressController,
+                      labelText: 'Address',
+                      prefixIcon: Icon(Icons.home),
+                      maxLines: 5,
+                      readOnly: !_isEditing,
+                    ),
+                    const SizedBox(height: 24),
+                    Consumer<AuthProvider>(
+                      builder: (context, auth, child) {
+                        final TextEditingController employeeIdController =
+                            TextEditingController();
+                        SecureStorageService().getEmployeeId().then((
+                          employeeId,
+                        ) {
+                          if (employeeId != null) {
+                            employeeIdController.text = employeeId;
+                          }
+                        });
+
+                        return CustomTextField(
+                          controller: employeeIdController,
+                          labelText: 'Employee ID',
+                          prefixIcon: Icon(Icons.badge),
+                          readOnly: true,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+    );
+  }
+}

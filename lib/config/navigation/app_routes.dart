@@ -19,4 +19,6 @@ class AppRoutes {
   static const String meetWidget = '/meet-widget';
 
   static const permissionsRoute = '/permissions';
+  static const faceverification = '/face-verification';
+  static const userProfile = '/user-profile';
 }

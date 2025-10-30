@@ -16,6 +16,7 @@ import 'package:hrtz_hrms/core/services/push_notification_service.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/clock/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:provider/provider.dart';
@@ -39,7 +40,9 @@ void main() async {
   SocketService.instance.init();
 
   // 🧩 Register background FCM handler (important for background/terminated messages)
-  FirebaseMessaging.onBackgroundMessage(PushNotificationService.firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onBackgroundMessage(
+    PushNotificationService.firebaseMessagingBackgroundHandler,
+  );
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -69,10 +72,13 @@ class _MainAppState extends State<MainApp> {
       LocalNotificationService().init();
       // 🆕 Re-check Firebase notification events (important when app launches via notification)
       await Future.delayed(const Duration(milliseconds: 500));
-      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+      final initialMessage = await FirebaseMessaging.instance
+          .getInitialMessage();
       if (initialMessage != null) {
         LoggingService.instance.logNetwork("🕹️ Launched via notification tap");
-        PushNotificationService.handleNotificationTap(jsonEncode(initialMessage.data));
+        PushNotificationService.handleNotificationTap(
+          jsonEncode(initialMessage.data),
+        );
       }
     });
   }
@@ -83,7 +89,10 @@ class _MainAppState extends State<MainApp> {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketProvider()),
-        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
+        ChangeNotifierProvider<MailProvider>(
+          create: (_) => MailProvider()..fetchInbox(),
+        ),
+        ChangeNotifierProvider(create: (_) => ClockProvider()),
       ],
       child: MaterialApp.router(
         title: AppConstants.appName,
