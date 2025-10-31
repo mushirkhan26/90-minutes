@@ -15,6 +15,7 @@ import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
+import 'package:hrtz_hrms/features/clock/screens/face_verification.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
@@ -25,6 +26,7 @@ import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
 
+import '../../features/home/screens/profile_screen.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
 import '../../features/meet/screens/schedule_meet.dart';
@@ -201,12 +203,21 @@ final GoRouter appRouter = GoRouter(
       name: '/compose-mail',
       builder: (context, state) => const ComposeMailScreen(),
     ),
-
     GoRoute(
       path: AppRoutes.permissionsRoute,
       name: '/permissions',
       redirect: (context, state) => authGuard(context, state),
       pageBuilder: (context, state) => buildTransitionPage(const PermissionsScreen()),
+    ),
+    GoRoute(
+      path: AppRoutes.faceverification,
+      name: '/face-verification',
+      builder: (context, state) => FaceVerification(isClockIn: true, onVerified: () {}),
+    ),
+    GoRoute(
+      path: AppRoutes.userProfile,
+      name: '/user-profile',
+      builder: (context, state) => const ProfileScreen(),
     ),
   ],
 );
@@ -281,6 +292,8 @@ extension AuthNavigation on BuildContext {
 
   /// ⚙️ Go to Permissions Screen (new)
   void goToPermissions() => push(AppRoutes.permissionsRoute);
+
+  void userProfile() => push(AppRoutes.userProfile);
 }
 
 /// ✨ Custom transition page helper

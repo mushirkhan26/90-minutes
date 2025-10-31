@@ -17,6 +17,7 @@ import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/clock/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:provider/provider.dart';
@@ -86,6 +87,8 @@ class _MainAppState extends State<MainApp> {
         ChangeNotifierProvider(create: (_) => SocketProvider()),
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
         ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
+        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
+        ChangeNotifierProvider(create: (_) => ClockProvider()),
       ],
       child: MaterialApp.router(
         title: AppConstants.appName,
