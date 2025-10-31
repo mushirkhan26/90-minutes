@@ -25,7 +25,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   List<EmployeeModel> _filteredEmployees = [];
   final List<EmployeeModel> _selectedMembers = [];
   String? _currentUserId;
-  String? _currentUsername;
+  String? currentUsername;
   late GroupChatModel _group; // Local copy of the group model
 
   @override
@@ -65,7 +65,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   Future<void> _loadCurrentUserDetails() async {
     _currentUserId = await context.getCurrentEmployeeId();
-    _currentUsername = await context.getCurrentUsername();
+    if (mounted) {
+      currentUsername = await context.getCurrentUsername();
+    }
   }
 
   Future<void> _loadEmployees() async {

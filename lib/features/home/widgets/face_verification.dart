@@ -12,11 +12,7 @@ class FaceVerification extends StatelessWidget {
   final bool isClockIn;
   final VoidCallback onVerified;
 
-  const FaceVerification({
-    super.key,
-    required this.isClockIn,
-    required this.onVerified,
-  });
+  const FaceVerification({super.key, required this.isClockIn, required this.onVerified});
 
   @override
   Widget build(BuildContext context) {
@@ -45,9 +41,7 @@ class FaceVerification extends StatelessWidget {
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(10),
-                        ),
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
                       ),
                       child: Row(
                         children: [
@@ -80,10 +74,7 @@ class FaceVerification extends StatelessWidget {
                         children: [
                           const Text(
                             'Face Verification',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 10),
                           const Text(
@@ -101,13 +92,10 @@ class FaceVerification extends StatelessWidget {
                               if (pickedFile != null) {
                                 final file = File(pickedFile.path);
                                 final fileUploadService = FileUploadService();
-                                final uploadedUrl = await fileUploadService
-                                    .uploadFile(file);
+                                final uploadedUrl = await fileUploadService.uploadFile(file);
 
                                 if (uploadedUrl != null) {
-                                  debugPrint(
-                                    "File uploaded successfully: $uploadedUrl",
-                                  );
+                                  debugPrint("File uploaded successfully: $uploadedUrl");
                                 } else {
                                   debugPrint("Failed to upload file");
                                 }
@@ -121,11 +109,7 @@ class FaceVerification extends StatelessWidget {
                                 border: Border.all(color: Colors.grey),
                                 borderRadius: BorderRadius.circular(5),
                               ),
-                              child: const Icon(
-                                Icons.camera_alt,
-                                color: Colors.grey,
-                                size: 50,
-                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.grey, size: 50),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -137,10 +121,7 @@ class FaceVerification extends StatelessWidget {
                                   backgroundColor: AppColors.greyE5E7EB,
                                   foregroundColor: Colors.black,
                                 ),
-                                onPressed:
-                                    clockProvider.state == ClockState.loading
-                                    ? null
-                                    : () {},
+                                onPressed: clockProvider.state == ClockState.loading ? null : () {},
                                 child: const Text('Retake'),
                               ),
                               ElevatedButton(
@@ -148,8 +129,7 @@ class FaceVerification extends StatelessWidget {
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                 ),
-                                onPressed:
-                                    clockProvider.state == ClockState.loading
+                                onPressed: clockProvider.state == ClockState.loading
                                     ? null
                                     : onVerified,
                                 child: const Text('Verify Face'),
@@ -162,20 +142,14 @@ class FaceVerification extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(15),
                       decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.vertical(
-                          bottom: Radius.circular(10),
-                        ),
-                        border: Border(
-                          top: BorderSide(color: AppColors.greyE5E7EB),
-                        ),
+                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+                        border: Border(top: BorderSide(color: AppColors.greyE5E7EB)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           TextButton.icon(
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.gray475467,
-                            ),
+                            style: TextButton.styleFrom(foregroundColor: AppColors.gray475467),
                             onPressed: clockProvider.state == ClockState.loading
                                 ? null
                                 : () {

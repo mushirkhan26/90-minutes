@@ -32,7 +32,9 @@ class _NavigationHostState extends State<NavigationHost> {
     try {
       final userData = await SecureStorageService().getUserData();
       if (userData != null && userData['employeeId'] != null && userData['username'] != null) {
+        // ignore: use_build_context_synchronously
         final socketProvider = context.read<SocketProvider>();
+        // ignore: use_build_context_synchronously
         final groupSocketProvider = context.read<GroupSocketProvider>();
         await socketProvider.joinUser(userData['employeeId'], userData['username']);
         // Initialize event listeners AFTER joining the room
