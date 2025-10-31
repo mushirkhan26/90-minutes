@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import '../../../core/services/file_upload_service.dart';
 import '../provider/clock_provider.dart';
 
 class FaceVerification extends StatelessWidget {
@@ -87,17 +91,41 @@ class FaceVerification extends StatelessWidget {
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                           const SizedBox(height: 20),
-                          Container(
-                            height: 200,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              borderRadius: BorderRadius.circular(5),
-                            ),
-                            child: const Icon(
-                              Icons.camera_alt,
-                              color: Colors.grey,
-                              size: 50,
+                          GestureDetector(
+                            onTap: () async {
+                              final picker = ImagePicker();
+                              final pickedFile = await picker.pickImage(
+                                source: ImageSource.gallery,
+                              );
+
+                              if (pickedFile != null) {
+                                final file = File(pickedFile.path);
+                                final fileUploadService = FileUploadService();
+                                final uploadedUrl = await fileUploadService
+                                    .uploadFile(file);
+
+                                if (uploadedUrl != null) {
+                                  debugPrint(
+                                    "File uploaded successfully: $uploadedUrl",
+                                  );
+                                } else {
+                                  debugPrint("Failed to upload file");
+                                }
+                              }
+                            },
+
+                            child: Container(
+                              height: 200,
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey),
+                                borderRadius: BorderRadius.circular(5),
+                              ),
+                              child: const Icon(
+                                Icons.camera_alt,
+                                color: Colors.grey,
+                                size: 50,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
