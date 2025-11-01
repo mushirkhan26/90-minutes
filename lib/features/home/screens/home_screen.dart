@@ -11,6 +11,8 @@ import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 
+import '../widgets/home_chart.dart';
+
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
@@ -171,7 +173,7 @@ class HomeScreen extends StatelessWidget {
           },
         ),
       ),
-      body: Center(
+      body: SingleChildScrollView(
         child: Column(
           children: [
             Container(
@@ -346,6 +348,8 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            const HomeChart(),
           ],
         ),
       ),
