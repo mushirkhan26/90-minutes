@@ -1,5 +1,4 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
@@ -8,11 +7,50 @@ import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import '../../../core/services/file_upload_service.dart';
 import '../provider/clock_provider.dart';
 
-class FaceVerification extends StatelessWidget {
+class FaceVerification extends StatefulWidget {
   final bool isClockIn;
   final VoidCallback onVerified;
+  const FaceVerification({
+    super.key,
+    required this.isClockIn,
+    required this.onVerified,
+  });
 
-  const FaceVerification({super.key, required this.isClockIn, required this.onVerified});
+  @override
+  State<FaceVerification> createState() => _FaceVerificationState();
+}
+
+class _FaceVerificationState extends State<FaceVerification> {
+  final ValueNotifier<File?> _capturedImage = ValueNotifier<File?>(null);
+
+  @override
+  void dispose() {
+    _capturedImage.dispose();
+    super.dispose();
+  }
+
+  Future<void> captureImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      _capturedImage.value = File(pickedFile.path);
+    }
+  }
+
+  Future<void> verifyAndClockIn() async {
+    if (_capturedImage.value != null) {
+      final fileUploadService = FileUploadService();
+      final uploadedUrl = await fileUploadService.uploadFile(
+        _capturedImage.value!,
+      );
+      if (uploadedUrl != null) {
+        debugPrint("File uploaded successfully: $uploadedUrl");
+        widget.onVerified();
+      } else {
+        debugPrint("Failed to upload file");
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +79,9 @@ class FaceVerification extends StatelessWidget {
                       padding: const EdgeInsets.all(15),
                       decoration: BoxDecoration(
                         color: AppColors.primary,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(10),
+                        ),
                       ),
                       child: Row(
                         children: [
@@ -51,7 +91,7 @@ class FaceVerification extends StatelessWidget {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            isClockIn ? 'Clock In' : 'Clock Out',
+                            widget.isClockIn ? 'Clock In' : 'Clock Out',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 18,
@@ -74,7 +114,10 @@ class FaceVerification extends StatelessWidget {
                         children: [
                           const Text(
                             'Face Verification',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 10),
                           const Text(
@@ -82,96 +125,105 @@ class FaceVerification extends StatelessWidget {
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                           const SizedBox(height: 20),
-                          GestureDetector(
-                            onTap: () async {
-                              final picker = ImagePicker();
-                              final pickedFile = await picker.pickImage(
-                                source: ImageSource.gallery,
+                          ValueListenableBuilder<File?>(
+                            valueListenable: _capturedImage,
+                            builder: (context, image, child) {
+                              return GestureDetector(
+                                onTap: captureImage,
+                                child: Container(
+                                  height: 200,
+                                  width: double.infinity,
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey),
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: image != null
+                                      ? Image.file(image, fit: BoxFit.cover)
+                                      : const Icon(
+                                          Icons.camera_alt,
+                                          color: Colors.grey,
+                                          size: 50,
+                                        ),
+                                ),
                               );
-
-                              if (pickedFile != null) {
-                                final file = File(pickedFile.path);
-                                final fileUploadService = FileUploadService();
-                                final uploadedUrl = await fileUploadService.uploadFile(file);
-
-                                if (uploadedUrl != null) {
-                                  debugPrint("File uploaded successfully: $uploadedUrl");
-                                } else {
-                                  debugPrint("Failed to upload file");
-                                }
-                              }
                             },
-
-                            child: Container(
-                              height: 200,
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.grey),
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: const Icon(Icons.camera_alt, color: Colors.grey, size: 50),
-                            ),
                           ),
+
                           const SizedBox(height: 20),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              ElevatedButton(
+                              ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.greyE5E7EB,
                                   foregroundColor: Colors.black,
                                 ),
-                                onPressed: clockProvider.state == ClockState.loading ? null : () {},
-                                child: const Text('Retake'),
+                                onPressed:
+                                    clockProvider.state == ClockState.loading
+                                    ? null
+                                    : () async {
+                                        _capturedImage.value = null;
+                                        await captureImage();
+                                      },
+                                icon: const Icon(Icons.restart_alt_rounded),
+                                label: const Text('Retake'),
                               ),
-                              ElevatedButton(
+                              // ElevatedButton(
+                              //   style: ElevatedButton.styleFrom(
+                              //     backgroundColor: AppColors.primary,
+                              //     foregroundColor: Colors.white,
+                              //   ),
+                              //   onPressed:
+                              //       clockProvider.state == ClockState.loading
+                              //       ? null
+                              //       : verifyAndClockIn,
+                              //   child: const Text('Verify Face'),
+                              // ),
+                              ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                 ),
-                                onPressed: clockProvider.state == ClockState.loading
+                                onPressed:
+                                    clockProvider.state == ClockState.loading
                                     ? null
-                                    : onVerified,
-                                child: const Text('Verify Face'),
+                                    : verifyAndClockIn,
+                                icon: const Icon(Icons.check),
+                                label: const Text('Confirm'),
                               ),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: const BoxDecoration(
-                        borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
-                        border: Border(top: BorderSide(color: AppColors.greyE5E7EB)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton.icon(
-                            style: TextButton.styleFrom(foregroundColor: AppColors.gray475467),
-                            onPressed: clockProvider.state == ClockState.loading
-                                ? null
-                                : () {
-                                    context.pop();
-                                  },
-                            icon: const Icon(Icons.close),
-                            label: const Text('Cancel'),
-                          ),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                            ),
-                            onPressed: clockProvider.state == ClockState.loading
-                                ? null
-                                : onVerified,
-                            icon: const Icon(Icons.check),
-                            label: const Text('Confirm'),
-                          ),
-                        ],
-                      ),
-                    ),
+                    // Container(
+                    //   padding: const EdgeInsets.all(15),
+                    //   decoration: const BoxDecoration(
+                    //     borderRadius: BorderRadius.vertical(
+                    //       bottom: Radius.circular(10),
+                    //     ),
+                    //     border: Border(
+                    //       top: BorderSide(color: AppColors.greyE5E7EB),
+                    //     ),
+                    //   ),
+                    //   child: Row(
+                    //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    //     children: [
+                    //       TextButton.icon(
+                    //         style: TextButton.styleFrom(
+                    //           foregroundColor: AppColors.gray475467,
+                    //         ),
+                    //         onPressed: clockProvider.state == ClockState.loading
+                    //             ? null
+                    //             : () {
+                    //                 context.pop();
+                    //               },
+                    //         icon: const Icon(Icons.close),
+                    //         label: const Text('Cancel'),
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

@@ -20,6 +20,40 @@ class HomeScreen extends StatelessWidget {
     final clockProvider = Provider.of<ClockProvider>(context);
     final secureStorage = SecureStorageService();
 
+    Future<void> showLogoutDialog(
+      BuildContext context,
+      AuthProvider authProvider,
+    ) async {
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: const Text('Logout'),
+            content: const Text('Do you really want to log out?'),
+            actions: <Widget>[
+              TextButton(
+                child: const Text('No'),
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+              ),
+              TextButton(
+                child: const Text('Yes'),
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  await authProvider.logout();
+                  if (context.mounted) {
+                    context.go(AppRoutes.loginRoute);
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      );
+    }
+
     void showFaceVerificationDialog({required bool isClockIn}) {
       showDialog(
         context: context,
@@ -30,7 +64,8 @@ class HomeScreen extends StatelessWidget {
             onVerified: () async {
               if (isClockIn) {
                 await clockProvider.clockIn(
-                  department: authProvider.userData?['department'] ?? 'Department',
+                  department:
+                      authProvider.userData?['department'] ?? 'Department',
                   imageUrl:
                       'https://task-m.s3.us-east-1.amazonaws.com/1761370008430-face-verification-176137000425.jpg',
                 );
@@ -42,14 +77,20 @@ class HomeScreen extends StatelessWidget {
                 if (clockProvider.state == ClockState.error) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(clockProvider.errorMessage ?? 'An error occurred'),
+                      content: Text(
+                        clockProvider.errorMessage ?? 'An error occurred',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(isClockIn ? 'Clock in successful!' : 'Clock out successful!'),
+                      content: Text(
+                        isClockIn
+                            ? 'Clock in successful!'
+                            : 'Clock out successful!',
+                      ),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -67,7 +108,7 @@ class HomeScreen extends StatelessWidget {
           children: [
             const Text('Home'),
             const Spacer(),
-            Image.asset(AppConstants.logo, height: 40),
+            Image.asset(AppConstants.logo, height: 60),
           ],
         ),
       ),
@@ -88,20 +129,19 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       const SizedBox(height: 20),
                       InkWell(
-                        // onTap: () {
-                        //   if (userData != null) {
-                        //     showUserDetailsDialog(context, userData);
-                        //   }
-                        // },
                         child: Text(
                           'Welcome ${userData?['username'] ?? 'User'}',
-                          style: const TextStyle(color: Colors.white, fontSize: 28),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 340),
+                // const SizedBox(height: 300),
+                Container(height: MediaQuery.of(context).size.height * 0.5),
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text('Profile'),
@@ -123,10 +163,7 @@ class HomeScreen extends StatelessWidget {
                   title: const Text('Logout'),
                   onTap: () async {
                     Navigator.pop(context);
-                    await authProvider.logout();
-                    if (context.mounted) {
-                      context.go(AppRoutes.loginRoute);
-                    }
+                    showLogoutDialog(context, authProvider);
                   },
                 ),
               ],
@@ -193,10 +230,15 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 15),
                   Row(
                     children: [
-                      const Icon(Icons.timer_outlined, size: 20, color: Colors.green),
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 20,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        'Start Time: ${clockProvider.startTime ?? '12:59:28'}',
+                        'Start Time: ${clockProvider.startTime ?? '00:00:00'}',
+                        // '12:59:28'
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -204,10 +246,15 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.timer_off_outlined, size: 20, color: Colors.blue),
+                      const Icon(
+                        Icons.timer_off_outlined,
+                        size: 20,
+                        color: Colors.blue,
+                      ),
                       const SizedBox(width: 8),
                       Text(
-                        'End Time: ${clockProvider.endTime ?? '12:59:35'}',
+                        'End Time: ${clockProvider.endTime ?? '00:00:00'}',
+                        // '12:59:35'
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -215,7 +262,11 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 20, color: Colors.purple),
+                      const Icon(
+                        Icons.access_time,
+                        size: 20,
+                        color: Colors.purple,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Worked Duration: ${clockProvider.workedDuration ?? '00:00:06'}',
@@ -233,8 +284,13 @@ class HomeScreen extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 35,
+                      vertical: 15,
+                    ),
                   ),
                   onPressed: () {
                     showFaceVerificationDialog(isClockIn: true);
@@ -247,9 +303,16 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clockProvider.isClockedIn ? AppColors.gray475467 : Colors.grey,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    backgroundColor: clockProvider.isClockedIn
+                        ? AppColors.gray475467
+                        : Colors.grey,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 15,
+                    ),
                   ),
                   onPressed: clockProvider.isClockedIn
                       ? () async {
@@ -258,7 +321,10 @@ class HomeScreen extends StatelessWidget {
                             if (clockProvider.state == ClockState.error) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(clockProvider.errorMessage ?? 'An error occurred'),
+                                  content: Text(
+                                    clockProvider.errorMessage ??
+                                        'An error occurred',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
