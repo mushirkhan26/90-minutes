@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
@@ -317,10 +318,28 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           // Group Icon
           CircleAvatar(
             radius: 30,
-            backgroundColor: AppColors.primary,
-            child: _group.icon != null
-                ? Image.network(_group.icon!)
-                : const Icon(Icons.group, size: 30, color: Colors.white),
+            backgroundColor: AppColors.primary.withValues(alpha: .1),
+            child: ClipOval(
+              child: _group.icon != null && _group.icon!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: _group.icon!,
+                      fit: BoxFit.cover,
+                      width: 60,
+                      height: 60,
+                      errorWidget: (context, url, error) {
+                        // handle invalid url, 403, etc.
+                        return const Icon(Icons.group, size: 30, color: Colors.white);
+                      },
+                      placeholder: (context, url) => const Center(
+                        child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    )
+                  : const Icon(Icons.group, size: 30, color: Colors.white),
+            ),
           ),
           const SizedBox(width: 16),
           // Group Name and Member Count

@@ -358,31 +358,78 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
 
   /// Builds the individual chats tab.
   Widget _buildIndividualChatsTab(AuthProvider authProvider) {
+    final socketProvider = context.watch<SocketProvider>();
+
     if (_filteredEmployees.isEmpty) {
       return const Center(
         child: Text('No employees found', style: TextStyle(color: Colors.grey)),
       );
     }
-    return ListView.builder(
-      padding: EdgeInsets.all(AppConstants.paddingMedium),
-      itemCount: _filteredEmployees.length,
-      itemBuilder: (context, index) {
-        final employee = _filteredEmployees[index];
-        final unreadCount = context.watch<SocketProvider>().unreadCounts[employee.employeeID] ?? 0;
-        return EmployeeListCard(
-          name: employee.name,
-          message: 'Tap to start chat',
-          time: null, // We'll use current time when message is sent
-          isActive: true, // You can implement presence status later
-          onTap: () {
-            // Navigate to individual chat
-            context.goToIndividualChat(
-              otherUserId: employee.employeeID,
-              otherUserName: employee.name,
+
+    return StreamBuilder<Map<String, String>>(
+      stream: socketProvider.presenceStream,
+      initialData: const {},
+      builder: (context, snapshot) {
+        final presenceData = snapshot.data ?? {};
+        final onlineIds = socketProvider.onlineUsers.toSet();
+        final recentIds = socketProvider.recentChats; // 🕓 from storage
+
+        // 🔹 Sort employees by recent first, then online, then offline by name
+        final sortedEmployees = List<EmployeeModel>.from(_filteredEmployees)
+          ..sort((a, b) {
+            // 1️⃣ Recent first
+            final aRecentIndex = recentIds.indexOf(a.employeeID);
+            final bRecentIndex = recentIds.indexOf(b.employeeID);
+            final aIsRecent = aRecentIndex != -1;
+            final bIsRecent = bRecentIndex != -1;
+
+            if (aIsRecent && !bIsRecent) return -1;
+            if (!aIsRecent && bIsRecent) return 1;
+            if (aIsRecent && bIsRecent) {
+              // Lower index = more recent
+              return aRecentIndex.compareTo(bRecentIndex);
+            }
+
+            // 2️⃣ Then online before offline
+            final aOnline = onlineIds.contains(a.employeeID);
+            final bOnline = onlineIds.contains(b.employeeID);
+            if (aOnline && !bOnline) return -1;
+            if (!aOnline && bOnline) return 1;
+
+            // 3️⃣ Finally, alphabetical
+            return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+          });
+
+        return ListView.builder(
+          padding: EdgeInsets.all(AppConstants.paddingMedium),
+          itemCount: sortedEmployees.length,
+          itemBuilder: (context, index) {
+            final employee = sortedEmployees[index];
+            final isActive = onlineIds.contains(employee.employeeID);
+            final unreadCount = socketProvider.unreadCounts[employee.employeeID] ?? 0;
+            final statusText = presenceData[employee.employeeID] ?? "Offline";
+
+            return EmployeeListCard(
+              name: employee.name,
+              message: "Tap to open chat",
+              time: statusText, // "Online" or "2 hr ago"
+              isActive: isActive,
+              onTap: () async {
+                socketProvider.resetUnreadCount(employee.employeeID);
+                await socketProvider.markUserAsRecentlyChatted(
+                  employee.employeeID,
+                ); // 🕓 Save recent
+                if (context.mounted) {
+                  context.goToIndividualChat(
+                    otherUserId: employee.employeeID,
+                    otherUserName: employee.name,
+                  );
+                }
+              },
+              unreadCount: unreadCount,
+              isAccountDeleted: false,
             );
           },
-          unreadCount: unreadCount, // You can implement unread count logic later
-          isAccountDeleted: false,
         );
       },
     );

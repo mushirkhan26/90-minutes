@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -70,12 +68,25 @@ class _MainAppState extends State<MainApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       // 🛎 Initialize local notification service after first build
       LocalNotificationService().init();
-      // 🆕 Re-check Firebase notification events (important when app launches via notification)
-      await Future.delayed(const Duration(milliseconds: 500));
-      final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-      if (initialMessage != null) {
-        LoggingService.instance.logNetwork("🕹️ Launched via notification tap");
-        PushNotificationService.handleNotificationTap(jsonEncode(initialMessage.data));
+      // 🧩 If launched via notification (terminated)
+      // 🧩 Check for pending payload (terminated state)
+      if (PushNotificationService.pendingPayload != null) {
+        final payload = PushNotificationService.pendingPayload!;
+        LoggingService.instance.logNetwork(
+          "🕹️ App launched via terminated notification payload → $payload",
+        );
+
+        // Wait for router/context readiness
+        await Future.delayed(const Duration(seconds: 1));
+        LoggingService.instance.logNetwork(
+          "🚦 Router ready check done, processing notification tap...",
+        );
+        PushNotificationService.handleNotificationTap(payload);
+
+        // Reset pending payload
+        PushNotificationService.pendingPayload = null;
+      } else {
+        LoggingService.instance.logNetwork("ℹ️ No pending payload on app start");
       }
     });
   }

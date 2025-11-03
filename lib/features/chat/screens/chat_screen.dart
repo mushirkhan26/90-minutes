@@ -75,7 +75,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _scrollController.dispose();
     // Clear active chat
     _socketProvider.setActiveChatUserId(null);
-    _socketProvider.resetUnreadCount(widget.otherUserId, notify: false);
+
     // Remove listener
     _socketProvider.removeListener(_socketListener);
     // Clear conversation messages from provider memory

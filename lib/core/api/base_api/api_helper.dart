@@ -9,7 +9,7 @@ class ApiHelper {
   static const String _defaultBaseUrl = "https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/";
   // static String baseUrl2 = "https://hrms-socket.onrender.com";
 
-  static const String mailBaseUrl =
+  static const String otherBaseUrl =
       "https://hrms-socket.onrender.com/"; // Replace with your mail service base URL
   final LoggingService _logger = LoggingService.instance;
 

@@ -35,13 +35,14 @@ class GroupMessageModel {
 
   // Create from backend/server map
   factory GroupMessageModel.fromMap(Map<String, dynamic> map) {
+    final backendId = map['_id']?.toString();
     return GroupMessageModel(
-      id: map['_id']?.toString(),
+      id: backendId,
+      messageId: backendId ?? map['messageId']?.toString() ?? '',
       groupId: map['groupId']?.toString() ?? '',
       sender: map['sender']?.toString() ?? '',
       senderName: map['senderName']?.toString() ?? '',
       text: map['text']?.toString() ?? '',
-      messageId: map['messageId']?.toString() ?? '',
       messageType: map['messageType']?.toString() ?? 'text',
       fileName: map['fileName']?.toString(),
       fileUrl: map['fileUrl']?.toString(),

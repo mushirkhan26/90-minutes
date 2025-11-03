@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/services/push_notification_service.dart';
@@ -23,18 +26,19 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     _checkPermissions();
   }
 
+  /// 🔍 Checks current permission state without requesting
   Future<void> _checkPermissions() async {
     setState(() => _checking = true);
 
     bool granted = false;
 
-    if (await Permission.notification.isGranted) {
-      granted = true;
-    } else if (await Permission.notification.isPermanentlyDenied) {
-      granted = false;
-    } else {
-      final status = await Permission.notification.status;
-      granted = status.isGranted;
+    if (Platform.isIOS) {
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      granted =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+    } else if (Platform.isAndroid) {
+      granted = await Permission.notification.isGranted;
     }
 
     setState(() {
@@ -45,13 +49,14 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     _logger.logNetwork("🔎 Notification permission granted: $granted");
   }
 
+  /// 🙋 Requests permission via PushNotificationService method
   Future<void> _requestNotificationPermission() async {
-    final granted = await PushNotificationService.requestPermission(context);
-    if (mounted) {
-      setState(() => _notificationGranted = granted);
-    }
+    await PushNotificationService().checkAndRequestPermissions();
 
-    if (granted) {
+    // 🔁 Recheck status after requesting
+    await _checkPermissions();
+
+    if (_notificationGranted) {
       _logger.logNetwork("✅ User enabled notification permission manually");
       if (mounted) {
         AlertHelper.snackBarSuccess(context, "Notifications enabled successfully.");

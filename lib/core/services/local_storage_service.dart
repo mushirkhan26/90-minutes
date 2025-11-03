@@ -18,6 +18,9 @@ class LocalStorageService {
 
   static const String _keyIsLoggedIn = 'is_logged_in';
 
+  static const String _keyLastSeenPrefix = 'last_seen_';
+
+  static const String _keyRecentChats = 'recent_chats';
   // employee list data related keys
   static const String _keyEmployeeList = 'employee_list';
   static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
@@ -92,6 +95,49 @@ class LocalStorageService {
 
   Future<bool> isLoggedIn() async {
     return getBool(_keyIsLoggedIn);
+  }
+
+  // 🕒 Save user's last seen time
+  Future<void> saveLastSeenTime(String userId) async {
+    await prefs.setInt('$_keyLastSeenPrefix$userId', DateTime.now().millisecondsSinceEpoch);
+    _logger.logStorage('Saved last seen time for $userId');
+  }
+
+  // ⏱ Get user's last seen time
+  Future<DateTime?> getLastSeenTime(String userId) async {
+    final ts = prefs.getInt('$_keyLastSeenPrefix$userId');
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+  }
+
+  // --------------------------------------------------------------------------
+  // 🕓 Recently Chatted Users (sorted by last opened chat)
+  // --------------------------------------------------------------------------
+
+  /// Save the recent chat user order
+  Future<void> saveRecentChatUsers(List<String> userIds) async {
+    await prefs.setStringList(_keyRecentChats, userIds);
+    _logger.logStorage('Saved recent chat users: ${userIds.join(', ')}');
+  }
+
+  /// Add or update one user in recent chat list
+  Future<void> addRecentChatUser(String userId) async {
+    final currentList = await getRecentChatUsers();
+    currentList.remove(userId);
+    currentList.insert(0, userId); // newest first
+    await saveRecentChatUsers(currentList);
+  }
+
+  /// Get persisted list of recently chatted users
+  Future<List<String>> getRecentChatUsers() async {
+    final list = prefs.getStringList(_keyRecentChats) ?? [];
+    _logger.logStorage('Retrieved ${list.length} recent chat users');
+    return list;
+  }
+
+  /// Clear all recent chat history
+  Future<void> clearRecentChats() async {
+    await prefs.remove(_keyRecentChats);
+    _logger.logStorage('Cleared all recent chat users');
   }
 
   /// 👥 employee  data related methods

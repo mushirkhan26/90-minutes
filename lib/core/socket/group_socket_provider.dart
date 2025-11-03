@@ -103,32 +103,44 @@ class GroupSocketProvider extends ChangeNotifier {
     });
 
     _manager.registerGroupEvent('receiveGroupMessage', (data) async {
-      _logger.logNetwork("[GroupSocket] Group message received: ${data.toString()}");
+      _logger.logNetwork(
+        "[GroupSocket][EVENT:RECEIVE] 🔔 Incoming socket data: ${data.toString()}",
+      );
 
-      // Skip if the message ID is a timestamp (not a valid ObjectId)
-      if (data['_id'] is int || data['_id']?.toString().length == 13) {
-        _logger.logNetwork("[GroupSocket] ⚠️ Skipping non-message event: ${data['_id']}");
+      final backendId = data['_id']?.toString();
+      if (backendId == null || backendId.isEmpty) {
+        _logger.logNetwork("[GroupSocket][EVENT:RECEIVE][SKIP] ⚠️ Missing _id in payload");
         return;
       }
 
       try {
         final message = GroupMessageModel.fromMap(data);
+
+        // ✅ Prevent duplicates by backend ID
+        if (_groupMessages.any((m) => m.id == message.id)) {
+          _logger.logNetwork(
+            "[GroupSocket][MESSAGE:DUPLICATE] ⛔ Duplicate ignored → ${message.id}",
+          );
+          return;
+        }
+
         _groupMessages.add(message);
         await _localStorage.addGroupMessage(message.groupId, message);
+        _logger.logNetwork("[GroupSocket][MESSAGE:STORE] 💾 Stored → ${message.id}");
 
-        // Show notification only if user is NOT on the active group chat
-        if (message.groupId != _activeGroupId) {
-          _groupUnreadCounts[message.groupId] = (_groupUnreadCounts[message.groupId] ?? 0) + 1;
-          _logger.logNetwork(
-            "[GroupSocket] Unread count for group ${message.groupId}: ${_groupUnreadCounts[message.groupId]}",
-          );
+        // ✅ Notify only if not sent by current user
+        final currentUserData = await SecureStorageService().getUserData();
+        final currentUserId = currentUserData?['employeeId'] ?? "";
 
-          // Fetch current user info
-          final currentUserData = await SecureStorageService().getUserData();
-          final currentUserID = currentUserData?['employeeId'] ?? "";
+        if (message.sender != currentUserId) {
+          // Unread counter + notification logic
+          if (message.groupId != _activeGroupId) {
+            _groupUnreadCounts[message.groupId] = (_groupUnreadCounts[message.groupId] ?? 0) + 1;
 
-          // Show notification only if message is NOT from current user
-          if (message.sender != currentUserID) {
+            _logger.logNetwork(
+              "[GroupSocket][UNREAD] 📈 Group ${message.groupId} count=${_groupUnreadCounts[message.groupId]}",
+            );
+
             final group = _groupChats.firstWhere(
               (g) => g.groupId == message.groupId,
               orElse: () => GroupChatModel(
@@ -146,12 +158,20 @@ class GroupSocketProvider extends ChangeNotifier {
               senderName: message.senderName,
               currentUserData: currentUserData,
             );
+
+            _logger.logNetwork(
+              "[GroupSocket][NOTIFICATION] 🔔 Notification shown for ${group.name} | sender=${message.senderName}",
+            );
+          } else {
+            _logger.logNetwork(
+              "[GroupSocket][ACTIVE_CHAT] 💬 Message added to active chat UI: ${message.text}",
+            );
           }
         }
 
         notifyListeners();
-      } catch (e) {
-        _logger.error("GroupSocket", "❌ Failed to parse group message", error: e);
+      } catch (e, st) {
+        _logger.error("GroupSocket", "❌ Failed to parse group message", error: e, stackTrace: st);
       }
     });
 
@@ -318,7 +338,6 @@ class GroupSocketProvider extends ChangeNotifier {
     required String sender,
     required String senderName,
     required String text,
-    required String messageId,
     String messageType = 'text',
     String? fileName,
     String? fileUrl,
@@ -326,20 +345,26 @@ class GroupSocketProvider extends ChangeNotifier {
     List<String>? mentions,
   }) async {
     try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
       await _manager.sendGroupMessage(
         groupId: groupId,
         sender: sender,
         senderName: senderName,
         text: text,
-        messageId: messageId,
         messageType: messageType,
         fileName: fileName,
         fileUrl: fileUrl,
         replyTo: replyTo,
         mentions: mentions,
+        timestamp: timestamp,
+      );
+
+      _logger.logNetwork(
+        "[GroupSocket][SEND_SUCCESS] ✅ Sent group message → group=$groupId, type=$messageType",
       );
     } catch (e) {
-      _logger.error("GroupSocket", "Failed to send group message", error: e);
+      _logger.error("GroupSocket", "❌ Failed to send group message", error: e);
       rethrow;
     }
   }

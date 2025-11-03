@@ -11,138 +11,6 @@ import '../../../config/navigation/app_routes.dart';
 import '../provider/mail_provider.dart';
 import '../widgets/mail_tile.dart';
 
-// class MailScreen extends StatefulWidget {
-//   const MailScreen({super.key});
-
-//   @override
-//   State<MailScreen> createState() => _MailScreenState();
-// }
-
-// class _MailScreenState extends State<MailScreen> {
-//   final mailSearchController = TextEditingController();
-//   String _selectedFolder = 'Inbox';
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     // ✅ Load cached inbox + refresh if needed
-//     WidgetsBinding.instance.addPostFrameCallback((_) {
-//       context.read<MailProvider>();
-//     });
-//   }
-
-//   Future<void> _handleRefresh(MailProvider provider) async {
-//     if (_selectedFolder == 'Inbox') {
-//       await provider.fetchInbox(forceRefresh: true);
-//     } else if (_selectedFolder == 'Sent') {
-//       await provider.fetchSent(forceRefresh: true);
-//     } else if (_selectedFolder == 'Trash') {
-//       await provider.fetchTrash(forceRefresh: true);
-//     }
-//   }
-
-//   void _onFolderSelected(String folder) {
-//     Navigator.pop(context);
-//     setState(() => _selectedFolder = folder);
-
-//     final provider = context.read<MailProvider>();
-//     if (folder == 'Inbox') {
-//       provider.fetchInbox();
-//     } else if (folder == 'Sent') {
-//       provider.fetchSent();
-//     } else if (folder == 'Trash') {
-//       provider.fetchTrash();
-//     }
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     final provider = context.watch<MailProvider>();
-
-//     List<MailModel> mails;
-//     switch (_selectedFolder) {
-//       case 'Sent':
-//         mails = provider.sentMails;
-//         break;
-//       case 'Trash':
-//         mails = provider.trashMails;
-//         break;
-//       default:
-//         mails = provider.inboxMails;
-//     }
-
-//     return SafeArea(
-//       child: Scaffold(
-//         backgroundColor: Colors.grey[100],
-//         appBar: AppBar(
-//           title: Text(_selectedFolder),
-//           elevation: 2,
-//           actions: [
-//             IconButton(
-//               icon: const Icon(Icons.refresh_rounded),
-//               tooltip: "Refresh",
-//               onPressed: () => _handleRefresh(provider),
-//             ),
-//           ],
-//         ),
-//         // 📬 Drawer extracted into a new widget
-//         drawer: MailDrawer(selectedFolder: _selectedFolder, onFolderSelected: _onFolderSelected),
-//         body: Column(
-//           children: [
-//             // 🔍 Search bar
-//             Padding(
-//               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-//               child: CustomSearchBar(
-//                 enable: true,
-//                 controller: mailSearchController,
-//                 hintText: "Search mails here",
-//                 onChanged: provider.searchMails,
-//               ),
-//             ),
-
-//             // 📩 Mail List
-//             Expanded(
-//               child: provider.state == MailState.loading
-//                   ? const Center(child: CircularProgressIndicator())
-//                   : mails.isEmpty
-//                   ? const Center(child: Text('No mails found'))
-//                   : RefreshIndicator(
-//                       onRefresh: () => _handleRefresh(provider),
-//                       child: ListView.builder(
-//                         padding: const EdgeInsets.symmetric(vertical: 6),
-//                         itemCount: mails.length,
-//                         itemBuilder: (context, index) {
-//                           final mail = mails[index];
-//                           return MailTile(
-//                             mail: mail,
-//                             isTrash: _selectedFolder == 'Trash',
-//                             onMoveToTrash: () => provider.moveMailToTrash(mail),
-//                             onRestore: () => provider.restoreMail(mail),
-//                             onDelete: () => provider.deleteMail(mail),
-//                           );
-//                         },
-//                       ),
-//                     ),
-//             ),
-//           ],
-//         ),
-
-//         floatingActionButton: FloatingActionButton.extended(
-//           backgroundColor: AppColors.primary,
-//           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-//           elevation: 6,
-//           onPressed: () => context.pushNamed(AppRoutes.composeMail),
-//           icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 22),
-//           label: Padding(
-//             padding: EdgeInsets.symmetric(horizontal: 4.0),
-//             child: Text('Compose', style: AppTextStyles.black12_400.copyWith(color: Colors.white)),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 class MailScreen extends StatefulWidget {
   const MailScreen({super.key});
 
@@ -251,13 +119,13 @@ class _MailScreenState extends State<MailScreen> {
         mails = provider.inboxMails;
     }
 
-    return WillPopScope(
-      onWillPop: () async {
-        if (_isSelectionMode) {
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) async {
+        // ⛔ Prevent exiting screen if in selection mode
+        if (!didPop && _isSelectionMode) {
           _exitSelectionMode();
-          return false;
         }
-        return true;
       },
       child: SafeArea(
         child: Scaffold(

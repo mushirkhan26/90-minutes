@@ -267,6 +267,7 @@ import 'package:hrtz_hrms/core/api/network/auth_service.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/push_notification_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/core/socket/socket_manager.dart';
 
@@ -299,10 +300,7 @@ class AuthProvider extends ChangeNotifier {
     _state = AuthState.loading;
     notifyListeners();
     _logger.logAuth('Attempting login for employeeId: $employeeId');
-    final response = await _authService.login(
-      employeeId: employeeId,
-      password: password,
-    );
+    final response = await _authService.login(employeeId: employeeId, password: password);
     if (response.success && response.data != null) {
       final data = response.data!;
       _userData = data;
@@ -318,13 +316,12 @@ class AuthProvider extends ChangeNotifier {
       await _localStorage.setLoginState(true);
       _state = AuthState.authenticated;
       _logger.logAuth('✅ User logged in successfully');
+      // ✅ Ensure FCM token is up-to-date
+      await PushNotificationService.checkAndUpdateFCMToken();
     } else {
       _state = AuthState.error;
       _errorMessage = response.message;
-      _logger.logAuth(
-        '❌ Login failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Login failed: ${response.message}', level: LogLevel.error);
     }
     notifyListeners();
   }
@@ -349,6 +346,8 @@ class AuthProvider extends ChangeNotifier {
       _userData = await _secureStorage.getUserData();
       _state = AuthState.authenticated;
       _logger.logAuth('User session found, authenticated');
+      // ✅ Ensure FCM token is up-to-date
+      await PushNotificationService.checkAndUpdateFCMToken();
     } else {
       _state = AuthState.unauthenticated;
       _logger.logAuth('No user session found, unauthenticated');
@@ -363,18 +362,11 @@ class AuthProvider extends ChangeNotifier {
     if (response.success && response.data?['message'] == 'OTP sent') {
       _logger.logAuth('✅ OTP sent successfully');
       return (true, 'OTP sent successfully');
-    } else if (response.statusCode == 400 &&
-        response.message == 'User Not Found') {
-      _logger.logAuth(
-        '❌ User not found for employeeId: $employeeId',
-        level: LogLevel.error,
-      );
+    } else if (response.statusCode == 400 && response.message == 'User Not Found') {
+      _logger.logAuth('❌ User not found for employeeId: $employeeId', level: LogLevel.error);
       return (false, 'User not found. Please check your Employee ID.');
     } else {
-      _logger.logAuth(
-        '❌ Failed to get OTP: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Failed to get OTP: ${response.message}', level: LogLevel.error);
       return (false, response.message ?? 'Something went wrong');
     }
   }
@@ -382,18 +374,12 @@ class AuthProvider extends ChangeNotifier {
   // Verify OTP
   Future<bool> verifyOtp(String employeeId, int otp) async {
     _logger.logAuth('Verifying OTP for employeeId: $employeeId');
-    final response = await _authService.verifyOtp(
-      employeeId: employeeId,
-      otp: otp,
-    );
+    final response = await _authService.verifyOtp(employeeId: employeeId, otp: otp);
     if (response.success) {
       _logger.logAuth('OTP verified successfully');
       return true; // UI can navigate to change password page
     } else {
-      _logger.logAuth(
-        'OTP verification failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('OTP verification failed: ${response.message}', level: LogLevel.error);
       return false;
     }
   }
@@ -409,10 +395,7 @@ class AuthProvider extends ChangeNotifier {
       _logger.logAuth('Password changed successfully');
       return true; // UI can navigate to login page
     } else {
-      _logger.logAuth(
-        'Password change failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('Password change failed: ${response.message}', level: LogLevel.error);
       return false;
     }
   }
@@ -424,10 +407,7 @@ class AuthProvider extends ChangeNotifier {
     if (success) {
       _logger.logAuth('✅ OTP resent successfully');
     } else {
-      _logger.logAuth(
-        '❌ Failed to resend OTP: $message',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Failed to resend OTP: $message', level: LogLevel.error);
     }
     return (success, message);
   }
@@ -445,9 +425,7 @@ class AuthProvider extends ChangeNotifier {
         final duration = DateTime.now().difference(cachedTimestamp);
         if (duration.inHours < 1) {
           _employeeList = cachedList;
-          _logger.logAuth(
-            '✅ Using cached employee list (${cachedList.length} employees)',
-          );
+          _logger.logAuth('✅ Using cached employee list (${cachedList.length} employees)');
           _isFetchingEmployees = false;
           notifyListeners();
           return;
@@ -460,9 +438,7 @@ class AuthProvider extends ChangeNotifier {
         _employeeList = response.data!;
         // Cache the fresh data
         await _localStorage.saveEmployeeList(_employeeList!);
-        _logger.logAuth(
-          '✅ Fetched and cached employee list (${_employeeList!.length} employees)',
-        );
+        _logger.logAuth('✅ Fetched and cached employee list (${_employeeList!.length} employees)');
       } else {
         _logger.logAuth(
           '❌ Failed to fetch employee list: ${response.message}',
@@ -477,12 +453,7 @@ class AuthProvider extends ChangeNotifier {
         }
       }
     } catch (e, s) {
-      _logger.error(
-        'AUTH_PROVIDER',
-        'Error fetching employee list',
-        error: e,
-        stackTrace: s,
-      );
+      _logger.error('AUTH_PROVIDER', 'Error fetching employee list', error: e, stackTrace: s);
       // Try to use cached data if available
       final cachedList = await _localStorage.getEmployeeList();
       if (cachedList != null) {
@@ -526,9 +497,7 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
       _logger.logAuth('🔄 Fetching profile data for employeeId: $employeeId');
 
-      final response = await _authService.getEmployeeInfo(
-        employeeId: employeeId,
-      );
+      final response = await _authService.getEmployeeInfo(employeeId: employeeId);
 
       if (response.success && response.data != null) {
         _profileData = response.data!;
@@ -540,9 +509,7 @@ class AuthProvider extends ChangeNotifier {
           address: _profileData!.address ?? '',
           profileImage: _profileData!.profileImage,
         );
-        _logger.logAuth(
-          '✅ Fetched and cached profile data for employeeId: $employeeId',
-        );
+        _logger.logAuth('✅ Fetched and cached profile data for employeeId: $employeeId');
       } else {
         _logger.logAuth(
           '❌ Failed to fetch profile data: ${response.message}',
@@ -565,12 +532,7 @@ class AuthProvider extends ChangeNotifier {
         }
       }
     } catch (e, s) {
-      _logger.error(
-        'AUTH_PROVIDER',
-        'Error fetching profile data',
-        error: e,
-        stackTrace: s,
-      );
+      _logger.error('AUTH_PROVIDER', 'Error fetching profile data', error: e, stackTrace: s);
       // Try to load from secure storage if available
       final profileData = await _secureStorage.getProfileData();
       if (profileData != null) {
@@ -648,22 +610,14 @@ class AuthProvider extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        _logger.logAuth(
-          '❌ Failed to update profile: ${response.message}',
-          level: LogLevel.error,
-        );
+        _logger.logAuth('❌ Failed to update profile: ${response.message}', level: LogLevel.error);
         _state = AuthState.error;
         _errorMessage = response.message;
         notifyListeners();
         return false;
       }
     } catch (e, s) {
-      _logger.error(
-        'AUTH_PROVIDER',
-        'Error updating profile',
-        error: e,
-        stackTrace: s,
-      );
+      _logger.error('AUTH_PROVIDER', 'Error updating profile', error: e, stackTrace: s);
       _state = AuthState.error;
       _errorMessage = 'Failed to update profile';
       notifyListeners();

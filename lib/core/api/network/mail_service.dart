@@ -4,7 +4,7 @@ import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class MailService {
-  final ApiHelper _apiHelper = ApiHelper(baseUrl: ApiHelper.mailBaseUrl);
+  final ApiHelper _apiHelper = ApiHelper(baseUrl: ApiHelper.otherBaseUrl);
   final LoggingService _logger = LoggingService.instance;
 
   /// Get inbox mails for a specific employee (returns raw response)

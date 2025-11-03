@@ -14,7 +14,7 @@ import 'package:hrtz_hrms/features/chat/widgtes/image_message_bubble.dart';
 import 'package:hrtz_hrms/features/chat/widgtes/voice_message_bubble.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:uuid/uuid.dart';
+
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'dart:io';
@@ -45,7 +45,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
   final ScrollController _scrollController = ScrollController();
   late GroupSocketProvider _groupSocketProvider;
   final FileUploadService _fileUploadService = FileUploadService();
-  final Uuid _uuid = Uuid();
+
   final LoggingService _logger = LoggingService.instance;
   bool _isTyping = false;
   bool _isAtBottom = true;
@@ -60,7 +60,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
     // Set this group as active
     _groupSocketProvider.setActiveGroupId(widget.groupId);
     // Reset unread count for this group
-    _groupSocketProvider.resetGroupUnreadCount(widget.groupId);
+    _groupSocketProvider.resetGroupUnreadCount(widget.groupId, notify: false);
     // Register socket events
     _registerSocketEvents();
     // Load initial messages
@@ -201,30 +201,36 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
   /// Sends a text, image, or document message.
   Future<void> _sendMessage({String? text, String? fileUrl, String type = 'text'}) async {
     if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
-    final messageId = _uuid.v4();
+
     final timestamp = DateTime.now();
+
     _logger.logNetwork(
-      '✉️ Sending group message:\n'
-      '  groupId: ${widget.groupId}\n'
-      '  sender: ${widget.currentUserId}\n'
-      '  type: $type\n'
-      '  messageId: $messageId\n'
-      '  text: $text\n'
-      '  fileUrl: $fileUrl\n'
-      '  timestamp: $timestamp',
+      "[GROUP_CHAT:EMIT_INIT] ✉️ Sending message:\n"
+      "  → groupId: ${widget.groupId}\n"
+      "  → sender: ${widget.currentUserId}\n"
+      "  → type: $type\n"
+      "  → text: $text\n"
+      "  → fileUrl: $fileUrl\n"
+      "  → timestamp: $timestamp",
     );
-    await _groupSocketProvider.sendGroupMessage(
-      groupId: widget.groupId,
-      sender: widget.currentUserId,
-      senderName: widget.currentUserName,
-      text: text ?? '',
-      messageId: messageId,
-      messageType: type,
-      fileUrl: fileUrl,
-    );
-    _logger.info('GROUP_CHAT_SCREEN', '✅ Message sent successfully - ID: $messageId');
-    _messageController.clear();
-    _scrollToBottom();
+
+    try {
+      await _groupSocketProvider.sendGroupMessage(
+        groupId: widget.groupId,
+        sender: widget.currentUserId,
+        senderName: widget.currentUserName,
+        text: text ?? '',
+        messageType: type,
+        fileUrl: fileUrl,
+      );
+
+      _logger.info('GROUP_CHAT_SCREEN', '✅ Message emit success at ${timestamp.toIso8601String()}');
+
+      _messageController.clear();
+      _scrollToBottom();
+    } catch (e, st) {
+      _logger.error("GROUP_CHAT_SCREEN", "❌ Failed to send message", error: e, stackTrace: st);
+    }
   }
 
   /// Opens the image picker and sends the selected image.
