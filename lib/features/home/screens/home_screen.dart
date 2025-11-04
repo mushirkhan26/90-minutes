@@ -94,14 +94,8 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            const Text('Home'),
-            const Spacer(),
-            Image.asset(AppConstants.logo, height: 60),
-            // Image.asset('assets/images/logo.jpg', height: 60),
-          ],
-        ),
+        title: const Text("Home"),
+        actions: [Image.asset(AppConstants.logo, height: 60)],
       ),
       drawer: Drawer(
         child: FutureBuilder<Map<String, dynamic>?>(
