@@ -111,6 +111,7 @@ class HomeScreen extends StatelessWidget {
             const Text('Home'),
             const Spacer(),
             Image.asset(AppConstants.logo, height: 60),
+            // Image.asset('assets/images/logo.jpg', height: 60),
           ],
         ),
       ),

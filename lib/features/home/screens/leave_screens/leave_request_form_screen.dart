@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
+
+import '../../../../core/utils/alert_utils.dart';
 
 class LeaveRequestFormScreen extends StatefulWidget {
   final String name;
@@ -71,21 +74,66 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
     }
   }
 
+  // Future<void> _submitLeave() async {
+  //   if (!_formKey.currentState!.validate()) return;
+  //   if (_startDate == null || _endDate == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Please select both start and end dates')),
+  //     );
+  //     return;
+  //   }
+  //   if (_leaveType == null) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Please select a leave type')),
+  //     );
+  //     return;
+  //   }
+
+  //   setState(() => _isSubmitting = true);
+  //   final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  //   final (success, message) = await authProvider.addLeaveRequest(
+  //     name: widget.name,
+  //     employeeId: widget.employeeId,
+  //     startDate: DateFormat('dd-MM-yyyy').format(_startDate!),
+  //     endDate: DateFormat('dd-MM-yyyy').format(_endDate!),
+  //     reason: _reasonController.text.trim(),
+  //     duration: _duration,
+  //     type: _leaveType!,
+  //   );
+
+  //   if (!mounted) return;
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text(message),
+  //       backgroundColor: success ? Colors.green : Colors.red,
+  //     ),
+  //   );
+
+  //   if (success) {
+  //     _formKey.currentState!.reset();
+  //     setState(() {
+  //       _startDate = null;
+  //       _endDate = null;
+  //       _leaveType = null;
+  //       _duration = 0;
+  //     });
+  //     Navigator.pop(context); // Close the screen after submission
+  //   }
+  //   setState(() => _isSubmitting = false);
+  // }
   Future<void> _submitLeave() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startDate == null || _endDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select both start and end dates')),
+      AlertHelper.snackBarInfo(
+        context,
+        'Please select both start and end dates',
       );
       return;
     }
     if (_leaveType == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a leave type')),
-      );
+      AlertHelper.snackBarInfo(context, 'Please select a leave type');
       return;
     }
-
     setState(() => _isSubmitting = true);
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final (success, message) = await authProvider.addLeaveRequest(
@@ -97,16 +145,9 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       duration: _duration,
       type: _leaveType!,
     );
-
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: success ? Colors.green : Colors.red,
-      ),
-    );
-
     if (success) {
+      AlertHelper.snackBarSuccess(context, message);
       _formKey.currentState!.reset();
       setState(() {
         _startDate = null;
@@ -114,7 +155,9 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
         _leaveType = null;
         _duration = 0;
       });
-      Navigator.pop(context); // Close the screen after submission
+      Navigator.pop(context);
+    } else {
+      AlertHelper.snackBarError(context, message);
     }
     setState(() => _isSubmitting = false);
   }
@@ -231,14 +274,19 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       },
                     ),
                     const SizedBox(height: 24),
-                    ElevatedButton.icon(
+                    // ElevatedButton.icon(
+                    //   onPressed: _submitLeave,
+                    //   icon: const Icon(Icons.send),
+                    //   label: const Text('Submit Request'),
+                    //   style: ElevatedButton.styleFrom(
+                    //     padding: const EdgeInsets.symmetric(vertical: 14),
+                    //     textStyle: const TextStyle(fontSize: 16),
+                    //   ),
+                    // ),
+                    CustomButton(
+                      text: 'Submit Request',
                       onPressed: _submitLeave,
-                      icon: const Icon(Icons.send),
-                      label: const Text('Submit Request'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        textStyle: const TextStyle(fontSize: 16),
-                      ),
+                      icon: (Icons.send),
                     ),
                   ],
                 ),

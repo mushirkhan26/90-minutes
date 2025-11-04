@@ -36,8 +36,10 @@ class HomeChart extends StatelessWidget {
                 SizedBox(
                   height: 200,
                   child: SfCircularChart(
+                    key: const ValueKey('utilization_chart'),
                     series: <CircularSeries>[
                       DoughnutSeries<ChartData, String>(
+                        animationDuration: 0,
                         dataSource: [
                           ChartData('Online', 27.39, AppColors.activeGreen),
                           ChartData('Meeting', 36.30, Colors.blue),
