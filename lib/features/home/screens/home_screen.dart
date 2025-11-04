@@ -75,18 +75,14 @@ class HomeScreen extends StatelessWidget {
               if (context.mounted) {
                 Navigator.pop(context);
                 if (clockProvider.state == ClockState.error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(clockProvider.errorMessage ?? 'An error occurred'),
-                      backgroundColor: Colors.red,
-                    ),
+                  AlertHelper.snackBarError(
+                    context,
+                    clockProvider.errorMessage ?? 'An error occurred',
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(isClockIn ? 'Clock in successful!' : 'Clock out successful!'),
-                      backgroundColor: Colors.green,
-                    ),
+                  AlertHelper.snackBarSuccess(
+                    context,
+                    isClockIn ? 'Clock in successful!' : 'Clock out successful!',
                   );
                 }
               }
