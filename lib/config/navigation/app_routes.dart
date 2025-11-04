@@ -21,4 +21,5 @@ class AppRoutes {
   static const permissionsRoute = '/permissions';
   static const faceverification = '/face-verification';
   static const userProfile = '/user-profile';
+  static const leaveRequest = '/leave-request';
 }

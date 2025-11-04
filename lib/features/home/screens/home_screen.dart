@@ -143,13 +143,21 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 // const SizedBox(height: 300),
-                Container(height: MediaQuery.of(context).size.height * 0.5),
+                Container(height: MediaQuery.of(context).size.height * 0.43),
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text('Profile'),
                   onTap: () {
                     Navigator.pop(context);
                     context.userProfile();
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.calendar_month),
+                  title: const Text('Leave Request'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    context.leaveRequest();
                   },
                 ),
                 ListTile(

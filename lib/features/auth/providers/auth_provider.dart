@@ -294,6 +294,16 @@ class AuthProvider extends ChangeNotifier {
   bool get isFetchingEmployees => _isFetchingEmployees;
   bool get isFetchingProfile => _isFetchingProfile;
 
+  Map<String, dynamic>? _leaveHistory;
+  Map<String, dynamic>? _availableLeave;
+  bool _isFetchingLeaveHistory = false;
+  bool _isFetchingAvailableLeave = false;
+
+  Map<String, dynamic>? get leaveHistory => _leaveHistory;
+  Map<String, dynamic>? get availableLeave => _availableLeave;
+  bool get isFetchingLeaveHistory => _isFetchingLeaveHistory;
+  bool get isFetchingAvailableLeave => _isFetchingAvailableLeave;
+
   /// 🔑 Login Flow
   Future<void> login(String employeeId, String password) async {
     _state = AuthState.loading;
@@ -668,6 +678,110 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = 'Failed to update profile';
       notifyListeners();
       return false;
+    }
+  }
+
+  /// 📅 Add Leave Request
+  Future<(bool success, String message)> addLeaveRequest({
+    required String name,
+    required String employeeId,
+    required String startDate,
+    required String endDate,
+    required String reason,
+    required int duration,
+    required String type,
+  }) async {
+    _logger.logAuth('Adding leave request for employeeId: $employeeId');
+    final response = await _authService.addLeaveRequest(
+      name: name,
+      employeeId: employeeId,
+      startDate: startDate,
+      endDate: endDate,
+      reason: reason,
+      duration: duration,
+      type: type,
+    );
+    if (response.success) {
+      _logger.logAuth('✅ Leave request added successfully');
+      return (true, 'Leave request added successfully');
+    } else {
+      _logger.logAuth(
+        '❌ Failed to add leave request: ${response.message}',
+        level: LogLevel.error,
+      );
+      return (false, response.message ?? 'Failed to add leave request');
+    }
+  }
+
+  /// 📜 Fetch Leave History
+  Future<(bool success, String message)> fetchLeaveHistory({
+    required String employeeId,
+  }) async {
+    try {
+      _isFetchingLeaveHistory = true;
+      notifyListeners();
+      _logger.logAuth('Fetching leave history for employeeId: $employeeId');
+      final response = await _authService.getLeaveHistory(
+        employeeId: employeeId,
+      );
+      if (response.success && response.data != null) {
+        _leaveHistory = response.data!;
+        _logger.logAuth('✅ Leave history fetched successfully');
+        return (true, 'Leave history fetched successfully');
+      } else {
+        _logger.logAuth(
+          '❌ Failed to fetch leave history: ${response.message}',
+          level: LogLevel.error,
+        );
+        return (false, response.message ?? 'Failed to fetch leave history');
+      }
+    } catch (e, s) {
+      _logger.error(
+        'AUTH_PROVIDER',
+        'Error fetching leave history',
+        error: e,
+        stackTrace: s,
+      );
+      return (false, 'An error occurred while fetching leave history');
+    } finally {
+      _isFetchingLeaveHistory = false;
+      notifyListeners();
+    }
+  }
+
+  /// 📊 Fetch Available Leave
+  Future<(bool success, String message)> fetchAvailableLeave({
+    required String employeeId,
+  }) async {
+    try {
+      _isFetchingAvailableLeave = true;
+      notifyListeners();
+      _logger.logAuth('Fetching available leave for employeeId: $employeeId');
+      final response = await _authService.getAvailableLeave(
+        employeeId: employeeId,
+      );
+      if (response.success && response.data != null) {
+        _availableLeave = response.data!;
+        _logger.logAuth('✅ Available leave fetched successfully');
+        return (true, 'Available leave fetched successfully');
+      } else {
+        _logger.logAuth(
+          '❌ Failed to fetch available leave: ${response.message}',
+          level: LogLevel.error,
+        );
+        return (false, response.message ?? 'Failed to fetch available leave');
+      }
+    } catch (e, s) {
+      _logger.error(
+        'AUTH_PROVIDER',
+        'Error fetching available leave',
+        error: e,
+        stackTrace: s,
+      );
+      return (false, 'An error occurred while fetching available leave');
+    } finally {
+      _isFetchingAvailableLeave = false;
+      notifyListeners();
     }
   }
 }

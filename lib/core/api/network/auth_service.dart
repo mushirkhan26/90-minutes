@@ -120,4 +120,45 @@ class AuthService {
     );
     return response;
   }
+
+  /// 📅 Add Leave Request API
+  Future<ApiResponse<Map<String, dynamic>>> addLeaveRequest({
+    required String name,
+    required String employeeId,
+    required String startDate,
+    required String endDate,
+    required String reason,
+    required int duration,
+    required String type,
+  }) async {
+    final body = {
+      "name": name,
+      "employeeId": employeeId,
+      "startDate": startDate,
+      "endDate": endDate,
+      "reason": reason,
+      "duration": duration,
+      "type": type,
+    };
+    _logger.logAuth('Adding leave request for employeeId: $employeeId');
+    return await _apiHelper.post<Map<String, dynamic>>('leave/add', body);
+  }
+
+  /// 📜 Get Leave History API
+  Future<ApiResponse<Map<String, dynamic>>> getLeaveHistory({
+    required String employeeId,
+  }) async {
+    _logger.logAuth('Fetching leave history for employeeId: $employeeId');
+    final endpoint = 'leave/history/$employeeId';
+    return await _apiHelper.get<Map<String, dynamic>>(endpoint);
+  }
+
+  /// 📊 Get Available Leave API
+  Future<ApiResponse<Map<String, dynamic>>> getAvailableLeave({
+    required String employeeId,
+  }) async {
+    _logger.logAuth('Fetching available leave for employeeId: $employeeId');
+    final endpoint = 'leave/availableLeave/$employeeId';
+    return await _apiHelper.get<Map<String, dynamic>>(endpoint);
+  }
 }
