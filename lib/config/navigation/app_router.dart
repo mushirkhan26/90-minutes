@@ -31,7 +31,6 @@ import '../../features/home/screens/profile_screen.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
 import '../../features/meet/screens/schedule_meet.dart';
-import '../../features/meet/widgets/meet_widget.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -189,13 +188,6 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.scheduleMeetScreen,
       name: '/scedule-meet',
       builder: (context, state) => const ScheduleMeet(),
-    ),
-
-    // Meet Tail Route
-    GoRoute(
-      path: AppRoutes.meetWidget,
-      name: '/meet-tail',
-      builder: (context, state) => const MeetWidget(),
     ),
 
     // Compose Mail Route

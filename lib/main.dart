@@ -19,6 +19,7 @@ import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
 // import 'package:hrtz_hrms/features/clock/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
+import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
@@ -60,6 +61,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketProvider()),
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
+        ChangeNotifierProvider(create: (_) => MeetProvider()),
         ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
         ChangeNotifierProvider(create: (_) => ClockProvider()),
       ],

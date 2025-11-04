@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
-import 'package:hrtz_hrms/core/constants/app_constants.dart';
+
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
+import 'package:hrtz_hrms/features/meet/widgets/meet_widget.dart';
+import 'package:hrtz_hrms/widgets/custom_search_bar.dart';
+import 'package:provider/provider.dart';
 
 import '../../../config/navigation/app_routes.dart';
-
-import '../../../core/utils/utils.dart';
 
 class MeetScreen extends StatefulWidget {
   const MeetScreen({super.key});
@@ -15,55 +19,121 @@ class MeetScreen extends StatefulWidget {
 }
 
 class _MeetScreenState extends State<MeetScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  final SecureStorageService _secureStorage = SecureStorageService();
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final meetProvider = Provider.of<MeetProvider>(context, listen: false);
+      meetProvider.fetchMeetingsForToday();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    final meetProvider = Provider.of<MeetProvider>(context);
+
     return SafeArea(
       child: Scaffold(
-        appBar: AppBar(title: Text('Upcoming Meetings', style: AppTextStyles.black16_700)),
-        // body: meetingManagement.isLoading
-        //     ? const ShimmerList(itemCount: 10)
-        //     : meetingManagement.error != null
-        //     ? Center(child: Text(meetingManagement.error!))
-        //     : RefreshIndicator(
-        //         onRefresh: () => meetingManagement.fetchAllMeetings(),
-        //         child: ListView.builder(
-        //           itemCount: meetingManagement.meetings.length,
-        //           itemBuilder: (context, index) {
-        //             final meeting = meetingManagement.meetings[index];
-        //             return MeetingTile(
-        //               meeting: meeting,
-        //               showButtons: meeting.scheduledPerson.email == email,
-        //             );
-        //           },
-        //         ),
-        //       ),
-        floatingActionButton: Container(
-          decoration: BoxDecoration(
-            color: Colors.white, // Background color
-            borderRadius: BorderRadius.circular(12),
-            // optional rounded corners
-          ),
-          child: GestureDetector(
-            // height: Utils().height(context) * 0.09,
-            // width: Utils().width(context) * 0.24,
-            // child: FloatingActionButton(
-            onTap: () {
-              context.pushNamed(AppRoutes.scheduleMeetScreen);
-            },
-            child: Image.asset(
-              AppConstants.scheduleIcon,
-              fit: BoxFit.contain,
-              height: Utils().height(context) * 0.09,
-              // width: Utils().width(context) * 0.24,
+        appBar: AppBar(
+          title: Text('Upcoming Meetings', style: AppTextStyles.black16_700),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () {
+                final meetProvider = Provider.of<MeetProvider>(context, listen: false);
+                meetProvider.fetchMeetingsForToday(forceRefresh: true);
+              },
             ),
-            // backgroundColor: AppColors.bluePrimary,
-            // child: Text(
-            //   "Schedule ",
-            //   style: AppTextStyles.white8_600.copyWith(fontSize: 13),
-            // ),
-            // ),
+          ],
+        ),
+        body: Column(
+          children: [
+            // Only show search bar if there are meetings
+            if (meetProvider.meetList.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: CustomSearchBar(
+                  controller: _searchController,
+                  enable: true,
+                  hintText: 'Search meetings...',
+                  onChanged: (query) {
+                    meetProvider.searchMeets(query);
+                  },
+                ),
+              ),
+            Expanded(
+              child: meetProvider.state == MeetState.loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : meetProvider.meetList.isEmpty
+                  ? const Center(child: Text('No meets available today'))
+                  : RefreshIndicator(
+                      onRefresh: () => meetProvider.fetchMeetingsForToday(forceRefresh: true),
+                      child: ListView.builder(
+                        itemCount: meetProvider.meetList.length,
+                        itemBuilder: (context, index) {
+                          final meeting = meetProvider.meetList[index];
+                          return FutureBuilder<String?>(
+                            future: _secureStorage.getEmployeeId(),
+                            builder: (context, snapshot) {
+                              final currentUserId = snapshot.data;
+                              return MeetWidget(
+                                meeting: meeting,
+                                showButtons:
+                                    currentUserId != null &&
+                                    meeting.createdBy['employeeId'] == currentUserId,
+                                onUpdate: () => _showUpdateDialog(context, meeting.id!),
+                                onDelete: () => meetProvider.deleteMeeting(meeting.id!),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: AppColors.primary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+          elevation: 6,
+          onPressed: () => context.pushNamed(AppRoutes.scheduleMeetScreen),
+          icon: const Icon(Icons.add, color: Colors.white, size: 22),
+          label: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: Text(
+              'Schedule Meet',
+              style: AppTextStyles.black12_400.copyWith(color: Colors.white),
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _showUpdateDialog(BuildContext context, String id) {
+    final meetProvider = Provider.of<MeetProvider>(context, listen: false);
+    final startTimeController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Update Meeting Time'),
+        content: TextField(
+          controller: startTimeController,
+          decoration: const InputDecoration(hintText: 'New Start Time (ISO 8601)'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              await meetProvider.updateMeeting(id: id, time: startTimeController.text);
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text('Update'),
+          ),
+        ],
       ),
     );
   }

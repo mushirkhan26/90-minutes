@@ -5,6 +5,7 @@ import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
+import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,6 +25,9 @@ class LocalStorageService {
   // employee list data related keys
   static const String _keyEmployeeList = 'employee_list';
   static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
+  // meet caching data related keys
+  static const String keyMeetList = 'meet_list';
+  static const String keyMeetListTimestamp = 'meet_list_timestamp';
 
   // 📩 Mail caching related keys
   static const String keyInboxMails = 'inbox_mails';
@@ -212,6 +216,47 @@ class LocalStorageService {
     await prefs.remove(key);
     await prefs.remove('${key}_timestamp');
     _logger.logStorage('Cleared mail cache for $key');
+  }
+
+  //--------------------------------------------------------------------------
+  // meet api  storage methods
+  // -------------------------------------------------------------------------
+  // Meet caching related keys
+
+  // Save meet list to local storage
+  Future<void> saveMeetList(List<Meet> meets) async {
+    final meetJsonList = meets.map((e) => e.toJson()).toList();
+    await prefs.setString(keyMeetList, jsonEncode(meetJsonList));
+    await prefs.setInt(keyMeetListTimestamp, DateTime.now().millisecondsSinceEpoch);
+    _logger.logStorage('Saved meet list (${meets.length} meets)');
+  }
+
+  // Get meet list from local storage
+  Future<List<Meet>?> getMeetList() async {
+    final jsonString = prefs.getString(keyMeetList);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> meetJsonList = jsonDecode(jsonString);
+      final meets = meetJsonList.map((json) => Meet.fromJson(json)).toList();
+      _logger.logStorage('Retrieved meet list (${meets.length} meets)');
+      return meets;
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse meet list', error: e);
+      return null;
+    }
+  }
+
+  // Get timestamp when meet list was last cached
+  Future<DateTime?> getMeetListTimestamp() async {
+    final timestamp = prefs.getInt(keyMeetListTimestamp);
+    return timestamp != null ? DateTime.fromMillisecondsSinceEpoch(timestamp) : null;
+  }
+
+  // Clear meet list cache
+  Future<void> clearMeetList() async {
+    await prefs.remove(keyMeetList);
+    await prefs.remove(keyMeetListTimestamp);
+    _logger.logStorage('Cleared meet list cache');
   }
 
   // chat message storage
