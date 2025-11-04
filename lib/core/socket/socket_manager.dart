@@ -332,42 +332,52 @@ class SocketManager {
   }
 
   /// Sends a group message
+  /// Sends a group message to backend via socket
   Future<void> sendGroupMessage({
     required String groupId,
     required String sender,
     required String senderName,
     required String text,
-    required String messageId,
     String messageType = 'text',
     String? fileName,
     String? fileUrl,
     String? replyTo,
     List<String>? mentions,
+    required int timestamp, // ✅ backend expects timestamp
   }) async {
     if (!SocketService.instance.isConnected) {
-      LoggingService.instance.error("Socket", "Cannot send group message: socket not connected");
+      LoggingService.instance.error("Socket", "❌ Cannot send group message: socket not connected");
       throw Exception("Socket not connected");
     }
+
+    final payload = {
+      'groupId': groupId,
+      'sender': sender,
+      'senderName': senderName,
+      'text': text,
+      'messageType': messageType,
+      'fileName': fileName,
+      'fileUrl': fileUrl,
+      'replyTo': replyTo,
+      'mentions': mentions ?? [],
+      'timestamp': timestamp,
+    };
+
+    LoggingService.instance.logNetwork(
+      "[SOCKET][SEND_GROUP] 🚀 Emitting sendGroupMessage → $payload",
+    );
+
     socket.emitWithAck(
       'sendGroupMessage',
-      {
-        'groupId': groupId,
-        'sender': sender,
-        'senderName': senderName,
-        'text': text,
-        'messageId': messageId,
-        'messageType': messageType,
-        'fileName': fileName,
-        'fileUrl': fileUrl,
-        'replyTo': replyTo,
-        'mentions': mentions,
-      },
+      payload,
       ack: ([dynamic res]) {
         if (res is String) {
-          LoggingService.instance.error("Socket", "Failed to send group message: $res");
+          LoggingService.instance.error("Socket", "❌ Failed to send group message: $res");
           throw Exception(res);
         }
-        LoggingService.instance.logNetwork("Group message sent: $messageId");
+        LoggingService.instance.logNetwork(
+          "[SOCKET][SEND_GROUP_ACK] ✅ Group message emit acknowledged",
+        );
       },
     );
   }

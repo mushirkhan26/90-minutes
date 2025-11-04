@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
@@ -15,6 +14,8 @@ class PushNotificationService {
   static final PushNotificationService _instance = PushNotificationService._internal();
   factory PushNotificationService() => _instance;
   PushNotificationService._internal();
+
+  static String? pendingPayload; // 🧩 Store payload temporarily
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications =
@@ -39,7 +40,7 @@ class PushNotificationService {
     );
 
     // 🧩 Updated — Only check permissions silently (App Store–safe)
-    await _checkPermissionsOnly();
+    await checkAndRequestPermissions();
 
     // ⚙️ Configure Firebase message handling
     await _configureFirebase();
@@ -47,48 +48,47 @@ class PushNotificationService {
     _logger.logNetwork("✅ Push Notification Service initialized");
   }
 
-  /// 🛑 App Store–compliant permission logic — silent check only
-  Future<void> _checkPermissionsOnly() async {
+  /// 🛑 Check permissions and request once if not granted
+  Future<void> checkAndRequestPermissions() async {
     if (Platform.isIOS) {
       NotificationSettings settings = await _messaging.getNotificationSettings();
+
       switch (settings.authorizationStatus) {
         case AuthorizationStatus.authorized:
         case AuthorizationStatus.provisional:
           _logger.logNetwork("✅ Notifications authorized (iOS)");
+          // ✅ Proceed to token check once permission is granted
+          await checkAndUpdateFCMToken();
           break;
+
         case AuthorizationStatus.denied:
         case AuthorizationStatus.notDetermined:
-          _logger.logNetwork("⚠️ Notifications not granted (iOS) — no prompt shown");
+          _logger.logNetwork("⚠️ Notifications not granted (iOS) → requesting...");
+          final granted = await _messaging.requestPermission(alert: true, badge: true, sound: true);
+          if (granted.authorizationStatus == AuthorizationStatus.authorized ||
+              granted.authorizationStatus == AuthorizationStatus.provisional) {
+            _logger.logNetwork("✅ User granted iOS notification permission after prompt");
+            await checkAndUpdateFCMToken();
+          } else {
+            _logger.logNetwork("❌ User denied iOS notification permission");
+          }
           break;
       }
     } else if (Platform.isAndroid) {
-      if (await Permission.notification.isGranted) {
+      final status = await Permission.notification.status;
+      if (status.isGranted) {
         _logger.logNetwork("✅ Notifications granted (Android)");
+        await checkAndUpdateFCMToken();
       } else {
-        _logger.logNetwork("⚠️ Notifications not granted (Android) — no prompt shown");
+        _logger.logNetwork("⚠️ Notifications not granted (Android) → requesting...");
+        final result = await Permission.notification.request();
+        if (result.isGranted) {
+          _logger.logNetwork("✅ User granted Android notification permission after prompt");
+          await checkAndUpdateFCMToken();
+        } else {
+          _logger.logNetwork("❌ User denied Android notification permission");
+        }
       }
-    }
-  }
-
-  /// ⚙️ Optional explicit request — should be triggered by user action (safe for App Store)
-  static Future<bool> requestPermission(BuildContext context) async {
-    NotificationSettings settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-    );
-
-    switch (settings.authorizationStatus) {
-      case AuthorizationStatus.authorized:
-        debugPrint('✅ User granted notification permission');
-        return true;
-      case AuthorizationStatus.provisional:
-        debugPrint('⚠️ Provisional permission granted');
-        return true;
-      case AuthorizationStatus.denied:
-      case AuthorizationStatus.notDetermined:
-        debugPrint('❌ User denied or did not determine permission');
-        return false;
     }
   }
 
@@ -112,24 +112,18 @@ class PushNotificationService {
       checkAndUpdateFCMToken(newToken: token);
     });
 
-    // 🆕 Handle terminated-state notification tap
+    //  Terminated state (launched by tapping notification)
     final initial = await _messaging.getInitialMessage();
     if (initial != null) {
-      _logger.logNetwork("🆕 Notification opened from terminated state → ${initial.data}");
-
-      // 🆕 Ensure app initialization before navigation
-      Future.delayed(const Duration(seconds: 1), () async {
-        if (rootNavigatorKey.currentState == null) {
-          _logger.logNetwork("⏳ Waiting for app context...");
-          await _waitForAppContext();
-        }
-        handleNotificationTap(jsonEncode(initial.data));
-      });
+      _logger.logNetwork("🆕 App opened from terminated state → ${initial.data}");
+      pendingPayload = jsonEncode(initial.data);
+    } else {
+      _logger.logNetwork("ℹ️ No initial notification payload (cold launch)");
     }
   }
 
-  // 🆕 Helper to ensure the app is fully loaded before navigation
-  Future<void> _waitForAppContext() async {
+  // 🕐 Wait for router/context readiness
+  Future<void> waitForAppContext() async {
     int retries = 0;
     while (rootNavigatorKey.currentState == null && retries < 10) {
       await Future.delayed(const Duration(milliseconds: 300));
@@ -213,19 +207,57 @@ class PushNotificationService {
     );
   }
 
-  /// 🧭 Handle notification taps — navigates to chat screen
-  static void handleNotificationTap(String payload) {
+  static Future<void> handleNotificationTap(String payload, {int attempt = 0}) async {
+    final logger = LoggingService.instance;
+
     try {
+      logger.logNetwork(
+        "🧭 handleNotificationTap called (attempt $attempt) with payload: $payload",
+      );
+
       final data = jsonDecode(payload);
       final context = rootNavigatorKey.currentState?.context;
 
       if (context == null) {
-        LoggingService.instance.logNetwork("⚠️ Context not ready, skipping navigation");
+        if (attempt < 10) {
+          logger.logNetwork("⏳ Context not ready yet → retrying in 300ms (attempt ${attempt + 1})");
+          await Future.delayed(const Duration(milliseconds: 300));
+          return handleNotificationTap(payload, attempt: attempt + 1);
+        }
+        logger.logNetwork("❌ Navigation failed → context never became ready after 10 retries");
         return;
       }
 
-      // ✅ Safe navigation to Chat screen
+      // 🧩 Define required keys for chat navigation
+      final requiredKeys = ['otherUserId', 'otherUserName', 'currentUserId', 'currentUserName'];
+
+      final missingKeys = requiredKeys.where((k) => !data.containsKey(k)).toList();
+
+      if (missingKeys.isNotEmpty) {
+        logger.logNetwork("❌ Missing required keys in payload: $missingKeys");
+        logger.logNetwork("🧾 Full received payload: $data");
+
+        // 🔎 Log structured reason why navigation failed
+        if (data['type'] == 'Message') {
+          logger.logNetwork(
+            "⚠️ Notification type is 'Message' but backend did not include otherUser details. "
+            "Cannot open ChatScreen without [otherUserId, otherUserName].",
+          );
+        } else {
+          logger.logNetwork(
+            "🚫 Unknown notification type (${data['type'] ?? 'null'}) → No matching navigation route.",
+          );
+        }
+        return;
+      }
+
+      // ✅ All good → proceed to chat
       final path = '${AppRoutes.chatRoute}/${data['otherUserId']}';
+
+      logger.logNetwork("🚀 Navigating to ChatScreen → path: $path");
+      logger.logNetwork("👤 currentUser: ${data['currentUserName']} (${data['currentUserId']})");
+      logger.logNetwork("💬 otherUser: ${data['otherUserName']} (${data['otherUserId']})");
+
       context.push(
         path,
         extra: {
@@ -236,17 +268,18 @@ class PushNotificationService {
           'otherUserName': data['otherUserName'],
         },
       );
-    } catch (e) {
-      LoggingService.instance.logNetwork("❌ Notification tap error: $e");
+    } catch (e, s) {
+      logger.logNetwork("❌ Exception in handleNotificationTap: $e");
+      logger.logNetwork("📄 Stack trace: $s");
     }
   }
 
   /// 📩 Handle background messages
   @pragma('vm:entry-point')
   static Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-    final logger = LoggingService.instance;
-    logger.logNetwork("📩 Background FCM received: ${message.data}");
-    final service = PushNotificationService();
-    await service._showLocalNotification(message);
+    // final logger = LoggingService.instance;
+    // logger.logNetwork("📩 Background FCM received: ${message.data}");
+    // final service = PushNotificationService();
+    // await service._showLocalNotification(message);
   }
 }

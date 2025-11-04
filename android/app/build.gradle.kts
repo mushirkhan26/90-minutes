@@ -1,3 +1,6 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -10,8 +13,16 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// 🔐 Load keystore values from keys.env
+val keystorePropertiesFile = rootProject.file("../keys.env")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+
 android {
-    namespace = "com.example.hrtz_hrms"
+    namespace = "com.hertzworkz.hrtz_hrms"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -28,26 +39,42 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.example.hrtz_hrms"
+        applicationId = "com.hertzworkz.hrtz_hrms"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = 26
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        targetSdk = 35
+          // 🧭 First Release Version Info
+        versionCode = 1
+        versionName = "1.0.0"
          // Enable multidex
         multiDexEnabled = true
     }
 
+     // 🔐 Signing configuration (copied from other app, translated for Kotlin DSL)
+    signingConfigs {
+        create("release") {
+            storeFile = file(keystoreProperties["KEYSTORE_PATH"] ?: "")
+            storePassword = keystoreProperties["KEYSTORE_STORE_PASSWORD"] as String? ?: ""
+            keyAlias = keystoreProperties["KEY_ALIAS"] as String? ?: ""
+            keyPassword = keystoreProperties["KEY_PASSWORD"] as String? ?: ""
+        }
+    }
+
     buildTypes {
         getByName("release") {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+
+         getByName("debug") {
+            // Optional: sign debug with same release key for easier testing
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 }

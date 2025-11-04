@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/services/local_notifications_service.dart';
@@ -29,11 +31,19 @@ class SocketProvider extends ChangeNotifier {
 
   // 🆕 unread tracking
   final Map<String, int> _unreadCounts = {}; // userId -> unreadCount
+  final List<String> _recentChats = [];
+
+  /// 🟢 Last seen / presence tracking
+  /// Cached last seen map (employeeID -> readable string)
+  final Map<String, String> _lastSeenCache = {};
+  final StreamController<Map<String, String>> _presenceController = StreamController.broadcast();
+  Stream<Map<String, String>> get presenceStream => _presenceController.stream;
 
   /// Getters
   List<String> get onlineUsers => List.unmodifiable(_onlineUsers);
   List<ChatMessageModel> get messages => List.unmodifiable(_messages);
   Map<String, bool> get typingIndicators => Map.unmodifiable(_typingIndicators);
+  List<String> get recentChats => List.unmodifiable(_recentChats);
   Set<String> get pendingMessages => _pendingMessages;
 
   Map<String, int> get unreadCounts => Map.unmodifiable(_unreadCounts);
@@ -55,12 +65,49 @@ class SocketProvider extends ChangeNotifier {
     _logger.logNetwork("[SocketProvider] Active chat user set: $_activeChatUserId");
   }
 
+  // 🕓 Track user who was recently chatted with
+  Future<void> markUserAsRecentlyChatted(String userId) async {
+    _recentChats.remove(userId);
+    _recentChats.insert(0, userId);
+    await _localStorage.saveRecentChatUsers(_recentChats);
+    _logger.logNetwork("[SocketProvider] Marked $userId as recent chat");
+    notifyListeners();
+  }
+
   /// Initializes socket event listeners.
   void init() {
-    /// 🟢 Online Users Listener
-    _manager.registerEvent('onlineUsers', (data) {
-      _onlineUsers = List<String>.from(data);
+    // Load persisted recent chat users
+    _localStorage.getRecentChatUsers().then((list) {
+      _recentChats
+        ..clear()
+        ..addAll(list);
+      _logger.logNetwork("[SocketProvider] Loaded recent chats: $_recentChats");
       notifyListeners();
+    });
+
+    /// 🟢 Online Users Listener with presence tracking
+    _manager.registerEvent('onlineUsers', (data) async {
+      final newOnlineUsers = List<String>.from(data);
+      final wentOffline = _onlineUsers.where((u) => !newOnlineUsers.contains(u)).toList();
+
+      _onlineUsers = newOnlineUsers;
+
+      // 🕓 Update last seen for those who went offline
+      final now = DateTime.now();
+      for (final userId in wentOffline) {
+        _lastSeenCache[userId] = _formatLastSeen(now);
+      }
+
+      // 🟢 Mark online users as “Online” text
+      for (final userId in _onlineUsers) {
+        _lastSeenCache[userId] = "Online";
+      }
+
+      // 🧠 Push latest presence to stream (used in ChatListScreen)
+      _presenceController.add(Map.from(_lastSeenCache));
+
+      notifyListeners();
+
       _logger.logNetwork("[Socket] Online users updated: $_onlineUsers");
     });
 
@@ -223,6 +270,52 @@ class SocketProvider extends ChangeNotifier {
   /// Leaves the user's room.
   Future<void> leaveUser() async {
     await _manager.leave();
+  }
+
+  /// 🧠 Emit current cache to stream
+  void emitPresenceUpdate() {
+    _presenceController.add(Map.from(_lastSeenCache));
+  }
+
+  void updatePresence(List<String> online) async {
+    _onlineUsers = online;
+
+    // Update last seen for those who went offline
+    final now = DateTime.now();
+    for (var id in _lastSeenCache.keys) {
+      if (!_onlineUsers.contains(id)) {
+        _lastSeenCache[id] = _formatLastSeen(now);
+      }
+    }
+
+    // Emit new presence map
+    _presenceController.add(Map.from(_lastSeenCache));
+
+    notifyListeners();
+  }
+
+  void setUserOnline(String id) {
+    if (!_onlineUsers.contains(id)) {
+      _onlineUsers.add(id);
+      _lastSeenCache[id] = "Online";
+      _presenceController.add(Map.from(_lastSeenCache));
+      notifyListeners();
+    }
+  }
+
+  void setUserOffline(String id) {
+    _onlineUsers.remove(id);
+    _lastSeenCache[id] = _formatLastSeen(DateTime.now());
+    _presenceController.add(Map.from(_lastSeenCache));
+    notifyListeners();
+  }
+
+  String _formatLastSeen(DateTime dateTime) {
+    final diff = DateTime.now().difference(dateTime);
+    if (diff.inMinutes < 1) return "Just now";
+    if (diff.inMinutes < 60) return "${diff.inMinutes} min ago";
+    if (diff.inHours < 24) return "${diff.inHours} hr ago";
+    return "${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago";
   }
 
   /// 🧹 When chat is opened → reset unread + clear notifications
@@ -416,6 +509,7 @@ class SocketProvider extends ChangeNotifier {
 
   /// Disposes all event listeners.
   void disposeProvider() {
+    _presenceController.close();
     _manager.unregisterEvent('onlineUsers');
     _manager.unregisterEvent('receiveMessage');
     _manager.unregisterEvent('messageStatusUpdate');

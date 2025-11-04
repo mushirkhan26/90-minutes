@@ -3,7 +3,7 @@ import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class MeetService {
-  final ApiHelper _apiHelper = ApiHelper();
+  final ApiHelper _apiHelper = ApiHelper(baseUrl: ApiHelper.otherBaseUrl);
   final LoggingService _logger = LoggingService.instance;
 
   // Add Meeting
@@ -13,12 +13,7 @@ class MeetService {
     required String link,
     required String startTime,
   }) async {
-    final body = {
-      "title": title,
-      "location": location,
-      "link": link,
-      "startTime": startTime,
-    };
+    final body = {"title": title, "location": location, "link": link, "startTime": startTime};
 
     _logger.logGeneral('Adding new meeting: $title at $location');
     return await _apiHelper.post<Map<String, dynamic>>('meet/add', body);
@@ -42,9 +37,7 @@ class MeetService {
   }
 
   // Delete Meeting
-  Future<ApiResponse<Map<String, dynamic>>> deleteMeet({
-    required String id,
-  }) async {
+  Future<ApiResponse<Map<String, dynamic>>> deleteMeet({required String id}) async {
     _logger.logGeneral('Deleting meeting with ID: $id');
     return await _apiHelper.delete<Map<String, dynamic>>('meet/delete/$id');
   }
