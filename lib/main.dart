@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 // import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
+import 'package:hrtz_hrms/config/navigation/app_state_provider.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
 import 'package:hrtz_hrms/core/services/local_notifications_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
@@ -19,6 +20,7 @@ import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
 // import 'package:hrtz_hrms/features/clock/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
+import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
 
 void main() async {
@@ -51,7 +53,19 @@ void main() async {
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
-  runApp(const MainApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AppStateProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => SocketProvider()),
+        ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
+        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
+        ChangeNotifierProvider(create: (_) => ClockProvider()),
+      ],
+      child: const MainApp(),
+    ),
+  );
 }
 
 class MainApp extends StatefulWidget {
@@ -65,25 +79,31 @@ class _MainAppState extends State<MainApp> {
   @override
   void initState() {
     super.initState();
+    SplashScreen.onSplashComplete = () {
+      // Update app readiness via provider
+      Provider.of<AppStateProvider>(
+        rootNavigatorKey.currentContext!,
+        listen: false,
+      ).setAppReady(true);
+    };
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      // 🛎 Initialize local notification service after first build
-      LocalNotificationService().init();
-      // 🧩 If launched via notification (terminated)
-      // 🧩 Check for pending payload (terminated state)
+      await LocalNotificationService().init();
       if (PushNotificationService.pendingPayload != null) {
         final payload = PushNotificationService.pendingPayload!;
         LoggingService.instance.logNetwork(
           "🕹️ App launched via terminated notification payload → $payload",
         );
-
-        // Wait for router/context readiness
-        await Future.delayed(const Duration(seconds: 1));
+        // Wait for splash to complete
+        while (!Provider.of<AppStateProvider>(
+          rootNavigatorKey.currentContext!,
+          listen: false,
+        ).isAppReady) {
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
         LoggingService.instance.logNetwork(
           "🚦 Router ready check done, processing notification tap...",
         );
         PushNotificationService.handleNotificationTap(payload);
-
-        // Reset pending payload
         PushNotificationService.pendingPayload = null;
       } else {
         LoggingService.instance.logNetwork("ℹ️ No pending payload on app start");
@@ -93,44 +113,34 @@ class _MainAppState extends State<MainApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => SocketProvider()),
-        ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
-        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
-        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
-        ChangeNotifierProvider(create: (_) => ClockProvider()),
-      ],
-      child: MaterialApp.router(
-        title: AppConstants.appName,
-        debugShowCheckedModeBanner: false,
+    return MaterialApp.router(
+      title: AppConstants.appName,
+      debugShowCheckedModeBanner: false,
 
-        // Theme Configuration
-        theme: AppTheme.lightTheme,
-        themeMode: ThemeMode.light,
-        // Router Configuration
-        routerConfig: appRouter,
+      // Theme Configuration
+      theme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
+      // Router Configuration
+      routerConfig: appRouter,
 
-        // Localization (if needed in future)
-        // locale: const Locale('en', 'US'),
-        // supportedLocales: const [
-        //   Locale('en', 'US'),
-        // ],
+      // Localization (if needed in future)
+      // locale: const Locale('en', 'US'),
+      // supportedLocales: const [
+      //   Locale('en', 'US'),
+      // ],
 
-        // Builder for global configurations
-        builder: (context, child) {
-          return MediaQuery(
-            // Prevent font scaling beyond reasonable limits
-            data: MediaQuery.of(context).copyWith(
-              textScaler: TextScaler.linear(
-                MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
-              ),
+      // Builder for global configurations
+      builder: (context, child) {
+        return MediaQuery(
+          // Prevent font scaling beyond reasonable limits
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(
+              MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
             ),
-            child: child ?? const SizedBox.shrink(),
-          );
-        },
-      ),
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
     );
   }
 }

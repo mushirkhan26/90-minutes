@@ -5,10 +5,12 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
+import 'package:hrtz_hrms/config/navigation/app_state_provider.dart';
 import 'package:hrtz_hrms/core/api/network/auth_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 
 class PushNotificationService {
   static final PushNotificationService _instance = PushNotificationService._internal();
@@ -209,18 +211,15 @@ class PushNotificationService {
 
   static Future<void> handleNotificationTap(String payload, {int attempt = 0}) async {
     final logger = LoggingService.instance;
-
     try {
       logger.logNetwork(
         "🧭 handleNotificationTap called (attempt $attempt) with payload: $payload",
       );
 
-      final data = jsonDecode(payload);
       final context = rootNavigatorKey.currentState?.context;
-
       if (context == null) {
         if (attempt < 10) {
-          logger.logNetwork("⏳ Context not ready yet → retrying in 300ms (attempt ${attempt + 1})");
+          logger.logNetwork("⏳ Context not ready → retrying in 300ms (attempt ${attempt + 1})");
           await Future.delayed(const Duration(milliseconds: 300));
           return handleNotificationTap(payload, attempt: attempt + 1);
         }
@@ -228,46 +227,74 @@ class PushNotificationService {
         return;
       }
 
-      // 🧩 Define required keys for chat navigation
-      final requiredKeys = ['otherUserId', 'otherUserName', 'currentUserId', 'currentUserName'];
-
-      final missingKeys = requiredKeys.where((k) => !data.containsKey(k)).toList();
-
-      if (missingKeys.isNotEmpty) {
-        logger.logNetwork("❌ Missing required keys in payload: $missingKeys");
-        logger.logNetwork("🧾 Full received payload: $data");
-
-        // 🔎 Log structured reason why navigation failed
-        if (data['type'] == 'Message') {
-          logger.logNetwork(
-            "⚠️ Notification type is 'Message' but backend did not include otherUser details. "
-            "Cannot open ChatScreen without [otherUserId, otherUserName].",
-          );
-        } else {
-          logger.logNetwork(
-            "🚫 Unknown notification type (${data['type'] ?? 'null'}) → No matching navigation route.",
-          );
+      // Check if the app is ready using the provider
+      final isAppReady = Provider.of<AppStateProvider>(context, listen: false).isAppReady;
+      if (!isAppReady) {
+        if (attempt < 10) {
+          logger.logNetwork("⏳ App not ready → retrying in 300ms (attempt ${attempt + 1})");
+          await Future.delayed(const Duration(milliseconds: 300));
+          return handleNotificationTap(payload, attempt: attempt + 1);
         }
+        logger.logNetwork("❌ Navigation failed → app never became ready after 10 retries");
         return;
       }
 
-      // ✅ All good → proceed to chat
-      final path = '${AppRoutes.chatRoute}/${data['otherUserId']}';
+      final data = jsonDecode(payload);
 
-      logger.logNetwork("🚀 Navigating to ChatScreen → path: $path");
-      logger.logNetwork("👤 currentUser: ${data['currentUserName']} (${data['currentUserId']})");
-      logger.logNetwork("💬 otherUser: ${data['otherUserName']} (${data['otherUserId']})");
+      // 🧩 Normalize payload keys for both Message and GroupMessage types
+      final type = data['type'];
+      Map<String, dynamic> mappedData = {};
+      if (type == 'Message') {
+        // 💬 Individual Chat Notification
+        mappedData = {
+          'currentUserId': data['receiver'], // current user
+          'currentUserName': data['reciverName'], // current user's name
+          'otherUserId': data['sender'], // sender ID
+          'otherUserName': data['senderName'], // sender name
+          'type': 'Message',
+        };
+      } else if (type == 'GroupMessage') {
+        // 👥 Group Chat Notification
+        mappedData = {
+          'groupId': data['groupId'],
+          'groupName': data['groupName'] ?? 'Group Chat',
+          'currentUserId': data['employeeId'] ?? data['receiver'],
+          'currentUserName': data['reciverName'] ?? 'You',
+          'type': 'GroupMessage',
+        };
+      } else {
+        logger.logNetwork("🚫 Unknown notification type → ${data['type']}");
+        return;
+      }
 
-      context.push(
-        path,
-        extra: {
-          'currentUserData': {
-            'employeeId': data['currentUserId'],
-            'username': data['currentUserName'],
+      // 🧾 Log normalized result
+      logger.logNetwork("📦 Normalized Notification Data → $mappedData");
+
+      // 🧭 Route navigation based on type
+      if (mappedData['type'] == 'Message') {
+        logger.logNetwork("🚀 Navigating to Individual Chat Screen...");
+        context.push(
+          '${AppRoutes.chatRoute}/${mappedData['otherUserId']}',
+          extra: {
+            'otherUserName': mappedData['otherUserName'],
+            'currentUserData': {
+              'employeeId': mappedData['currentUserId'],
+              'username': mappedData['currentUserName'],
+            },
           },
-          'otherUserName': data['otherUserName'],
-        },
-      );
+        );
+      } else if (mappedData['type'] == 'GroupMessage') {
+        logger.logNetwork("🚀 Navigating to Group Chat Screen...");
+        context.push(
+          '${AppRoutes.chatRoute}/group/${mappedData['groupId']}',
+          extra: {
+            'groupName': mappedData['groupName'],
+            'currentUserId': mappedData['currentUserId'],
+            'currentUserName': mappedData['currentUserName'],
+            'groupModel': null, // can be fetched later if needed
+          },
+        );
+      }
     } catch (e, s) {
       logger.logNetwork("❌ Exception in handleNotificationTap: $e");
       logger.logNetwork("📄 Stack trace: $s");

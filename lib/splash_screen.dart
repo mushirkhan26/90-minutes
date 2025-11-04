@@ -11,6 +11,9 @@ import 'package:video_player/video_player.dart';
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
+  // Callback for splash completion
+  static VoidCallback? onSplashComplete;
+
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
@@ -73,6 +76,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     await _fadeController.forward();
 
     if (!mounted) return;
+
+    // Notify that splash is complete
+    SplashScreen.onSplashComplete?.call();
 
     if (authProvider.state == AuthState.authenticated) {
       context.go(AppRoutes.homeRoute);
