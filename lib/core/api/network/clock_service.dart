@@ -73,13 +73,14 @@ class ClockService {
     required String date,
     required String employeeId,
   }) async {
-    final body = {"date": date, "employeeId": employeeId};
+    final body = {"employeeId": employeeId, "date": date};
     _logger.logAuth(
       'Fetching attendance for employeeId: $employeeId on date: $date',
     );
-    return await _apiHelper.post<Map<String, dynamic>>(
+    final result = await _apiHelper.post<Map<String, dynamic>>(
       'attendence/getAttentence',
       body,
     );
+    return result;
   }
 }

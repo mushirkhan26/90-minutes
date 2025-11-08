@@ -18,6 +18,8 @@ class ClockProvider extends ChangeNotifier {
   String? _endTime;
   String? _workedDuration;
   bool _isClockedIn = false;
+  bool _isClockedOut = false;
+  String? _capturedImageUrl;
 
   // Getters
   ClockState get state => _state;
@@ -27,6 +29,14 @@ class ClockProvider extends ChangeNotifier {
   String? get endTime => _endTime;
   String? get workedDuration => _workedDuration;
   bool get isClockedIn => _isClockedIn;
+  bool get isClockedOut => _isClockedOut;
+  String? get capturedImageUrl => _capturedImageUrl;
+
+  // Setter for capturedImageUrl
+  void setCapturedImageUrl(String? url) {
+    _capturedImageUrl = url;
+    notifyListeners();
+  }
 
   /// Clock In
   Future<void> clockIn({
@@ -109,7 +119,7 @@ class ClockProvider extends ChangeNotifier {
     if (response.success && response.data != null) {
       _attendanceModel = ClockModel.fromJson(response.data!);
       _state = ClockState.success;
-      _isClockedIn = false;
+      _isClockedOut = true;
       _logger.logAuth('✅ Clocked out successfully');
     } else {
       _state = ClockState.error;
@@ -178,6 +188,7 @@ class ClockProvider extends ChangeNotifier {
   Future<void> getAttendance({required String date}) async {
     _state = ClockState.loading;
     notifyListeners();
+
     final employeeId = await _secureStorage.getEmployeeId();
     if (employeeId == null) {
       _state = ClockState.error;
@@ -186,12 +197,18 @@ class ClockProvider extends ChangeNotifier {
       notifyListeners();
       return;
     }
+
     final response = await _clockService.getAttendance(
       date: date,
       employeeId: employeeId,
     );
-    if (response.success && response.data != null) {
-      _attendanceModel = ClockModel.fromJson(response.data!);
+
+    final records = response.data?['message']['records'] as List<dynamic>?;
+
+    if (response.success && records != null && records.isNotEmpty) {
+      _attendanceModel = ClockModel.fromJson(records[0]);
+      _isClockedIn = _attendanceModel!.clockIn.isNotEmpty;
+      _isClockedOut = _attendanceModel!.clockOut?.isNotEmpty == true;
       _state = ClockState.success;
       _logger.logAuth('✅ Attendance fetched successfully');
     } else {
@@ -202,6 +219,11 @@ class ClockProvider extends ChangeNotifier {
         level: LogLevel.error,
       );
     }
+    if (response.data?['message']['leaveStatus'] == true) {
+      _isClockedOut = true;
+      _isClockedIn = true;
+    }
+
     notifyListeners();
   }
 }

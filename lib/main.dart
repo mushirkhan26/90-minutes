@@ -40,7 +40,9 @@ void main() async {
   SocketService.instance.init();
 
   // 🧩 Register background FCM handler (important for background/terminated messages)
-  FirebaseMessaging.onBackgroundMessage(PushNotificationService.firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onBackgroundMessage(
+    PushNotificationService.firebaseMessagingBackgroundHandler,
+  );
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -86,7 +88,9 @@ class _MainAppState extends State<MainApp> {
         // Reset pending payload
         PushNotificationService.pendingPayload = null;
       } else {
-        LoggingService.instance.logNetwork("ℹ️ No pending payload on app start");
+        LoggingService.instance.logNetwork(
+          "ℹ️ No pending payload on app start",
+        );
       }
     });
   }
@@ -98,9 +102,19 @@ class _MainAppState extends State<MainApp> {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => SocketProvider()),
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
-        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
-        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
-        ChangeNotifierProvider(create: (_) => ClockProvider()),
+        ChangeNotifierProvider<MailProvider>(
+          create: (_) => MailProvider()..fetchInbox(),
+        ),
+        ChangeNotifierProvider<MailProvider>(
+          create: (_) => MailProvider()..fetchInbox(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => ClockProvider()
+            ..getAttendance(
+              date:
+                  '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
+            ),
+        ),
       ],
       child: MaterialApp.router(
         title: AppConstants.appName,

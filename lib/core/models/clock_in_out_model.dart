@@ -13,6 +13,7 @@ class ClockModel {
   final bool approved;
   final bool processedToday;
   final String createdOn;
+  final List<Map<String, dynamic>>? records;
 
   ClockModel({
     required this.employeeId,
@@ -29,6 +30,7 @@ class ClockModel {
     required this.approved,
     required this.processedToday,
     required this.createdOn,
+    this.records,
   });
   factory ClockModel.fromJson(Map<String, dynamic> json) {
     return ClockModel(
@@ -46,6 +48,9 @@ class ClockModel {
       approved: json['approved'] ?? false,
       processedToday: json['processedToday'] ?? false,
       createdOn: json['createdOn'] ?? '',
+      records: json['records'] != null
+          ? List<Map<String, dynamic>>.from(json['records'])
+          : null,
     );
   }
   Map<String, dynamic> toJson() {

@@ -10,7 +10,6 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
-
 import '../widgets/home_chart.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -68,8 +67,7 @@ class HomeScreen extends StatelessWidget {
                 await clockProvider.clockIn(
                   department:
                       authProvider.userData?['department'] ?? 'Department',
-                  imageUrl:
-                      'https://task-m.s3.us-east-1.amazonaws.com/1761370008430-face-verification-176137000425.jpg',
+                  imageUrl: clockProvider.capturedImageUrl!,
                 );
               } else {
                 await clockProvider.clockOut();
@@ -144,7 +142,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 // const SizedBox(height: 300),
-                Container(height: MediaQuery.of(context).size.height * 0.43),
+                Container(height: MediaQuery.of(context).size.height * 0.39),
                 ListTile(
                   leading: const Icon(Icons.person),
                   title: const Text('Profile'),
@@ -289,12 +287,84 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
+
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.center,
+            //   children: [
+            //     ElevatedButton(
+            //       style: ElevatedButton.styleFrom(
+            //         backgroundColor: AppColors.primary,
+            //         shape: RoundedRectangleBorder(
+            //           borderRadius: BorderRadius.circular(10),
+            //         ),
+            //         padding: const EdgeInsets.symmetric(
+            //           horizontal: 35,
+            //           vertical: 15,
+            //         ),
+            //       ),
+            //       onPressed: () {
+            //         showFaceVerificationDialog(isClockIn: true);
+            //       },
+            //       child: const Text(
+            //         'Clock In',
+            //         style: TextStyle(fontSize: 16, color: Colors.white),
+            //       ),
+            //     ),
+            //     const SizedBox(width: 10),
+            //     ElevatedButton(
+            //       style: ElevatedButton.styleFrom(
+            //         backgroundColor: clockProvider.isClockedIn
+            //             ? AppColors.gray475467
+            //             : Colors.grey,
+            //         shape: RoundedRectangleBorder(
+            //           borderRadius: BorderRadius.circular(10),
+            //         ),
+            //         padding: const EdgeInsets.symmetric(
+            //           horizontal: 30,
+            //           vertical: 15,
+            //         ),
+            //       ),
+            //       onPressed: clockProvider.isClockedIn
+            //           ? () async {
+            //               await clockProvider.clockOut();
+            //               if (context.mounted) {
+            //                 if (clockProvider.state == ClockState.error) {
+            //                   ScaffoldMessenger.of(context).showSnackBar(
+            //                     SnackBar(
+            //                       content: Text(
+            //                         clockProvider.errorMessage ??
+            //                             'An error occurred',
+            //                       ),
+            //                       backgroundColor: Colors.red,
+            //                     ),
+            //                   );
+            //                 } else {
+            //                   ScaffoldMessenger.of(context).showSnackBar(
+            //                     const SnackBar(
+            //                       content: Text('Clock out successful!'),
+            //                       backgroundColor: Colors.green,
+            //                     ),
+            //                   );
+            //                 }
+            //               }
+            //             }
+            //           : null,
+            //       child: const Text(
+            //         'Clock Out',
+            //         style: TextStyle(fontSize: 16, color: Colors.white),
+            //       ),
+            //     ),
+            //   ],
+            // ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: clockProvider.isClockedIn
+                        ? Colors
+                              .grey // Disable color
+                        : AppColors.primary, // Active color
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -303,9 +373,11 @@ class HomeScreen extends StatelessWidget {
                       vertical: 15,
                     ),
                   ),
-                  onPressed: () {
-                    showFaceVerificationDialog(isClockIn: true);
-                  },
+                  onPressed: clockProvider.isClockedIn
+                      ? null // Disable if already clocked in
+                      : () {
+                          showFaceVerificationDialog(isClockIn: true);
+                        },
                   child: const Text(
                     'Clock In',
                     style: TextStyle(fontSize: 16, color: Colors.white),
@@ -315,7 +387,7 @@ class HomeScreen extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: clockProvider.isClockedIn
-                        ? AppColors.gray475467
+                        ? AppColors.primary
                         : Colors.grey,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -325,7 +397,7 @@ class HomeScreen extends StatelessWidget {
                       vertical: 15,
                     ),
                   ),
-                  onPressed: clockProvider.isClockedIn
+                  onPressed: !clockProvider.isClockedOut
                       ? () async {
                           await clockProvider.clockOut();
                           if (context.mounted) {
@@ -349,7 +421,7 @@ class HomeScreen extends StatelessWidget {
                             }
                           }
                         }
-                      : null,
+                      : null, // Disable if not clocked in
                   child: const Text(
                     'Clock Out',
                     style: TextStyle(fontSize: 16, color: Colors.white),
@@ -357,6 +429,7 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+
             const SizedBox(height: 20),
             const HomeChart(),
           ],
