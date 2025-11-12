@@ -41,6 +41,10 @@ class LocalStorageService {
   static const String _keyGroupChats = 'group_chats';
   static const String _keyGroupMessages = 'group_messages_';
 
+  static const String keyLeaveHistory = 'leave_history';
+  static const String keyAvailableLeave = 'available_leave';
+  static const String keyAttendanceData = 'attendance_data';
+
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -103,7 +107,10 @@ class LocalStorageService {
 
   // 🕒 Save user's last seen time
   Future<void> saveLastSeenTime(String userId) async {
-    await prefs.setInt('$_keyLastSeenPrefix$userId', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      '$_keyLastSeenPrefix$userId',
+      DateTime.now().millisecondsSinceEpoch,
+    );
     _logger.logStorage('Saved last seen time for $userId');
   }
 
@@ -149,7 +156,10 @@ class LocalStorageService {
   Future<void> saveEmployeeList(List<EmployeeModel> employees) async {
     final employeeJsonList = employees.map((e) => e.toJson()).toList();
     await prefs.setString(_keyEmployeeList, jsonEncode(employeeJsonList));
-    await prefs.setInt(_keyEmployeeListTimestamp, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      _keyEmployeeListTimestamp,
+      DateTime.now().millisecondsSinceEpoch,
+    );
     _logger.logStorage('Saved employee list (${employees.length} employees)');
   }
 
@@ -160,8 +170,12 @@ class LocalStorageService {
 
     try {
       final List<dynamic> employeeJsonList = jsonDecode(jsonString);
-      final employees = employeeJsonList.map((json) => EmployeeModel.fromJson(json)).toList();
-      _logger.logStorage('Retrieved employee list (${employees.length} employees)');
+      final employees = employeeJsonList
+          .map((json) => EmployeeModel.fromJson(json))
+          .toList();
+      _logger.logStorage(
+        'Retrieved employee list (${employees.length} employees)',
+      );
       return employees;
     } catch (e) {
       _logger.error('LOCAL_STORAGE', 'Failed to parse employee list', error: e);
@@ -172,7 +186,9 @@ class LocalStorageService {
   /// Get timestamp when employee list was last cached
   Future<DateTime?> getEmployeeListTimestamp() async {
     final timestamp = prefs.getInt(_keyEmployeeListTimestamp);
-    return timestamp != null ? DateTime.fromMillisecondsSinceEpoch(timestamp) : null;
+    return timestamp != null
+        ? DateTime.fromMillisecondsSinceEpoch(timestamp)
+        : null;
   }
 
   /// Clear employee list cache
@@ -188,7 +204,10 @@ class LocalStorageService {
   Future<void> saveMails(String key, List<MailModel> mails) async {
     final jsonList = mails.map((e) => e.toJson()).toList();
     await prefs.setString(key, jsonEncode(jsonList));
-    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      '${key}_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
     _logger.logStorage('Saved ${mails.length} mails to cache ($key)');
   }
 
@@ -262,11 +281,16 @@ class LocalStorageService {
   // chat message storage
 
   /// Save chat messages for a specific conversation
-  Future<void> saveChatMessages(String conversationId, List<ChatMessageModel> messages) async {
+  Future<void> saveChatMessages(
+    String conversationId,
+    List<ChatMessageModel> messages,
+  ) async {
     final key = _getChatMessagesKey(conversationId);
     final messageJsonList = messages.map((m) => m.toLocalMap()).toList();
     await prefs.setString(key, jsonEncode(messageJsonList));
-    _logger.logStorage('Saved ${messages.length} messages for conversation $conversationId');
+    _logger.logStorage(
+      'Saved ${messages.length} messages for conversation $conversationId',
+    );
   }
 
   /// Get chat messages for a specific conversation
@@ -277,8 +301,12 @@ class LocalStorageService {
 
     try {
       final List<dynamic> messageJsonList = jsonDecode(jsonString);
-      final messages = messageJsonList.map((json) => ChatMessageModel.fromLocalMap(json)).toList();
-      _logger.logStorage('Retrieved ${messages.length} messages for conversation $conversationId');
+      final messages = messageJsonList
+          .map((json) => ChatMessageModel.fromLocalMap(json))
+          .toList();
+      _logger.logStorage(
+        'Retrieved ${messages.length} messages for conversation $conversationId',
+      );
       return messages;
     } catch (e) {
       _logger.error('LOCAL_STORAGE', 'Failed to parse chat messages', error: e);
@@ -287,16 +315,24 @@ class LocalStorageService {
   }
 
   /// Add a single message to a conversation
-  Future<void> addChatMessage(String conversationId, ChatMessageModel message) async {
+  Future<void> addChatMessage(
+    String conversationId,
+    ChatMessageModel message,
+  ) async {
     final existingMessages = await getChatMessages(conversationId);
     existingMessages.add(message);
     await saveChatMessages(conversationId, existingMessages);
   }
 
   /// Update a message in a conversation
-  Future<void> updateChatMessage(String conversationId, ChatMessageModel updatedMessage) async {
+  Future<void> updateChatMessage(
+    String conversationId,
+    ChatMessageModel updatedMessage,
+  ) async {
     final existingMessages = await getChatMessages(conversationId);
-    final index = existingMessages.indexWhere((m) => m.messageId == updatedMessage.messageId);
+    final index = existingMessages.indexWhere(
+      (m) => m.messageId == updatedMessage.messageId,
+    );
     if (index != -1) {
       existingMessages[index] = updatedMessage;
       await saveChatMessages(conversationId, existingMessages);
@@ -304,7 +340,10 @@ class LocalStorageService {
   }
 
   /// Delete a message from a conversation
-  Future<void> deleteChatMessage(String conversationId, String messageId) async {
+  Future<void> deleteChatMessage(
+    String conversationId,
+    String messageId,
+  ) async {
     final existingMessages = await getChatMessages(conversationId);
     existingMessages.removeWhere((m) => m.messageId == messageId);
     await saveChatMessages(conversationId, existingMessages);
@@ -339,7 +378,9 @@ class LocalStorageService {
     if (jsonString == null) return [];
     try {
       final List<dynamic> groupJsonList = jsonDecode(jsonString);
-      final groups = groupJsonList.map((json) => GroupChatModel.fromLocalMap(json)).toList();
+      final groups = groupJsonList
+          .map((json) => GroupChatModel.fromLocalMap(json))
+          .toList();
       _logger.logStorage('Retrieved ${groups.length} group chats');
       return groups;
     } catch (e) {
@@ -349,7 +390,10 @@ class LocalStorageService {
   }
 
   /// Save group messages for a specific group
-  Future<void> saveGroupMessages(String groupId, List<GroupMessageModel> messages) async {
+  Future<void> saveGroupMessages(
+    String groupId,
+    List<GroupMessageModel> messages,
+  ) async {
     final key = _getGroupMessagesKey(groupId);
     final messageJsonList = messages.map((m) => m.toLocalMap()).toList();
     await prefs.setString(key, jsonEncode(messageJsonList));
@@ -363,26 +407,42 @@ class LocalStorageService {
     if (jsonString == null) return [];
     try {
       final List<dynamic> messageJsonList = jsonDecode(jsonString);
-      final messages = messageJsonList.map((json) => GroupMessageModel.fromLocalMap(json)).toList();
-      _logger.logStorage('Retrieved ${messages.length} messages for group $groupId');
+      final messages = messageJsonList
+          .map((json) => GroupMessageModel.fromLocalMap(json))
+          .toList();
+      _logger.logStorage(
+        'Retrieved ${messages.length} messages for group $groupId',
+      );
       return messages;
     } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse group messages', error: e);
+      _logger.error(
+        'LOCAL_STORAGE',
+        'Failed to parse group messages',
+        error: e,
+      );
       return [];
     }
   }
 
   /// Add a single group message to a group
-  Future<void> addGroupMessage(String groupId, GroupMessageModel message) async {
+  Future<void> addGroupMessage(
+    String groupId,
+    GroupMessageModel message,
+  ) async {
     final existingMessages = await getGroupMessages(groupId);
     existingMessages.add(message);
     await saveGroupMessages(groupId, existingMessages);
   }
 
   /// Update a group message
-  Future<void> updateGroupMessage(String groupId, GroupMessageModel updatedMessage) async {
+  Future<void> updateGroupMessage(
+    String groupId,
+    GroupMessageModel updatedMessage,
+  ) async {
     final existingMessages = await getGroupMessages(groupId);
-    final index = existingMessages.indexWhere((m) => m.messageId == updatedMessage.messageId);
+    final index = existingMessages.indexWhere(
+      (m) => m.messageId == updatedMessage.messageId,
+    );
     if (index != -1) {
       existingMessages[index] = updatedMessage;
       await saveGroupMessages(groupId, existingMessages);
@@ -406,5 +466,64 @@ class LocalStorageService {
   /// Get the storage key for a group's messages
   String _getGroupMessagesKey(String groupId) {
     return '$_keyGroupMessages$groupId';
+  }
+
+  /// Save leave history
+  Future<void> saveLeaveHistory(Map<String, dynamic> leaveHistory) async {
+    await saveString(keyLeaveHistory, jsonEncode(leaveHistory));
+  }
+
+  /// Get leave history
+  Future<Map<String, dynamic>?> getLeaveHistory() async {
+    final jsonString = await getString(keyLeaveHistory);
+    if (jsonString == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(jsonString));
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse leave history', error: e);
+      return null;
+    }
+  }
+
+  /// Save available leave
+  Future<void> saveAvailableLeave(Map<String, dynamic> availableLeave) async {
+    await saveString(keyAvailableLeave, jsonEncode(availableLeave));
+  }
+
+  /// Get available leave
+  Future<Map<String, dynamic>?> getAvailableLeave() async {
+    final jsonString = await getString(keyAvailableLeave);
+    if (jsonString == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(jsonString));
+    } catch (e) {
+      _logger.error(
+        'LOCAL_STORAGE',
+        'Failed to parse available leave',
+        error: e,
+      );
+      return null;
+    }
+  }
+
+  /// Save attendance data
+  Future<void> saveAttendanceData(Map<String, dynamic> attendanceData) async {
+    await saveString(keyAttendanceData, jsonEncode(attendanceData));
+  }
+
+  /// Get attendance data
+  Future<Map<String, dynamic>?> getAttendanceData() async {
+    final jsonString = await getString(keyAttendanceData);
+    if (jsonString == null) return null;
+    try {
+      return Map<String, dynamic>.from(jsonDecode(jsonString));
+    } catch (e) {
+      _logger.error(
+        'LOCAL_STORAGE',
+        'Failed to parse attendance data',
+        error: e,
+      );
+      return null;
+    }
   }
 }
