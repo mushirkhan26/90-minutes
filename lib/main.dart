@@ -63,7 +63,13 @@ void main() async {
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
         ChangeNotifierProvider(create: (_) => MeetProvider()),
         ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
-        ChangeNotifierProvider(create: (_) => ClockProvider()),
+
+        ChangeNotifierProvider(
+          create: (_) => ClockProvider()
+            ..getAttendance(
+              date: '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
+            ),
+        ),
       ],
       child: const MainApp(),
     ),

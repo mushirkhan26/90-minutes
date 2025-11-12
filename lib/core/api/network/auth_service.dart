@@ -161,4 +161,17 @@ class AuthService {
     final endpoint = 'leave/availableLeave/$employeeId';
     return await _apiHelper.get<Map<String, dynamic>>(endpoint);
   }
+
+  /// 📅 Get Attendance API
+  Future<ApiResponse<Map<String, dynamic>>> getAttendance({
+    required String employeeId,
+    required String date,
+  }) async {
+    _logger.logAuth(
+      'Fetching attendance for employeeId: $employeeId on date: $date',
+    );
+    final endpoint = 'attendence/getAttentence';
+    final body = {"date": date, "employeeId": employeeId};
+    return await _apiHelper.post<Map<String, dynamic>>(endpoint, body);
+  }
 }
