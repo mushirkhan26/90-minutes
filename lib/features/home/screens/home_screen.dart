@@ -8,6 +8,7 @@ import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/alert_utils.dart';
 import '../provider/clock_provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import '../widgets/home_chart.dart';
@@ -75,24 +76,16 @@ class HomeScreen extends StatelessWidget {
               if (context.mounted) {
                 Navigator.pop(context);
                 if (clockProvider.state == ClockState.error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        clockProvider.errorMessage ?? 'An error occurred',
-                      ),
-                      backgroundColor: Colors.red,
-                    ),
+                  AlertHelper.snackBarError(
+                    context,
+                    clockProvider.errorMessage ?? 'An error occurred',
                   );
                 } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isClockIn
-                            ? 'Clock in successful!'
-                            : 'Clock out successful!',
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
+                  AlertHelper.snackBarSuccess(
+                    context,
+                    isClockIn
+                        ? 'Clock in successful!'
+                        : 'Clock out successful!',
                   );
                 }
               }
@@ -402,21 +395,15 @@ class HomeScreen extends StatelessWidget {
                           await clockProvider.clockOut();
                           if (context.mounted) {
                             if (clockProvider.state == ClockState.error) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    clockProvider.errorMessage ??
-                                        'An error occurred',
-                                  ),
-                                  backgroundColor: Colors.red,
-                                ),
+                              AlertHelper.snackBarError(
+                                context,
+                                clockProvider.errorMessage ??
+                                    'An error occurred',
                               );
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Clock out successful!'),
-                                  backgroundColor: Colors.green,
-                                ),
+                              AlertHelper.snackBarSuccess(
+                                context,
+                                'Clock out successful!',
                               );
                             }
                           }

@@ -724,20 +724,66 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// 📜 Fetch Leave History
+  // /// 📜 Fetch Leave History
+  // Future<(bool success, String message)> fetchLeaveHistory({
+  //   required String employeeId,
+  // }) async {
+  //   try {
+  //     _isFetchingLeaveHistory = true;
+  //     notifyListeners();
+  //     _logger.logAuth('Fetching leave history for employeeId: $employeeId');
+  //     final response = await _authService.getLeaveHistory(
+  //       employeeId: employeeId,
+  //     );
+  //     if (response.success && response.data != null) {
+  //       _leaveHistory = response.data!;
+  //       _logger.logAuth('✅ Leave history fetched successfully');
+  //       return (true, 'Leave history fetched successfully');
+  //     } else {
+  //       _logger.logAuth(
+  //         '❌ Failed to fetch leave history: ${response.message}',
+  //         level: LogLevel.error,
+  //       );
+  //       return (false, response.message ?? 'Failed to fetch leave history');
+  //     }
+  //   } catch (e, s) {
+  //     _logger.error(
+  //       'AUTH_PROVIDER',
+  //       'Error fetching leave history',
+  //       error: e,
+  //       stackTrace: s,
+  //     );
+  //     return (false, 'An error occurred while fetching leave history');
+  //   } finally {
+  //     _isFetchingLeaveHistory = false;
+  //     notifyListeners();
+  //   }
+  // }
+
   Future<(bool success, String message)> fetchLeaveHistory({
     required String employeeId,
   }) async {
     try {
       _isFetchingLeaveHistory = true;
       notifyListeners();
-      _logger.logAuth('Fetching leave history for employeeId: $employeeId');
+
+      // Try to get cached data first
+      final cachedData = await _localStorage.getLeaveHistory();
+      if (cachedData != null) {
+        _leaveHistory = cachedData;
+        _logger.logAuth('✅ Using cached leave history');
+        return (true, 'Leave history fetched successfully');
+      }
+
+      // Fetch fresh data from API
+      _logger.logAuth('🔄 Fetching leave history for employeeId: $employeeId');
       final response = await _authService.getLeaveHistory(
         employeeId: employeeId,
       );
       if (response.success && response.data != null) {
         _leaveHistory = response.data!;
-        _logger.logAuth('✅ Leave history fetched successfully');
+        await _localStorage.saveLeaveHistory(_leaveHistory!);
+        _logger.logAuth('✅ Leave history fetched and cached successfully');
         return (true, 'Leave history fetched successfully');
       } else {
         _logger.logAuth(
@@ -753,6 +799,13 @@ class AuthProvider extends ChangeNotifier {
         error: e,
         stackTrace: s,
       );
+      // Try to use cached data if available
+      final cachedData = await _localStorage.getLeaveHistory();
+      if (cachedData != null) {
+        _leaveHistory = cachedData;
+        _logger.logAuth('ℹ️ Using cached leave history as fallback');
+        return (true, 'Leave history fetched successfully (cached)');
+      }
       return (false, 'An error occurred while fetching leave history');
     } finally {
       _isFetchingLeaveHistory = false;
@@ -760,20 +813,67 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// 📊 Fetch Available Leave
+  // /// 📊 Fetch Available Leave
+  // Future<(bool success, String message)> fetchAvailableLeave({
+  //   required String employeeId,
+  // }) async {
+  //   try {
+  //     _isFetchingAvailableLeave = true;
+  //     notifyListeners();
+  //     _logger.logAuth('Fetching available leave for employeeId: $employeeId');
+  //     final response = await _authService.getAvailableLeave(
+  //       employeeId: employeeId,
+  //     );
+  //     if (response.success && response.data != null) {
+  //       _availableLeave = response.data!;
+  //       _logger.logAuth('✅ Available leave fetched successfully');
+  //       return (true, 'Available leave fetched successfully');
+  //     } else {
+  //       _logger.logAuth(
+  //         '❌ Failed to fetch available leave: ${response.message}',
+  //         level: LogLevel.error,
+  //       );
+  //       return (false, response.message ?? 'Failed to fetch available leave');
+  //     }
+  //   } catch (e, s) {
+  //     _logger.error(
+  //       'AUTH_PROVIDER',
+  //       'Error fetching available leave',
+  //       error: e,
+  //       stackTrace: s,
+  //     );
+  //     return (false, 'An error occurred while fetching available leave');
+  //   } finally {
+  //     _isFetchingAvailableLeave = false;
+  //     notifyListeners();
+  //   }
+  // }
   Future<(bool success, String message)> fetchAvailableLeave({
     required String employeeId,
   }) async {
     try {
       _isFetchingAvailableLeave = true;
       notifyListeners();
-      _logger.logAuth('Fetching available leave for employeeId: $employeeId');
+
+      // Try to get cached data first
+      final cachedData = await _localStorage.getAvailableLeave();
+      if (cachedData != null) {
+        _availableLeave = cachedData;
+        _logger.logAuth('✅ Using cached available leave');
+        return (true, 'Available leave fetched successfully');
+      }
+
+      // Fetch fresh data from API
+      _logger.logAuth(
+        '🔄 Fetching available leave for employeeId: $employeeId',
+      );
       final response = await _authService.getAvailableLeave(
         employeeId: employeeId,
       );
       if (response.success && response.data != null) {
         _availableLeave = response.data!;
-        _logger.logAuth('✅ Available leave fetched successfully');
+        await _localStorage.saveAvailableLeave(_availableLeave!);
+        _logger.logAuth('✅ Available leave fetched and cached successfully');
         return (true, 'Available leave fetched successfully');
       } else {
         _logger.logAuth(
@@ -789,6 +889,13 @@ class AuthProvider extends ChangeNotifier {
         error: e,
         stackTrace: s,
       );
+      // Try to use cached data if available
+      final cachedData = await _localStorage.getAvailableLeave();
+      if (cachedData != null) {
+        _availableLeave = cachedData;
+        _logger.logAuth('ℹ️ Using cached available leave as fallback');
+        return (true, 'Available leave fetched successfully (cached)');
+      }
       return (false, 'An error occurred while fetching available leave');
     } finally {
       _isFetchingAvailableLeave = false;
@@ -796,7 +903,46 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// 📅 Get Attendance API
+  // /// 📅 Get Attendance API
+  // Future<(bool success, String message)> fetchAttendance({
+  //   required String employeeId,
+  //   required String date,
+  // }) async {
+  //   try {
+  //     _isFetchingAttendance = true;
+  //     notifyListeners();
+  //     _logger.logAuth(
+  //       'Fetching attendance for employeeId: $employeeId on date: $date',
+  //     );
+  //     final response = await _authService.getAttendance(
+  //       employeeId: employeeId,
+  //       date: date,
+  //     );
+  //     if (response.success && response.data != null) {
+  //       _attendanceData = response.data!;
+  //       _logger.logAuth('✅ Attendance fetched successfully');
+  //       return (true, 'Attendance fetched successfully');
+  //     } else {
+  //       _logger.logAuth(
+  //         '❌ Failed to fetch attendance: ${response.message}',
+  //         level: LogLevel.error,
+  //       );
+  //       return (false, response.message ?? 'Failed to fetch attendance');
+  //     }
+  //   } catch (e, s) {
+  //     _logger.error(
+  //       'AUTH_PROVIDER',
+  //       'Error fetching attendance',
+  //       error: e,
+  //       stackTrace: s,
+  //     );
+  //     return (false, 'An error occurred while fetching attendance');
+  //   } finally {
+  //     _isFetchingAttendance = false;
+  //     notifyListeners();
+  //   }
+  // }
+
   Future<(bool success, String message)> fetchAttendance({
     required String employeeId,
     required String date,
@@ -804,8 +950,18 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isFetchingAttendance = true;
       notifyListeners();
+
+      // Try to get cached data first
+      final cachedData = await _localStorage.getAttendanceData();
+      if (cachedData != null) {
+        _attendanceData = cachedData;
+        _logger.logAuth('✅ Using cached attendance data');
+        return (true, 'Attendance fetched successfully');
+      }
+
+      // Fetch fresh data from API
       _logger.logAuth(
-        'Fetching attendance for employeeId: $employeeId on date: $date',
+        '🔄 Fetching attendance for employeeId: $employeeId on date: $date',
       );
       final response = await _authService.getAttendance(
         employeeId: employeeId,
@@ -813,7 +969,8 @@ class AuthProvider extends ChangeNotifier {
       );
       if (response.success && response.data != null) {
         _attendanceData = response.data!;
-        _logger.logAuth('✅ Attendance fetched successfully');
+        await _localStorage.saveAttendanceData(_attendanceData!);
+        _logger.logAuth('✅ Attendance fetched and cached successfully');
         return (true, 'Attendance fetched successfully');
       } else {
         _logger.logAuth(
@@ -829,6 +986,13 @@ class AuthProvider extends ChangeNotifier {
         error: e,
         stackTrace: s,
       );
+      // Try to use cached data if available
+      final cachedData = await _localStorage.getAttendanceData();
+      if (cachedData != null) {
+        _attendanceData = cachedData;
+        _logger.logAuth('ℹ️ Using cached attendance data as fallback');
+        return (true, 'Attendance fetched successfully (cached)');
+      }
       return (false, 'An error occurred while fetching attendance');
     } finally {
       _isFetchingAttendance = false;
