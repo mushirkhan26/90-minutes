@@ -39,10 +39,7 @@ class ClockProvider extends ChangeNotifier {
   }
 
   /// Clock In
-  Future<void> clockIn({
-    required String imageUrl,
-    required String department,
-  }) async {
+  Future<void> clockIn({required String imageUrl, required String department}) async {
     _state = ClockState.loading;
     notifyListeners();
 
@@ -58,11 +55,7 @@ class ClockProvider extends ChangeNotifier {
     }
 
     // Set start time
-    _startTime = DateTime.now()
-        .toLocal()
-        .toString()
-        .split(' ')[1]
-        .split('.')[0];
+    _startTime = DateTime.now().toLocal().toString().split(' ')[1].split('.')[0];
 
     final response = await _clockService.clockIn(
       employeeId: employeeId,
@@ -70,8 +63,7 @@ class ClockProvider extends ChangeNotifier {
       department: department,
       clockIn: DateTime.now().toUtc().toIso8601String(),
       imageUrl: imageUrl,
-      date:
-          '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
+      date: '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
     );
 
     if (response.success && response.data != null) {
@@ -82,10 +74,7 @@ class ClockProvider extends ChangeNotifier {
     } else {
       _state = ClockState.error;
       _errorMessage = response.message;
-      _logger.logAuth(
-        '❌ Clock in failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Clock in failed: ${response.message}', level: LogLevel.error);
     }
     notifyListeners();
   }
@@ -124,19 +113,13 @@ class ClockProvider extends ChangeNotifier {
     } else {
       _state = ClockState.error;
       _errorMessage = response.message;
-      _logger.logAuth(
-        '❌ Clock out failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Clock out failed: ${response.message}', level: LogLevel.error);
     }
     notifyListeners();
   }
 
   /// Update Break Time
-  Future<void> updateBreakTime({
-    required String attendenceId,
-    required String newBreakTime,
-  }) async {
+  Future<void> updateBreakTime({required String attendenceId, required String newBreakTime}) async {
     _state = ClockState.loading;
     notifyListeners();
     final response = await _clockService.updateBreakTime(
@@ -150,10 +133,7 @@ class ClockProvider extends ChangeNotifier {
     } else {
       _state = ClockState.error;
       _errorMessage = response.message;
-      _logger.logAuth(
-        '❌ Break time update failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Break time update failed: ${response.message}', level: LogLevel.error);
     }
     notifyListeners();
   }
@@ -176,10 +156,7 @@ class ClockProvider extends ChangeNotifier {
     } else {
       _state = ClockState.error;
       _errorMessage = response.message;
-      _logger.logAuth(
-        '❌ Meeting time update failed: ${response.message}',
-        level: LogLevel.error,
-      );
+      _logger.logAuth('❌ Meeting time update failed: ${response.message}', level: LogLevel.error);
     }
     notifyListeners();
   }
@@ -193,35 +170,42 @@ class ClockProvider extends ChangeNotifier {
     if (employeeId == null) {
       _state = ClockState.error;
       _errorMessage = 'Employee ID not found';
-      _logger.logAuth('❌ Employee ID not found', level: LogLevel.error);
       notifyListeners();
       return;
     }
 
-    final response = await _clockService.getAttendance(
-      date: date,
-      employeeId: employeeId,
-    );
+    final response = await _clockService.getAttendance(date: date, employeeId: employeeId);
 
-    final records = response.data?['message']['records'] as List<dynamic>?;
+    final message = response.data?['message'];
+    final records = message?['records'] as List<dynamic>? ?? [];
 
-    if (response.success && records != null && records.isNotEmpty) {
-      _attendanceModel = ClockModel.fromJson(records[0]);
+    if (!response.success) {
+      // ❌ Real API failure
+      _state = ClockState.error;
+      _errorMessage = response.message;
+      _logger.logAuth('❌ Attendance fetch failed: ${response.message}', level: LogLevel.error);
+    } else if (records.isEmpty) {
+      // ✅ No attendance yet (VALID state)
+      _attendanceModel = null;
+      _isClockedIn = false;
+      _isClockedOut = false;
+      _state = ClockState.success;
+
+      _logger.logAuth('ℹ️ No attendance found for selected date');
+    } else {
+      // ✅ Attendance exists
+      _attendanceModel = ClockModel.fromJson(records.first);
       _isClockedIn = _attendanceModel!.clockIn.isNotEmpty;
       _isClockedOut = _attendanceModel!.clockOut?.isNotEmpty == true;
       _state = ClockState.success;
+
       _logger.logAuth('✅ Attendance fetched successfully');
-    } else {
-      _state = ClockState.error;
-      _errorMessage = response.message;
-      _logger.logAuth(
-        '❌ Attendance fetch failed: ${response.message}',
-        level: LogLevel.error,
-      );
     }
-    if (response.data?['message']['leaveStatus'] == true) {
-      _isClockedOut = true;
+
+    // Leave handling (safe)
+    if (message?['leaveStatus'] == true) {
       _isClockedIn = true;
+      _isClockedOut = true;
     }
 
     notifyListeners();

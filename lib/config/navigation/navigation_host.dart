@@ -143,16 +143,20 @@ class _NavigationHostState extends State<NavigationHost> {
   static const _routes = [
     AppRoutes.homeRoute,
     AppRoutes.chatRoute,
-    AppRoutes.meetRoute,
+    // AppRoutes.meetRoute,
     AppRoutes.mailRoute,
   ];
 
   static const _icons = [
     Icons.home_rounded,
     Icons.chat_bubble_rounded,
-    Icons.video_call_rounded,
+    // Icons.video_call_rounded,
     Icons.mail_rounded,
   ];
 
-  static const _labels = ['Home', 'Chat', 'Meet', 'Mail'];
+  static const _labels = [
+    'Home', 'Chat',
+    //'Meet',
+    'Mail',
+  ];
 }

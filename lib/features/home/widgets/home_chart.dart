@@ -23,7 +23,9 @@ class _HomeChartState extends State<HomeChart> {
   @override
   void initState() {
     super.initState();
-    _fetchAttendanceData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchAttendanceData();
+    });
   }
 
   Future<void> _fetchAttendanceData() async {
@@ -42,26 +44,13 @@ class _HomeChartState extends State<HomeChart> {
       setState(() {
         // Update chart data
         _chartData = [
-          ChartData(
-            'Online',
-            attendanceData['onlineTime']?.toDouble() ?? 0,
-            AppColors.activeGreen,
-          ),
-          ChartData(
-            'Meeting',
-            attendanceData['meetingTime']?.toDouble() ?? 0,
-            Colors.blue,
-          ),
-          ChartData(
-            'Break',
-            attendanceData['breakTime']?.toDouble() ?? 0,
-            Colors.purple,
-          ),
+          ChartData('Online', attendanceData['onlineTime']?.toDouble() ?? 0, AppColors.activeGreen),
+          ChartData('Meeting', attendanceData['meetingTime']?.toDouble() ?? 0, Colors.blue),
+          ChartData('Break', attendanceData['breakTime']?.toDouble() ?? 0, Colors.purple),
         ];
         // Update card values
         _totalTime = attendanceData['totalTime']?.toString() ?? '00:00';
-        _productivity =
-            'Productivity: ${attendanceData['productivity'] ?? '00:00'}';
+        _productivity = 'Productivity: ${attendanceData['productivity'] ?? '00:00'}';
         _onlineTime = attendanceData['onlineTime']?.toString() ?? '00:00';
         _meetingTime = attendanceData['meetingTime']?.toString() ?? '00:00';
         _breakTime = attendanceData['breakTime']?.toString() ?? '00:00';
@@ -70,9 +59,9 @@ class _HomeChartState extends State<HomeChart> {
     } else {
       setState(() => _isLoading = false);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message), backgroundColor: Colors.red),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(message), backgroundColor: Colors.red));
       }
     }
   }
@@ -131,20 +120,15 @@ class _HomeChartState extends State<HomeChart> {
                             DoughnutSeries<ChartData, String>(
                               animationDuration: 0,
                               dataSource: _chartData,
-                              xValueMapper: (ChartData data, _) =>
-                                  data.category,
+                              xValueMapper: (ChartData data, _) => data.category,
                               yValueMapper: (ChartData data, _) => data.value,
-                              pointColorMapper: (ChartData data, _) =>
-                                  data.color,
+                              pointColorMapper: (ChartData data, _) => data.color,
                               radius: '80%',
                               innerRadius: '60%',
                               dataLabelSettings: const DataLabelSettings(
                                 isVisible: true,
                                 labelPosition: ChartDataLabelPosition.inside,
-                                textStyle: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                ),
+                                textStyle: TextStyle(fontSize: 12, color: Colors.white),
                               ),
                             ),
                           ],
@@ -172,12 +156,7 @@ class _HomeChartState extends State<HomeChart> {
     );
   }
 
-  Widget _buildCard(
-    String title,
-    String time,
-    Color color, [
-    String? subtitle,
-  ]) {
+  Widget _buildCard(String title, String time, Color color, [String? subtitle]) {
     return Container(
       width: 375,
       padding: EdgeInsets.all(12),
