@@ -15,7 +15,7 @@ import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
-import 'package:hrtz_hrms/features/home/screens/leave_screens/leave_request_screen.dart';
+import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; // Updated Import
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';

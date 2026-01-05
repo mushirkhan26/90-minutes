@@ -73,11 +73,9 @@ class AuthService {
     final response = await _apiHelper.get<Map<String, dynamic>>(endpoint);
 
     if (response.success && response.data != null) {
-      // Ensure response.data is not null and contains the required fields
       final employee = EmployeeModel.fromJson(response.data!);
       return ApiResponse.success(employee);
     } else {
-      // Handle the case where response.data is null or the request failed
       return ApiResponse.error(
         response.message ?? 'Failed to fetch employee info',
       );
@@ -140,7 +138,8 @@ class AuthService {
       "duration": duration,
       "type": type,
     };
-    _logger.logAuth('Adding leave request for employeeId: $employeeId');
+    
+    _logger.logAuth('Adding leave request to leave/add');
     return await _apiHelper.post<Map<String, dynamic>>('leave/add', body);
   }
 
