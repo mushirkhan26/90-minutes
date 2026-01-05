@@ -102,60 +102,66 @@ class HomeScreen extends StatelessWidget {
           future: secureStorage.getUserData(),
           builder: (context, snapshot) {
             final userData = snapshot.data;
-            return ListView(
-              padding: EdgeInsets.zero,
+            return Column( // Changed ListView to Column to use Spacer
               children: [
                 DrawerHeader(
                   decoration: BoxDecoration(color: AppColors.primary),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min, // Added min
                     children: [
                       Initicon(text: " ${userData?['username'] ?? 'User'}"),
-                      const SizedBox(width: 8),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       Text(
                         'Welcome ${userData?['username'] ?? 'User'}',
-                        style: const TextStyle(color: Colors.white, fontSize: 24),
+                        style: const TextStyle(color: Colors.white, fontSize: 20),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
-                // const SizedBox(height: 300),
-                Container(height: MediaQuery.of(context).size.height * 0.39),
-                ListTile(
-                  leading: const Icon(Icons.person),
-                  title: const Text('Profile'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.userProfile();
-                  },
+                Expanded( // Added Expanded for scrollable part if needed
+                  child: ListView(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    children: [
+                      ListTile(
+                        leading: const Icon(Icons.person),
+                        title: const Text('Profile'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.userProfile();
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.calendar_month),
+                        title: const Text('Leave Request'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.leaveRequest();
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.settings),
+                        title: const Text('Settings'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.goToPermissions();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
+                const Divider(),
                 ListTile(
-                  leading: const Icon(Icons.calendar_month),
-                  title: const Text('Leave Request'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.leaveRequest();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.settings),
-                  title: const Text('Settings'),
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.goToPermissions();
-                  },
-                ),
-                SizedBox(height: Utils().height(context) * 0.35),
-
-                ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text('Logout'),
+                  leading: const Icon(Icons.logout, color: Colors.red),
+                  title: const Text('Logout', style: TextStyle(color: Colors.red)),
                   onTap: () async {
                     Navigator.pop(context);
                     showLogoutDialog(context, authProvider);
                   },
                 ),
+                const SizedBox(height: 20), // Bottom padding
               ],
             );
           },
@@ -224,7 +230,6 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         'Start Time: ${clockProvider.startTime ?? '00:00:00'}',
-                        // '12:59:28'
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -236,7 +241,6 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         'End Time: ${clockProvider.endTime ?? '00:00:00'}',
-                        // '12:59:35'
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -256,89 +260,17 @@ class HomeScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Row(
-            //   mainAxisAlignment: MainAxisAlignment.center,
-            //   children: [
-            //     ElevatedButton(
-            //       style: ElevatedButton.styleFrom(
-            //         backgroundColor: AppColors.primary,
-            //         shape: RoundedRectangleBorder(
-            //           borderRadius: BorderRadius.circular(10),
-            //         ),
-            //         padding: const EdgeInsets.symmetric(
-            //           horizontal: 35,
-            //           vertical: 15,
-            //         ),
-            //       ),
-            //       onPressed: () {
-            //         showFaceVerificationDialog(isClockIn: true);
-            //       },
-            //       child: const Text(
-            //         'Clock In',
-            //         style: TextStyle(fontSize: 16, color: Colors.white),
-            //       ),
-            //     ),
-            //     const SizedBox(width: 10),
-            //     ElevatedButton(
-            //       style: ElevatedButton.styleFrom(
-            //         backgroundColor: clockProvider.isClockedIn
-            //             ? AppColors.gray475467
-            //             : Colors.grey,
-            //         shape: RoundedRectangleBorder(
-            //           borderRadius: BorderRadius.circular(10),
-            //         ),
-            //         padding: const EdgeInsets.symmetric(
-            //           horizontal: 30,
-            //           vertical: 15,
-            //         ),
-            //       ),
-            //       onPressed: clockProvider.isClockedIn
-            //           ? () async {
-            //               await clockProvider.clockOut();
-            //               if (context.mounted) {
-            //                 if (clockProvider.state == ClockState.error) {
-            //                   ScaffoldMessenger.of(context).showSnackBar(
-            //                     SnackBar(
-            //                       content: Text(
-            //                         clockProvider.errorMessage ??
-            //                             'An error occurred',
-            //                       ),
-            //                       backgroundColor: Colors.red,
-            //                     ),
-            //                   );
-            //                 } else {
-            //                   ScaffoldMessenger.of(context).showSnackBar(
-            //                     const SnackBar(
-            //                       content: Text('Clock out successful!'),
-            //                       backgroundColor: Colors.green,
-            //                     ),
-            //                   );
-            //                 }
-            //               }
-            //             }
-            //           : null,
-            //       child: const Text(
-            //         'Clock Out',
-            //         style: TextStyle(fontSize: 16, color: Colors.white),
-            //       ),
-            //     ),
-            //   ],
-            // ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clockProvider.isClockedIn
-                        ? Colors
-                              .grey // Disable color
-                        : AppColors.primary, // Active color
+                    backgroundColor: clockProvider.isClockedIn ? Colors.grey : AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
                   ),
                   onPressed: clockProvider.isClockedIn
-                      ? null // Disable if already clocked in
+                      ? null
                       : () {
                           showFaceVerificationDialog(isClockIn: true);
                         },
@@ -375,7 +307,7 @@ class HomeScreen extends StatelessWidget {
                             }
                           }
                         }
-                      : null, // Disable if not clocked in
+                      : null,
                   child: const Text(
                     'Clock Out',
                     style: TextStyle(fontSize: 16, color: Colors.white),
@@ -383,7 +315,6 @@ class HomeScreen extends StatelessWidget {
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
             const HomeChart(),
           ],
