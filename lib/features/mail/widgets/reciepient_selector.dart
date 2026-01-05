@@ -8,6 +8,8 @@ class RecipientSelector extends StatelessWidget {
   final List<EmployeeModel> employees;
   final List<EmployeeModel> selectedReceivers;
   final VoidCallback onToggleDropdown;
+  final ValueChanged<EmployeeModel> onAdd;
+   final ValueChanged<EmployeeModel> onRemove;
   final ValueChanged<String> onFilter;
 
   const RecipientSelector({
@@ -16,6 +18,8 @@ class RecipientSelector extends StatelessWidget {
     required this.employees,
     required this.selectedReceivers,
     required this.onToggleDropdown,
+    required this.onAdd,
+    required this.onRemove,
     required this.onFilter,
   });
 
@@ -28,7 +32,7 @@ class RecipientSelector extends StatelessWidget {
       children: [
         /// 📬 TO field with selected chips
         GestureDetector(
-          onTap: onToggleDropdown,
+          onTap: showDropdown ? null : onToggleDropdown,
           child: Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
@@ -56,13 +60,10 @@ class RecipientSelector extends StatelessWidget {
                         (emp) => Chip(
                           label: Text(emp.name),
                           avatar: Initicon(text: emp.name, size: 22),
-                          onDeleted: () => selectedReceivers.remove(emp),
+                          onDeleted: () => onRemove(emp),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: onToggleDropdown,
-                        child: const Icon(Icons.add_circle_outline, size: 22),
-                      ),
+                      
                     ],
                   ),
               ],
@@ -127,17 +128,23 @@ class RecipientSelector extends StatelessWidget {
                     color: isSelected ? Colors.green : Colors.grey,
                   ),
                   onTap: () {
-                    if (isSelected) {
-                      selectedReceivers.remove(emp);
-                    } else {
-                      selectedReceivers.add(emp);
-                    }
-                    (context as Element).markNeedsBuild(); // quick rebuild
+                    isSelected ? onRemove(emp) : onAdd(emp);
+                    
                   },
                 );
               },
             ),
           ),
+          Padding(
+  padding: const EdgeInsets.all(12),
+  child: SizedBox(
+    width: double.infinity,
+    child: ElevatedButton(
+      onPressed: onToggleDropdown, // dropdown close
+      child: const Text('Done'),
+    ),
+  ),
+),
         ],
       ),
     );

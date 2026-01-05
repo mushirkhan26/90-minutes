@@ -161,26 +161,42 @@ class ApiHelper {
   }
 
   ApiResponse<T> _handleResponse<T>(http.Response response) {
-    final statusCode = response.statusCode;
-    final dynamic body = jsonDecode(response.body);
+  final statusCode = response.statusCode;
+  dynamic body;
 
-    if (statusCode >= 200 && statusCode < 300) {
-      return ApiResponse.success(body as T, statusCode: statusCode);
-    }
+  try {
+    body = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+  } catch (_) {
+    body = response.body;
+  }
 
-    switch (statusCode) {
-      case 400:
-        throw BadRequestException(body['message']);
-      case 401:
-        throw UnauthorizedException(body['message']);
-      case 403:
-        throw ForbiddenException(body['message']);
-      case 404:
-        throw NotFoundException(body['message']);
-      case 500:
-        throw ServerException(body['message']);
-      default:
-        throw FetchDataException('Error occurred with StatusCode: $statusCode');
-    }
+  // ✅ SUCCESS
+  if (statusCode >= 200 && statusCode < 300) {
+    return ApiResponse.success(body as T, statusCode: statusCode);
+  }
+
+  // ✅ SAFE error message extraction
+  String message = 'Something went wrong';
+
+  if (body is Map<String, dynamic>) {
+    message = body['message']?.toString() ?? message;
+  } else if (body is String) {
+    message = body;
+  }
+
+  switch (statusCode) {
+    case 400:
+      throw BadRequestException(message);
+    case 401:
+      throw UnauthorizedException(message);
+    case 403:
+      throw ForbiddenException(message);
+    case 404:
+      throw NotFoundException(message);
+    case 500:
+      throw ServerException(message);
+    default:
+      throw FetchDataException('Error occurred with StatusCode: $statusCode');
+  }
   }
 }

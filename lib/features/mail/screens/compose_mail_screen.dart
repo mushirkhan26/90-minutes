@@ -184,6 +184,18 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                 selectedReceivers: _selectedReceivers,
                 onToggleDropdown: () => setState(() => _showDropdown = !_showDropdown),
                 onFilter: _filterEmployees,
+                onAdd: (emp){
+                  setState(() {
+                    if(!_selectedReceivers.contains(emp)){
+                      _selectedReceivers.add(emp);
+                    }
+                  });
+                },
+                onRemove: (emp){
+                  setState(() {
+                    _selectedReceivers.remove(emp);
+                  });
+                }
               ),
 
               const SizedBox(height: 10),
