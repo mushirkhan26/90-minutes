@@ -43,18 +43,24 @@ class _FaceVerificationState extends State<FaceVerification> {
       final uploadedUrl = await fileUploadService.uploadFile(
         _capturedImage.value!,
       );
+      if(!mounted) return;
 
       if (uploadedUrl != null) {
-        debugPrint("File uploaded successfully: $uploadedUrl");
-        final clockProvider = Provider.of<ClockProvider>(
-          context,
-          listen: false,
-        );
-        clockProvider.setCapturedImageUrl(uploadedUrl);
-        widget.onVerified();
-      } else {
-        debugPrint("Failed to upload file");
-      }
+      debugPrint("File uploaded successfully: $uploadedUrl");
+
+      if (context.mounted) { // context is safe now
+      final clockProvider = Provider.of<ClockProvider>(
+      context,
+      listen: false,
+    );
+    clockProvider.setCapturedImageUrl(uploadedUrl);
+    
+    widget.onVerified();
+  }
+} else {
+  debugPrint("Failed to upload file");
+}
+
     }
   }
 

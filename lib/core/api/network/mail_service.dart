@@ -48,7 +48,7 @@ class MailService {
       "cc": cc,
       "bcc": bcc,
       "subject": subject,
-      "body": body,
+      "message": body,
       "attachmentUrls": attachmentUrls,
     });
     return response;
