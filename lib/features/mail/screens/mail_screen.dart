@@ -44,7 +44,10 @@ class _MailScreenState extends State<MailScreen> {
       await provider.fetchSent(forceRefresh: true);
     } else if (_selectedFolder == 'Trash') {
       await provider.fetchTrash(forceRefresh: true);
-    }
+    } else if (_selectedFolder == 'Starred') {
+       await provider.fetchStarredMails();
+      }
+    
   }
 
   /// 📁 Change folder from drawer
@@ -63,6 +66,8 @@ class _MailScreenState extends State<MailScreen> {
       provider.fetchSent();
     } else if (folder == 'Trash') {
       provider.fetchTrash();
+    } else if (folder == 'Starred') {
+      provider.fetchStarredMails();
     }
   }
 
@@ -115,6 +120,9 @@ class _MailScreenState extends State<MailScreen> {
       case 'Trash':
         mails = provider.trashMails;
         break;
+      case 'Starred':
+        mails = provider.starredMails;
+        break;  
       default:
         mails = provider.inboxMails;
     }

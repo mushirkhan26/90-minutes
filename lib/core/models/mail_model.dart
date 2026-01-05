@@ -11,6 +11,7 @@ class MailModel {
   final String body;
   final List<String> attachmentUrls;
   final String status;
+  bool isStarred;
   final String? replyTo;
   final Map<String, dynamic> perUserStatus;
   final DateTime createdAt;
@@ -29,6 +30,7 @@ class MailModel {
     required this.body,
     required this.attachmentUrls,
     required this.status,
+    required this.isStarred,
     this.replyTo,
     required this.perUserStatus,
     required this.createdAt,
@@ -64,6 +66,7 @@ class MailModel {
         : [],
 
     status: json['status'] ?? '',
+    isStarred: json['isStarred'] ?? false,
     replyTo: json['replyTo'],
 
     perUserStatus: json['perUserStatus'] is Map
@@ -90,6 +93,7 @@ class MailModel {
       'body': body,
       'attachmentUrls': attachmentUrls,
       'status': status,
+      'isStarred': isStarred,
       'replyTo': replyTo,
       'perUserStatus': perUserStatus,
       'createdAt': createdAt.toIso8601String(),

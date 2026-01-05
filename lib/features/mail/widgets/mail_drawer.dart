@@ -33,6 +33,13 @@ class MailDrawer extends StatelessWidget {
             selected: selectedFolder == 'Sent',
             onTap: () => onFolderSelected('Sent'),
           ),
+          // ⭐ Starred
+          _buildDrawerItem(
+            icon: Icons.star_rounded,
+            label: 'Starred',
+            selected: selectedFolder == 'Starred',
+            onTap: () => onFolderSelected('Starred'),
+          ),
           // 🗑️ Trash
           _buildDrawerItem(
             icon: Icons.delete_rounded,

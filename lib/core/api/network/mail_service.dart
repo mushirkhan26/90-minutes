@@ -101,4 +101,29 @@ class MailService {
     _logger.logNetwork('Deleting mail permanently with id: $mailId');
     return await _apiHelper.delete<Map<String, dynamic>>('mail/$mailId');
   }
+  Future<ApiResponse<Map<String, dynamic>>> toggleStarMail({
+  required String mailId,
+  required String employeeId,
+  required bool isStarred,
+  }) async {
+    _logger.logNetwork(
+    'Toggling star for mailId: $mailId, isStarred: $isStarred');
+
+    return await _apiHelper.patch<Map<String, dynamic>>(
+    'mail/toggle-Star/$mailId',
+      {
+        "employeeId": employeeId,
+        "isStarred": isStarred,
+      },
+    );
+  }
+  Future<ApiResponse<Map<String, dynamic>>> getStarredMails({
+  required String employeeId,
+  }) async {
+   _logger.logNetwork('Fetching starred mails for employeeId: $employeeId');
+
+    return await _apiHelper.get<Map<String, dynamic>>(
+    'mail/get-stared-mails/$employeeId',
+  );
+  }
 }

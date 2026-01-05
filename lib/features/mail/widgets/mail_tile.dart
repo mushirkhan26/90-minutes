@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:intl/intl.dart';
+import '../provider/mail_provider.dart';
+import 'package:provider/provider.dart';
 
 import '../../../core/models/mail_model.dart';
 
@@ -109,6 +111,23 @@ class MailTile extends StatelessWidget {
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                         ),
+                        // ⭐ STAR ICON (ADD HERE)
+                        IconButton(
+                         padding: EdgeInsets.zero,
+                         constraints: const BoxConstraints(),
+                         icon: Icon(
+                         mail.isStarred ? Icons.star : Icons.star_border,
+                         color: mail.isStarred ? Colors.amber : Colors.grey,
+                         size: 20,
+                        ),
+                        onPressed: () {
+                        context.read<MailProvider>().toggleStarMail(mail);
+                        },
+                        ),
+      
+    
+
+                        const SizedBox(width: 6),
                         Text(
                           _formatTime(mail.createdAt),
                           style: TextStyle(color: Colors.grey[600], fontSize: 12),
