@@ -3,7 +3,6 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-// import 'package:hrtz_hrms/auth/auth_provider.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_state_provider.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
@@ -17,7 +16,7 @@ import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
-// import 'package:hrtz_hrms/features/clock/provider/clock_provider.dart';
+import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart'; // Added Import
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
@@ -62,6 +61,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SocketProvider()),
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
         ChangeNotifierProvider(create: (_) => MeetProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveProvider()), // Registered LeaveProvider
         ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
 
         ChangeNotifierProvider(

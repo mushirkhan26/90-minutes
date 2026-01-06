@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart'; // Updated Import
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 
 import '../../../../core/utils/alert_utils.dart';
@@ -74,53 +74,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
     }
   }
 
-  // Future<void> _submitLeave() async {
-  //   if (!_formKey.currentState!.validate()) return;
-  //   if (_startDate == null || _endDate == null) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Please select both start and end dates')),
-  //     );
-  //     return;
-  //   }
-  //   if (_leaveType == null) {
-  //     ScaffoldMessenger.of(context).showSnackBar(
-  //       const SnackBar(content: Text('Please select a leave type')),
-  //     );
-  //     return;
-  //   }
-
-  //   setState(() => _isSubmitting = true);
-  //   final authProvider = Provider.of<AuthProvider>(context, listen: false);
-  //   final (success, message) = await authProvider.addLeaveRequest(
-  //     name: widget.name,
-  //     employeeId: widget.employeeId,
-  //     startDate: DateFormat('dd-MM-yyyy').format(_startDate!),
-  //     endDate: DateFormat('dd-MM-yyyy').format(_endDate!),
-  //     reason: _reasonController.text.trim(),
-  //     duration: _duration,
-  //     type: _leaveType!,
-  //   );
-
-  //   if (!mounted) return;
-  //   ScaffoldMessenger.of(context).showSnackBar(
-  //     SnackBar(
-  //       content: Text(message),
-  //       backgroundColor: success ? Colors.green : Colors.red,
-  //     ),
-  //   );
-
-  //   if (success) {
-  //     _formKey.currentState!.reset();
-  //     setState(() {
-  //       _startDate = null;
-  //       _endDate = null;
-  //       _leaveType = null;
-  //       _duration = 0;
-  //     });
-  //     Navigator.pop(context); // Close the screen after submission
-  //   }
-  //   setState(() => _isSubmitting = false);
-  // }
   Future<void> _submitLeave() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startDate == null || _endDate == null) {
@@ -135,8 +88,10 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       return;
     }
     setState(() => _isSubmitting = true);
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final (success, message) = await authProvider.addLeaveRequest(
+    
+    // Using LeaveProvider instead of AuthProvider
+    final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
+    final (success, message) = await leaveProvider.addLeaveRequest(
       name: widget.name,
       employeeId: widget.employeeId,
       startDate: DateFormat('dd-MM-yyyy').format(_startDate!),
@@ -145,6 +100,7 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       duration: _duration,
       type: _leaveType!,
     );
+    
     if (!mounted) return;
     if (success) {
       AlertHelper.snackBarSuccess(context, message);
@@ -176,7 +132,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Employee Name
                     CustomTextField(
                       controller: TextEditingController(text: widget.name),
                       labelText: 'Name',
@@ -184,7 +139,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       readOnly: true,
                     ),
                     const SizedBox(height: 16),
-                    // Employee ID
                     CustomTextField(
                       controller: TextEditingController(
                         text: widget.employeeId,
@@ -194,9 +148,8 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       readOnly: true,
                     ),
                     const SizedBox(height: 16),
-                    // Leave Type Dropdown
                     DropdownButtonFormField<String>(
-                      initialValue: _leaveType,
+                      value: _leaveType,
                       items: _leaveTypes
                           .map(
                             (type) => DropdownMenuItem(
@@ -215,7 +168,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                           val == null ? 'Please select a leave type' : null,
                     ),
                     const SizedBox(height: 16),
-                    // Start Date
                     GestureDetector(
                       onTap: () => _selectDate(isStartDate: true),
                       child: AbsorbPointer(
@@ -234,7 +186,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // End Date
                     GestureDetector(
                       onTap: () => _selectDate(isStartDate: false),
                       child: AbsorbPointer(
@@ -253,14 +204,12 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Duration Display
                     if (_duration > 0)
                       Text(
                         'Duration: $_duration day${_duration > 1 ? 's' : ''}',
                         style: textStyle,
                       ),
                     if (_duration > 0) const SizedBox(height: 16),
-                    // Reason Field
                     CustomTextField(
                       controller: _reasonController,
                       labelText: 'Reason',
@@ -274,15 +223,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       },
                     ),
                     const SizedBox(height: 24),
-                    // ElevatedButton.icon(
-                    //   onPressed: _submitLeave,
-                    //   icon: const Icon(Icons.send),
-                    //   label: const Text('Submit Request'),
-                    //   style: ElevatedButton.styleFrom(
-                    //     padding: const EdgeInsets.symmetric(vertical: 14),
-                    //     textStyle: const TextStyle(fontSize: 16),
-                    //   ),
-                    // ),
                     CustomButton(
                       text: 'Submit Request',
                       onPressed: _submitLeave,
