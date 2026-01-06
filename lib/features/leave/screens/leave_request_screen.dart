@@ -84,7 +84,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           children: [
                             Icon(Icons.calendar_today, color: Colors.white, size: 24),
                             SizedBox(width: 10),
-                            const Text(
+                             Text(
                               'Apply for Leave',
                               style: TextStyle(
                                 color: Colors.white,
@@ -159,7 +159,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
+            color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),

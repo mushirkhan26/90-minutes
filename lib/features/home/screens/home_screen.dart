@@ -5,7 +5,6 @@ import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
-import 'package:hrtz_hrms/core/utils/utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:provider/provider.dart';

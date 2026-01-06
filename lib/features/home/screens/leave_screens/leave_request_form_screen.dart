@@ -149,7 +149,7 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _leaveType,
+                      initialValue: _leaveType,
                       items: _leaveTypes
                           .map(
                             (type) => DropdownMenuItem(
