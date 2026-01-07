@@ -8,6 +8,13 @@ class SocketService {
 
   late io.Socket socket;
   bool _isConnected = false;
+  bool get isConnected => _isConnected;
+  bool get isDisconnected => !_isConnected;
+  Future<void> waitForConnection() async {
+    while (!isDisconnected) {
+      await Future.delayed(const Duration(milliseconds: 300));
+    }
+  }
 
   /// Initialize socket connection
   void init() {
@@ -55,8 +62,6 @@ class SocketService {
       LoggingService.instance.error('Socket', 'Connect error', error: error);
     });
   }
-
-  bool get isConnected => _isConnected;
 
   void dispose() {
     socket.dispose();

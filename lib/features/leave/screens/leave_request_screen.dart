@@ -117,11 +117,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               padding: const EdgeInsets.all(16),
                               child: Column(
                                 children: [
-                                  _buildLeaveInfoRow('Casual/Sick Leave', '${availableLeave['leave']?['casualOrSickLeave'] ?? 0}', Colors.blue),
+                                  _buildLeaveInfoRow('Casual/Sick Leave', '${availableLeave['available']?['casualOrSickLeave'] ?? 0}', Colors.blue),
                                   const Divider(),
-                                  _buildLeaveInfoRow('Earned Leave', '${availableLeave['leave']?['earnedLeave'] ?? 0}', Colors.green),
+                                  _buildLeaveInfoRow('Earned Leave', '${availableLeave['available']?['earnedLeave'] ?? 0}', Colors.green),
                                   const Divider(),
-                                  _buildLeaveInfoRow('Emergency Leave', '${availableLeave['leave']?['emergencyLeave'] ?? 0}', Colors.orange),
+                                  _buildLeaveInfoRow('Emergency Leave', '${availableLeave['available']?['emergencyLeave'] ?? 0}', Colors.orange),
                                 ],
                               ),
                             ),

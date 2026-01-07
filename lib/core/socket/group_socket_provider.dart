@@ -27,6 +27,7 @@ class GroupSocketProvider extends ChangeNotifier {
   Map<String, bool> get groupTypingIndicators => Map.unmodifiable(_groupTypingIndicators);
   Map<String, int> get groupUnreadCounts => Map.unmodifiable(_groupUnreadCounts);
 
+
   // Active group chat
   String? _activeGroupId;
   void setActiveGroupId(String? groupId) {
@@ -93,13 +94,6 @@ class GroupSocketProvider extends ChangeNotifier {
       //  📥 Raw groupCreated event received: {success: true, group: {_id: 69025b8e2a0c6298d73de276, name: hrms team, description: Group created by 24110002, members: [24110002, 25090016, 25060018, 25100009, 25100001], createdBy: 24110002, icon: null, createdAt: 2025-10-29T18:23:10.971Z}}
       //  🆕 Group created: {_id: 69025b8e2a0c6298d73de276, name: hrms team, description: Group created by 24110002, members: [24110002, 25090016, 25060018, 25100009, 25100001], createdBy: 24110002, icon: null, createdAt: 2025-10-29T18:23:10.971Z}
       // Saved 1 group chats
-    });
-
-    _manager.registerGroupEvent('groupDeleted', (data) async {
-      _logger.logNetwork("[GroupSocket] Group deleted: ${data['groupId']}");
-      _groupChats.removeWhere((g) => g.groupId == data['groupId']);
-      await _localStorage.saveGroupChats(_groupChats);
-      notifyListeners();
     });
 
     _manager.registerGroupEvent('receiveGroupMessage', (data) async {
@@ -193,17 +187,21 @@ class GroupSocketProvider extends ChangeNotifier {
     });
 
     _manager.registerGroupEvent('groupMessageDeleted', (data) async {
-      _logger.logNetwork("[GroupSocket] Group message deleted: ${data['messageId']}");
-      final index = _groupMessages.indexWhere((m) => m.messageId == data['messageId']);
-      if (index != -1) {
-        _groupMessages[index] = _groupMessages[index].copyWith(isDeleted: true);
-        await _localStorage.updateGroupMessage(
-          _groupMessages[index].groupId,
-          _groupMessages[index],
-        );
-        notifyListeners();
-      }
-    });
+  final messageId = data['messageId'];
+  final groupId = data['groupId'];
+
+  _logger.logNetwork("[GroupSocket] 🗑️ Deleting message: $messageId");
+
+  // 🔥 REMOVE FROM MEMORY
+  _groupMessages.removeWhere(
+    (m) => m.messageId == messageId || m.id == messageId,
+  );
+
+  // 🔥 REMOVE FROM LOCAL STORAGE
+   await _localStorage.deleteGroupMessage(groupId, messageId);
+
+  notifyListeners();
+});
 
     _manager.registerGroupEvent('groupChatCleared', (data) async {
       _logger.logNetwork("[GroupSocket] Group chat cleared: ${data['groupId']}");
@@ -328,7 +326,6 @@ class GroupSocketProvider extends ChangeNotifier {
       );
     } catch (e) {
       _logger.error("GroupSocket", "Failed to create group", error: e);
-      rethrow;
     }
   }
 
@@ -365,7 +362,6 @@ class GroupSocketProvider extends ChangeNotifier {
       );
     } catch (e) {
       _logger.error("GroupSocket", "❌ Failed to send group message", error: e);
-      rethrow;
     }
   }
 
@@ -381,7 +377,6 @@ class GroupSocketProvider extends ChangeNotifier {
       await _manager.markGroupMessageAsRead(messageId: messageId, userId: userId);
     } catch (e) {
       _logger.error("GroupSocket", "Failed to mark group message as read", error: e);
-      rethrow;
     }
   }
 
@@ -395,7 +390,6 @@ class GroupSocketProvider extends ChangeNotifier {
       await _manager.deleteGroupMessage(messageId: messageId, userId: userId, groupId: groupId);
     } catch (e) {
       _logger.error("GroupSocket", "Failed to delete group message", error: e);
-      rethrow;
     }
   }
 
@@ -405,7 +399,6 @@ class GroupSocketProvider extends ChangeNotifier {
       await _manager.clearGroupChat(groupId: groupId, userId: userId);
     } catch (e) {
       _logger.error("GroupSocket", "Failed to clear group chat", error: e);
-      rethrow;
     }
   }
 
@@ -435,12 +428,27 @@ class GroupSocketProvider extends ChangeNotifier {
     return _groupMessages.where((m) => m.groupId == groupId).toList();
   }
 
+  Future<void> addLocalGroupMessage(GroupMessageModel message)  async{
+    // duplicate avoid
+    if (_groupMessages.any((m) => m.messageId == message.messageId)) return;
+
+  _groupMessages.add(message);
+  await _localStorage.addGroupMessage(message.groupId, message);
+  notifyListeners();
+  }
+
   // Reset unread count for a group
   void resetGroupUnreadCount(String groupId, {bool notify = true}) {
     if (_groupUnreadCounts.containsKey(groupId)) {
       _groupUnreadCounts.remove(groupId);
       if (notify) notifyListeners();
     }
+    // ✅ ADD LOCAL MESSAGE FOR OPTIMISTIC UI (GROUP CHAT)
+
+  }
+  void removeLocalGroupMessage(String localmessageId) {
+    _groupMessages.removeWhere((m) => m.messageId == localmessageId);
+    notifyListeners();
   }
 
   Future<void> editGroupName(String groupId, String newName, String userId) async {

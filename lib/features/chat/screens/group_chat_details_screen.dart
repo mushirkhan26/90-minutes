@@ -21,6 +21,7 @@ class GroupDetailsScreen extends StatefulWidget {
 
 class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   late GroupSocketProvider _groupSocketProvider;
+  bool isadmin = false;
   bool _isLoading = false;
   List<EmployeeModel> _employees = [];
   List<EmployeeModel> _filteredEmployees = [];
@@ -68,6 +69,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     _currentUserId = await context.getCurrentEmployeeId();
     if (mounted) {
       currentUsername = await context.getCurrentUsername();
+      setState(() {
+        isadmin = _group.createdBy == _currentUserId;
+      });
     }
   }
 
@@ -255,7 +259,20 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           groupId: _group.groupId,
           deletedBy: _currentUserId ?? '',
         );
-        if (mounted) Navigator.pop(context);
+        if (!mounted) return;
+
+        context.read<GroupSocketProvider>().fetchUserGroups();
+
+        // 1️⃣ First navigate
+        Navigator.popUntil(context, (route) => route.isFirst);
+
+        // 2️⃣ Then show snackbar after navigation
+        Future.delayed(const Duration(milliseconds: 300), () {
+        AlertHelper.snackBarSuccess(
+        context,
+        'Group deleted successfully',
+      );
+});
       } catch (e) {
         if (mounted) AlertHelper.snackBarError(context, 'Failed to delete group: $e');
       } finally {
@@ -389,6 +406,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Members', style: AppTextStyles.black16_600),
+              if (isadmin)
               TextButton.icon(
                 onPressed: _addMembers,
                 icon: const Icon(Icons.add, size: 18),
@@ -408,7 +426,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 leading: const CircleAvatar(child: Icon(Icons.person)),
                 title: Text(memberName),
                 subtitle: Text(memberId),
-                trailing: _group.createdBy == _currentUserId
+                trailing: isadmin
                     ? IconButton(
                         icon: const Icon(Icons.remove_circle, color: AppColors.errorRed),
                         onPressed: () => _removeMember(memberId),
@@ -428,6 +446,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       child: Column(
         children: [
           // Edit Group Name
+          if (isadmin)
           ListTile(
             leading: const Icon(Icons.edit, color: AppColors.primary),
             title: const Text('Edit Group Name'),
@@ -440,7 +459,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             onTap: _leaveGroup,
           ),
           // Delete Group (only for creator)
-          if (_group.createdBy == _currentUserId)
+          if (isadmin)
             ListTile(
               leading: const Icon(Icons.delete, color: AppColors.errorRed),
               title: const Text('Delete Group'),

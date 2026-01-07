@@ -88,11 +88,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
         'GROUP_CHAT_SCREEN',
         '🔔 GroupSocketProvider listener triggered - messages updated',
       );
-      if (mounted) {
-        setState(() {});
-        if (_isAtBottom) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        }
+      if (!mounted) return;
+      setState(() {});
+      if (_isAtBottom) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
       }
     });
   }
@@ -199,39 +198,69 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
   }
 
   /// Sends a text, image, or document message.
-  Future<void> _sendMessage({String? text, String? fileUrl, String type = 'text'}) async {
-    if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
+  Future<void> _sendMessage({
+  String? text,
+  String? fileUrl,
+  String? fileName,
+  String type = 'text',
+}) async {
+  if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
 
-    final timestamp = DateTime.now();
+  final timestamp = DateTime.now();
 
-    _logger.logNetwork(
-      "[GROUP_CHAT:EMIT_INIT] ✉️ Sending message:\n"
-      "  → groupId: ${widget.groupId}\n"
-      "  → sender: ${widget.currentUserId}\n"
-      "  → type: $type\n"
-      "  → text: $text\n"
-      "  → fileUrl: $fileUrl\n"
-      "  → timestamp: $timestamp",
+  try {
+    // ✅ 1️⃣ CREATE LOCAL MESSAGE (OPTIMISTIC UI)
+    final localMessage = GroupMessageModel(
+      id: null, // backend id later vastundi
+      messageId: 'local_${DateTime.now().millisecondsSinceEpoch}',
+      groupId: widget.groupId,
+      sender: widget.currentUserId,
+      senderName: widget.currentUserName,
+      text: text ?? '',
+      messageType: type,
+      fileUrl: fileUrl,
+      fileName: fileName,
+      timestamp: timestamp,
+      read: true,
+      isDeleted: false,
     );
 
-    try {
-      await _groupSocketProvider.sendGroupMessage(
-        groupId: widget.groupId,
-        sender: widget.currentUserId,
-        senderName: widget.currentUserName,
-        text: text ?? '',
-        messageType: type,
-        fileUrl: fileUrl,
-      );
+    // ✅ 2️⃣ ADD TO PROVIDER (IMMEDIATE UI)
+    _groupSocketProvider.addLocalGroupMessage(localMessage);
 
-      _logger.info('GROUP_CHAT_SCREEN', '✅ Message emit success at ${timestamp.toIso8601String()}');
+    _logger.info(
+      'GROUP_CHAT_SCREEN',
+      '✅ Message added to UI (optimistic)',
+    );
 
-      _messageController.clear();
-      _scrollToBottom();
-    } catch (e, st) {
-      _logger.error("GROUP_CHAT_SCREEN", "❌ Failed to send message", error: e, stackTrace: st);
-    }
+    // ✅ 3️⃣ CLEAR INPUT + SCROLL
+    _messageController.clear();
+    _scrollToBottom();
+
+    // ✅ 4️⃣ SEND TO SOCKET (BACKEND)
+    await _groupSocketProvider.sendGroupMessage(
+      groupId: widget.groupId,
+      sender: widget.currentUserId,
+      senderName: widget.currentUserName,
+      text: text ?? '',
+      messageType: type,
+      fileUrl: fileUrl,
+      fileName: fileName,
+    );
+
+    _logger.info(
+      'GROUP_CHAT_SCREEN',
+      '🚀 Socket emit success (group message)',
+    );
+  } catch (e, st) {
+    _logger.error(
+      'GROUP_CHAT_SCREEN',
+      '❌ Failed to send group message',
+      error: e,
+      stackTrace: st,
+    );
   }
+}
 
   /// Opens the image picker and sends the selected image.
   Future<void> _sendImage() async {
@@ -253,10 +282,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
       allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
     );
     if (result != null) {
+      final picked = result.files.first;
       final file = File(result.files.single.path!);
       final documentUrl = await _fileUploadService.uploadFile(file);
       if (documentUrl != null) {
-        await _sendMessage(fileUrl: documentUrl, type: 'document', text: "document");
+        await _sendMessage(fileUrl: documentUrl,fileName: picked.name, type: 'document', text: "document");
       }
     }
   }
@@ -290,7 +320,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
       (m) => m.messageId == localMessageId || m.id == localMessageId,
       orElse: () => throw Exception('Message not found'),
     );
-    final backendId = message.id ?? message.messageId;
+    final messageIdForAction = message.id != null ? message.id! : message.messageId;
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -339,7 +369,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
                 ),
                 onTap: () {
                   Navigator.pop(context);
-                  _confirmDeleteMessage(backendId);
+                  _confirmDeleteMessage(messageIdForAction);
                 },
               ),
             ],
@@ -351,6 +381,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
 
   /// Shows a confirmation dialog before deleting a message.
   void _confirmDeleteMessage(String messageId) {
+    if(messageId.startsWith('local_')){
+      // Local message ni delete cheyali ante direct ga provider nundi delete chey
+      _groupSocketProvider.removeLocalGroupMessage(messageId);
+      return;
+    }
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -365,6 +400,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
                 Navigator.of(context).pop();
                 _deleteMessage(messageId);
               },
+
             ),
           ],
         );

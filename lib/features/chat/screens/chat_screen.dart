@@ -62,7 +62,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _socketProvider.addListener(_socketListener);
 
     WidgetsBinding.instance.addObserver(this);
-    _registerSocketEvents();
+
     _loadInitialMessages();
     _scrollController.addListener(_handleScroll);
     _messageController.addListener(_handleTyping);
@@ -86,19 +86,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   // 🆕 inside _registerSocketEvents()
   // Add log to see when new message received or socket state updated
-  void _registerSocketEvents() {
-    _socketProvider.addListener(() {
-      _logger.info('CHAT_SCREEN', '🔔 SocketProvider listener triggered - messages updated');
-      _logger.info('CHAT_SCREEN', '📥 Total messages now: ${_socketProvider.messages.length}');
-
-      if (mounted) {
-        setState(() {});
-        if (_isAtBottom) {
-          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-        }
-      }
-    });
-  }
+  
 
   // 🆕 inside _loadInitialMessages()
   // Added logs to track what conversationId is loaded and how many messages received
@@ -206,25 +194,41 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
   // 🆕 inside _sendMessage()
   // Added detailed logs to see exactly what data is being sent to the socket
-  Future<void> _sendMessage({String? text, String? fileUrl, String type = 'text'}) async {
-    if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
+  Future<void> _sendMessage({
+  String? text,
+  String? fileUrl,
+  String? fileName,
+  String type = 'text',
+}) async {
+  if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
 
-    final conversationId = _generateConversationId();
-    final messageId = _uuid.v4();
-    final timestamp = DateTime.now();
+  final conversationId = _generateConversationId();
+  final messageId = _uuid.v4();
+  final timestamp = DateTime.now();
 
-    _logger.logNetwork(
-      '✉️ Sending message:\n'
-      '  conversationId: $conversationId\n'
-      '  sender: ${widget.currentUserId}\n'
-      '  receiver: ${widget.otherUserId}\n'
-      '  type: $type\n'
-      '  messageId: $messageId\n'
-      '  text: $text\n'
-      '  fileUrl: $fileUrl\n'
-      '  timestamp: $timestamp',
-    );
+  // ✅ 1️⃣ Local message create cheyyadam
+  final localMessage = ChatMessageModel(
+    messageId: messageId,
+    message: text,
+    sender: widget.currentUserId,
+    senderName: widget.currentUserName,
+    timestamp: timestamp,
+    messageType: type,
+    fileUrl: fileUrl,
+    fileName: fileName,
+    conversationId: conversationId,
+    delivered: false,
+    read: true,
+  );
 
+  // ✅ 2️⃣ UI lo immediate ga add cheyyadam
+  _socketProvider.addLocalMessage(localMessage);
+
+  _messageController.clear();
+  _scrollToBottom();
+
+  // ✅ 3️⃣ Socket ki send try cheyyadam
+  try {
     await _socketProvider.sendMessage(
       sender: widget.currentUserId,
       senderName: widget.currentUserName,
@@ -234,13 +238,15 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       conversationId: conversationId,
       messageType: type,
       fileUrl: fileUrl,
+      fileName: fileName,
     );
-
-    _logger.info('CHAT_SCREEN', '✅ Message sent successfully - ID: $messageId');
-
-    _messageController.clear();
-    _scrollToBottom();
+  } catch (e) {
+    _logger.warning(
+      'CHAT_SCREEN',
+      '⚠️ Socket send failed, message kept locally',
+    );
   }
+}
 
   Future<void> _sendImage() async {
     final picker = ImagePicker();
@@ -260,10 +266,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       allowedExtensions: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt'],
     );
     if (result != null) {
+      final picked = result.files.single;
       final file = File(result.files.single.path!);
       final documentUrl = await _fileUploadService.uploadFile(file);
       if (documentUrl != null) {
-        await _sendMessage(fileUrl: documentUrl, type: 'document', text: "document");
+        await _sendMessage(fileUrl: documentUrl, fileName: picked.name, type: 'document', text: "document");
       }
     }
   }
@@ -487,6 +494,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                 DocumentMessageBubble(
                                   key: ValueKey('chat-msg-$index'),
                                   documentUrl: message.fileUrl!,
+                                  fileName: message.fileName,
                                   isMe: isMe,
                                   timestamp: DateFormat('hh:mm a').format(message.timestamp),
                                   isDeleted: message.isDeleted,

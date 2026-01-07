@@ -48,6 +48,19 @@ class SocketProvider extends ChangeNotifier {
 
   Map<String, int> get unreadCounts => Map.unmodifiable(_unreadCounts);
 
+  void addLocalMessage(ChatMessageModel message) async {
+    _messages.add(message);
+    notifyListeners();
+    if (message.conversationId != null){
+      final existing  = await _localStorage.getChatMessages(message.conversationId!);
+      existing.add(message);
+      await _localStorage.saveChatMessages(message.conversationId!, existing);
+      _logger.logNetwork(
+        "[LocalStorage] Local optimistic saved: ${message.messageId}",
+      );
+    }
+  }
+
   ///  Helper to update a message by either MongoDB _id or messageId (fallback)
   void _updateMessage(ChatMessageModel updatedMessage) {
     final index = _messages.indexWhere(

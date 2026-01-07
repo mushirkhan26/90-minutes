@@ -8,6 +8,7 @@ import 'package:open_file/open_file.dart';
 
 class DocumentMessageBubble extends StatelessWidget {
   final String documentUrl;
+  final String? fileName;
   final bool isMe;
   final String timestamp;
   final VoidCallback? onLongPress;
@@ -16,6 +17,7 @@ class DocumentMessageBubble extends StatelessWidget {
   const DocumentMessageBubble({
     super.key,
     required this.documentUrl,
+    this.fileName,
     required this.isMe,
     required this.timestamp,
     this.onLongPress,
@@ -24,8 +26,8 @@ class DocumentMessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fileName = Uri.parse(documentUrl).pathSegments.last;
-    final shortFileName = _getShortFileName(fileName);
+    final resolvedFileName = fileName ?? Uri.parse(documentUrl).pathSegments.last;
+    final shortFileName = _getShortFileName(resolvedFileName);
 
     Future<void> downloadAndOpenFile() async {
       try {
@@ -33,11 +35,12 @@ class DocumentMessageBubble extends StatelessWidget {
         final bytes = response.bodyBytes;
 
         final dir = await getApplicationDocumentsDirectory();
-        final file = File('${dir.path}/$fileName');
+        final file = File('${dir.path}/$resolvedFileName');
         await file.writeAsBytes(bytes);
 
         await OpenFile.open(file.path);
       } catch (e) {
+        debugPrint('document open failed: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(
             context,
