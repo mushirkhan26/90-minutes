@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
@@ -96,8 +97,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       const SizedBox(height: 5),
                       CustomTextField(
                         controller: _employeeIdController,
-                        validator: (value) =>
-                            Validators.validateName(value, fieldName: 'Employee Id'),
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        hintText: 'Employee Id',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Employee ID is required';
+                          }
+                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                            return 'Employee ID must be numeric';
+                          }
+                          return null;
+                        },
                       ),
                     ],
                   ),

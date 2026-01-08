@@ -11,6 +11,7 @@ import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
 import '../widgets/home_chart.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -113,8 +114,9 @@ class HomeScreen extends StatelessWidget {
                       const SizedBox(height: 12),
                       Text(
                         'Welcome ${userData?['username'] ?? 'User'}',
-                        style: const TextStyle(color: Colors.white, fontSize: 20),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -133,11 +135,21 @@ class HomeScreen extends StatelessWidget {
                         },
                       ),
                       ListTile(
-                        leading: const Icon(Icons.calendar_month),
+                        leading: const Icon(Icons.event_busy),
                         title: const Text('Leave Request'),
                         onTap: () {
                           Navigator.pop(context);
                           context.leaveRequest();
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.calendar_month),
+                        title: const Text('Holiday Calendar'),
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => const HolidayCalendarScreen(),
+                          ));
+                        
                         },
                       ),
                       ListTile(

@@ -268,6 +268,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
         // 2️⃣ Then show snackbar after navigation
         Future.delayed(const Duration(milliseconds: 300), () {
+        if (!mounted) return;
         AlertHelper.snackBarSuccess(
         context,
         'Group deleted successfully',

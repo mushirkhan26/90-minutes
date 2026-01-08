@@ -42,31 +42,35 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   }
 
   Future<void> _selectDate({required bool isStartDate}) async {
-    final initialDate = isStartDate
-        ? _startDate ?? DateTime.now()
-        : _endDate ?? DateTime.now();
-    final pickedDate = await showDatePicker(
-      context: context,
-      initialDate: initialDate,
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-    if (pickedDate != null) {
-      setState(() {
-        if (isStartDate) {
-          _startDate = pickedDate;
-          if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-            _endDate = null;
-            _duration = 0;
-          }
-        } else {
-          _endDate = pickedDate;
-        }
-        _calculateDuration();
-      });
-    }
-  }
+  final pickedDate = await showDatePicker(
+    context: context,
+    initialDate: isStartDate
+        ? (_startDate ?? DateTime.now())
+        : (_endDate ?? _startDate ?? DateTime.now()), // ✅ end date initial logic fix
 
+    firstDate: isStartDate
+        ? DateTime.now()
+        : (_startDate ?? DateTime.now()), // ✅ END DATE cannot be before START DATE
+
+    lastDate: DateTime(2100),
+  );
+
+  if (pickedDate != null) {
+    setState(() {
+      if (isStartDate) {
+        _startDate = pickedDate;
+
+        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+          _endDate = null;      // ✅ invalid end date reset
+          _duration = 0;        // ✅ duration reset
+        }
+      } else {
+        _endDate = pickedDate;  // ✅ now safe (cannot pick before start)
+      }
+      _calculateDuration();
+    });
+  }
+}
   void _calculateDuration() {
     if (_startDate != null && _endDate != null) {
       _duration = _endDate!.difference(_startDate!).inDays + 1;
