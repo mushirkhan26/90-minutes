@@ -40,7 +40,8 @@ class GroupChatScreen extends StatefulWidget {
   State<GroupChatScreen> createState() => _GroupChatScreenState();
 }
 
-class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingObserver {
+class _GroupChatScreenState extends State<GroupChatScreen>
+    with WidgetsBindingObserver {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   late GroupSocketProvider _groupSocketProvider;
@@ -99,7 +100,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
   /// Loads initial group messages from local storage.
   Future<void> _loadInitialMessages() async {
     setState(() => _isLoading = true);
-    _logger.info('GROUP_CHAT_SCREEN', '📡 Loading messages for group: ${widget.groupId}');
+    _logger.info(
+      'GROUP_CHAT_SCREEN',
+      '📡 Loading messages for group: ${widget.groupId}',
+    );
     try {
       await _groupSocketProvider.loadGroupMessages(widget.groupId);
       _logger.info('GROUP_CHAT_SCREEN', '✅ Messages loaded successfully');
@@ -135,7 +139,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
   void _handleScroll() {
     if (_scrollController.position.atEdge) {
       final isBottom =
-          _scrollController.position.pixels == _scrollController.position.maxScrollExtent;
+          _scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent;
       if (isBottom != _isAtBottom) {
         setState(() => _isAtBottom = isBottom);
       }
@@ -191,7 +196,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Text(headerText, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          child: Text(
+            headerText,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
         ),
       ),
     );
@@ -199,68 +207,65 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
 
   /// Sends a text, image, or document message.
   Future<void> _sendMessage({
-  String? text,
-  String? fileUrl,
-  String? fileName,
-  String type = 'text',
-}) async {
-  if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
+    String? text,
+    String? fileUrl,
+    String? fileName,
+    String type = 'text',
+  }) async {
+    if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
 
-  final timestamp = DateTime.now();
+    final timestamp = DateTime.now();
 
-  try {
-    // ✅ 1️⃣ CREATE LOCAL MESSAGE (OPTIMISTIC UI)
-    final localMessage = GroupMessageModel(
-      id: null, // backend id later vastundi
-      messageId: 'local_${DateTime.now().millisecondsSinceEpoch}',
-      groupId: widget.groupId,
-      sender: widget.currentUserId,
-      senderName: widget.currentUserName,
-      text: text ?? '',
-      messageType: type,
-      fileUrl: fileUrl,
-      fileName: fileName,
-      timestamp: timestamp,
-      read: true,
-      isDeleted: false,
-    );
+    try {
+      // ✅ 1️⃣ CREATE LOCAL MESSAGE (OPTIMISTIC UI)
+      final localMessage = GroupMessageModel(
+        id: null, // backend id later vastundi
+        messageId: 'local_${DateTime.now().millisecondsSinceEpoch}',
+        groupId: widget.groupId,
+        sender: widget.currentUserId,
+        senderName: widget.currentUserName,
+        text: text ?? '',
+        messageType: type,
+        fileUrl: fileUrl,
+        fileName: fileName,
+        timestamp: timestamp,
+        read: true,
+        isDeleted: false,
+      );
 
-    // ✅ 2️⃣ ADD TO PROVIDER (IMMEDIATE UI)
-    _groupSocketProvider.addLocalGroupMessage(localMessage);
+      // ✅ 2️⃣ ADD TO PROVIDER (IMMEDIATE UI)
+      _groupSocketProvider.addLocalGroupMessage(localMessage);
 
-    _logger.info(
-      'GROUP_CHAT_SCREEN',
-      '✅ Message added to UI (optimistic)',
-    );
+      _logger.info('GROUP_CHAT_SCREEN', '✅ Message added to UI (optimistic)');
 
-    // ✅ 3️⃣ CLEAR INPUT + SCROLL
-    _messageController.clear();
-    _scrollToBottom();
+      // ✅ 3️⃣ CLEAR INPUT + SCROLL
+      _messageController.clear();
+      _scrollToBottom();
 
-    // ✅ 4️⃣ SEND TO SOCKET (BACKEND)
-    await _groupSocketProvider.sendGroupMessage(
-      groupId: widget.groupId,
-      sender: widget.currentUserId,
-      senderName: widget.currentUserName,
-      text: text ?? '',
-      messageType: type,
-      fileUrl: fileUrl,
-      fileName: fileName,
-    );
+      // ✅ 4️⃣ SEND TO SOCKET (BACKEND)
+      await _groupSocketProvider.sendGroupMessage(
+        groupId: widget.groupId,
+        sender: widget.currentUserId,
+        senderName: widget.currentUserName,
+        text: text ?? '',
+        messageType: type,
+        fileUrl: fileUrl,
+        fileName: fileName,
+      );
 
-    _logger.info(
-      'GROUP_CHAT_SCREEN',
-      '🚀 Socket emit success (group message)',
-    );
-  } catch (e, st) {
-    _logger.error(
-      'GROUP_CHAT_SCREEN',
-      '❌ Failed to send group message',
-      error: e,
-      stackTrace: st,
-    );
+      _logger.info(
+        'GROUP_CHAT_SCREEN',
+        '🚀 Socket emit success (group message)',
+      );
+    } catch (e, st) {
+      _logger.error(
+        'GROUP_CHAT_SCREEN',
+        '❌ Failed to send group message',
+        error: e,
+        stackTrace: st,
+      );
+    }
   }
-}
 
   /// Opens the image picker and sends the selected image.
   Future<void> _sendImage() async {
@@ -286,7 +291,12 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
       final file = File(result.files.single.path!);
       final documentUrl = await _fileUploadService.uploadFile(file);
       if (documentUrl != null) {
-        await _sendMessage(fileUrl: documentUrl,fileName: picked.name, type: 'document', text: "document");
+        await _sendMessage(
+          fileUrl: documentUrl,
+          fileName: picked.name,
+          type: 'document',
+          text: "document",
+        );
       }
     }
   }
@@ -320,7 +330,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
       (m) => m.messageId == localMessageId || m.id == localMessageId,
       orElse: () => throw Exception('Message not found'),
     );
-    final messageIdForAction = message.id != null ? message.id! : message.messageId;
+    final messageIdForAction = message.id != null
+        ? message.id!
+        : message.messageId;
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
@@ -329,13 +341,19 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       "Choose what to do:",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
@@ -349,23 +367,32 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
                   leading: const Icon(Icons.content_copy),
                   title: Text(
                     isMedia ? 'Copy Media URL' : 'Copy Message',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   onTap: () {
                     Clipboard.setData(
-                      ClipboardData(text: isMedia ? message.fileUrl! : message.text),
+                      ClipboardData(
+                        text: isMedia ? message.fileUrl! : message.text,
+                      ),
                     );
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied to clipboard')),
+                    );
                   },
                 ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: Text(
                   'Unsend Message',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.red),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -381,7 +408,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
 
   /// Shows a confirmation dialog before deleting a message.
   void _confirmDeleteMessage(String messageId) {
-    if(messageId.startsWith('local_')){
+    if (messageId.startsWith('local_')) {
       // Local message ni delete cheyali ante direct ga provider nundi delete chey
       _groupSocketProvider.removeLocalGroupMessage(messageId);
       return;
@@ -393,14 +420,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
           title: const Text('Confirm'),
           content: const Text('Are you sure you want to unsend this message?'),
           actions: <Widget>[
-            TextButton(child: const Text('Cancel'), onPressed: () => Navigator.of(context).pop()),
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
             TextButton(
               child: const Text('Unsend', style: TextStyle(color: Colors.red)),
               onPressed: () {
                 Navigator.of(context).pop();
                 _deleteMessage(messageId);
               },
-
             ),
           ],
         );
@@ -422,10 +451,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
         userId: widget.currentUserId,
         groupId: widget.groupId,
       );
-      _logger.info('GROUP_CHAT_SCREEN', '✅ Message unsent successfully - ID: $backendMessageId');
+      _logger.info(
+        'GROUP_CHAT_SCREEN',
+        '✅ Message unsent successfully - ID: $backendMessageId',
+      );
       if (mounted) setState(() {});
     } catch (e) {
-      _logger.error('GROUP_CHAT_SCREEN', '❌ Failed to unsend message', error: e);
+      _logger.error(
+        'GROUP_CHAT_SCREEN',
+        '❌ Failed to unsend message',
+        error: e,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -453,7 +489,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
 
   /// Checks if two dates are on the same day.
   bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.year == date2.year && date1.month == date2.month && date1.day == date2.day;
+    return date1.year == date2.year &&
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   /// Builds the input field for sending messages.
@@ -462,7 +500,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-          IconButton(icon: const Icon(Icons.attach_file), onPressed: _sendDocument),
+          IconButton(
+            icon: const Icon(Icons.attach_file),
+            onPressed: _sendDocument,
+          ),
           IconButton(icon: const Icon(Icons.camera_alt), onPressed: _sendImage),
           //IconButton(icon: const Icon(Icons.mic), onPressed: _sendVoiceMessage),
           Expanded(
@@ -470,7 +511,9 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
               controller: _messageController,
               decoration: InputDecoration(
                 hintText: "Type a message...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               onSubmitted: (_) => _sendMessage(text: _messageController.text),
@@ -483,6 +526,55 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
         ],
       ),
     );
+  }
+
+  // clear group chat
+  Future<void> _clearChat() async {
+    final shouldClear = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear Chat?'),
+        content: const Text(
+          'This will clear all messages in this group for you.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldClear == true) {
+      try {
+        setState(() => _isLoading = true);
+        await _groupSocketProvider.clearGroupChat(
+          groupId: widget.groupId,
+          userId: widget.currentUserId,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Chat cleared successfully!')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to clear chat: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } finally {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -508,6 +600,21 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
             ],
           ),
         ),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'clear_chat') {
+                _clearChat();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'clear_chat',
+                child: Text('Clear Chat'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -521,9 +628,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
                           .groupTypingIndicators['${widget.groupId}_${widget.currentUserId}'] ==
                       true)
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 12,
+                  ),
                   color: Colors.grey[200],
-                  child: const Text("Someone is typing...", style: TextStyle(fontSize: 12)),
+                  child: const Text(
+                    "Someone is typing...",
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
               Expanded(
                 child: _isLoading
@@ -536,66 +649,82 @@ class _GroupChatScreenState extends State<GroupChatScreen> with WidgetsBindingOb
                           final message = groupMessages[index];
                           final isMe = message.sender == widget.currentUserId;
                           if (!isMe) _markMessageAsRead(message);
-                          final previousMessage = index > 0 ? groupMessages[index - 1] : null;
+                          final previousMessage = index > 0
+                              ? groupMessages[index - 1]
+                              : null;
                           final showDateHeader =
                               previousMessage == null ||
-                              !_isSameDay(previousMessage.timestamp, message.timestamp);
+                              !_isSameDay(
+                                previousMessage.timestamp,
+                                message.timestamp,
+                              );
                           return Column(
                             children: [
-                              if (showDateHeader) _buildDateHeader(message.timestamp),
+                              if (showDateHeader)
+                                _buildDateHeader(message.timestamp),
                               if (message.messageType == 'text')
                                 GroupMessageBubble(
                                   key: ValueKey('group-msg-$index'),
                                   message: message,
                                   isMe: isMe,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId,
-                                    textToCopy: message.text,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId,
+                                        textToCopy: message.text,
+                                      ),
                                 ),
                               if (message.messageType == 'image')
                                 ImageMessageBubble(
                                   key: ValueKey('group-msg-$index'),
                                   imageUrl: message.fileUrl!,
                                   isMe: isMe,
-                                  timestamp: DateFormat('hh:mm a').format(message.timestamp),
+                                  timestamp: DateFormat(
+                                    'hh:mm a',
+                                  ).format(message.timestamp),
                                   read: message.read,
                                   isDeleted: message.isDeleted,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId,
-                                    textToCopy: message.fileUrl,
-                                    isMedia: true,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId,
+                                        textToCopy: message.fileUrl,
+                                        isMedia: true,
+                                      ),
                                 ),
                               if (message.messageType == 'document')
                                 DocumentMessageBubble(
                                   key: ValueKey('group-msg-$index'),
                                   documentUrl: message.fileUrl!,
                                   isMe: isMe,
-                                  timestamp: DateFormat('hh:mm a').format(message.timestamp),
+                                  timestamp: DateFormat(
+                                    'hh:mm a',
+                                  ).format(message.timestamp),
                                   isDeleted: message.isDeleted,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId,
-                                    textToCopy: message.fileUrl,
-                                    isMedia: true,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId,
+                                        textToCopy: message.fileUrl,
+                                        isMedia: true,
+                                      ),
                                 ),
                               if (message.messageType == 'voice')
                                 VoiceMessageBubble(
                                   key: ValueKey('group-msg-$index'),
                                   voiceUrl: message.fileUrl!,
                                   isMe: isMe,
-                                  timestamp: DateFormat('hh:mm a').format(message.timestamp),
+                                  timestamp: DateFormat(
+                                    'hh:mm a',
+                                  ).format(message.timestamp),
                                   isDeleted: message.isDeleted,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId,
-                                    textToCopy: message.fileUrl,
-                                    isMedia: true,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId,
+                                        textToCopy: message.fileUrl,
+                                        isMedia: true,
+                                      ),
                                 ),
                             ],
                           );
