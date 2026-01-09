@@ -3,6 +3,7 @@ import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
+import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import '../../../../core/utils/alert_utils.dart';
 
@@ -29,12 +30,29 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   int _duration = 0;
   bool _isSubmitting = false;
 
+  Set<DateTime> _holidayDates = {};
+
   final List<String> _leaveTypes = [
     'casualOrSickLeave',
     'earnedLeave',
     'emergencyLeave',
   ];
+  @override
+  void initState() {
+    super.initState();
+    _loadHolidays(); // ✅ CHANGED
+  }
 
+  // 🆕 ADDED → load holidays from provider
+  Future<void> _loadHolidays() async {
+    final holidayProvider = Provider.of<HolidayProvider>(context, listen: false);
+    await holidayProvider.fetchHolidays();
+    setState(() {
+      _holidayDates = holidayProvider.holidays
+          .map((h) => DateTime.parse(h.date))
+          .toSet();
+    });
+  }
   @override
   void dispose() {
     _reasonController.dispose();
@@ -72,10 +90,34 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   }
 }
   void _calculateDuration() {
-    if (_startDate != null && _endDate != null) {
-      _duration = _endDate!.difference(_startDate!).inDays + 1;
-    }
+  if (_startDate == null || _endDate == null) {
+    setState(() => _duration = 0);
+    return;
   }
+
+  int count = 0;
+  DateTime current = _startDate!;
+
+  while (!current.isAfter(_endDate!)) {
+    final isSunday = current.weekday == DateTime.sunday;
+
+    final isHoliday = _holidayDates.any((h) =>
+      h.year == current.year &&
+      h.month == current.month &&
+      h.day == current.day
+    );
+
+    if (!isSunday && !isHoliday) {
+      count++;
+    }
+
+    current = current.add(const Duration(days: 1));
+  }
+
+  setState(() {
+    _duration = count;
+  });
+}
 
   Future<void> _submitLeave() async {
     if (!_formKey.currentState!.validate()) return;
