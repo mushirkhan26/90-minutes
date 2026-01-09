@@ -89,19 +89,27 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
   // --- Helper Methods ---
   Future<void> _editGroupName() async {
-    final TextEditingController nameController = TextEditingController(text: _group.name);
+    final TextEditingController nameController = TextEditingController(
+      text: _group.name,
+    );
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Edit Group Name'),
         content: TextField(controller: nameController),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
               final newName = nameController.text.trim();
               if (newName.isEmpty) {
-                AlertHelper.snackBarWarning(context, 'Group name cannot be empty');
+                AlertHelper.snackBarWarning(
+                  context,
+                  'Group name cannot be empty',
+                );
                 return;
               }
               try {
@@ -117,7 +125,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 }
               } catch (e) {
                 if (context.mounted) {
-                  AlertHelper.snackBarError(context, 'Failed to update group name: $e');
+                  AlertHelper.snackBarError(
+                    context,
+                    'Failed to update group name: $e',
+                  );
                 }
               } finally {
                 setState(() => _isLoading = false);
@@ -171,11 +182,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               ),
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
               TextButton(
                 onPressed: () async {
                   if (_selectedMembers.isEmpty) {
-                    AlertHelper.snackBarWarning(context, 'Please select at least one member');
+                    AlertHelper.snackBarWarning(
+                      context,
+                      'Please select at least one member',
+                    );
                     return;
                   }
                   try {
@@ -192,7 +209,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     _selectedMembers.clear();
                   } catch (e) {
                     if (context.mounted) {
-                      AlertHelper.snackBarError(context, 'Failed to add members: $e');
+                      AlertHelper.snackBarError(
+                        context,
+                        'Failed to add members: $e',
+                      );
                     }
                   } finally {
                     setState(() => _isLoading = false);
@@ -214,10 +234,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         title: const Text('Remove Member?'),
         content: const Text('This member will no longer be part of the group.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Remove', style: TextStyle(color: AppColors.errorRed)),
+            child: const Text(
+              'Remove',
+              style: TextStyle(color: AppColors.errorRed),
+            ),
           ),
         ],
       ),
@@ -225,12 +251,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     if (shouldRemove == true) {
       try {
         setState(() => _isLoading = true);
-        await _groupSocketProvider.removeGroupMember(_group.groupId, userId, _currentUserId ?? '');
+        await _groupSocketProvider.removeGroupMember(
+          _group.groupId,
+          userId,
+          _currentUserId ?? '',
+        );
         if (mounted) {
           AlertHelper.snackBarSuccess(context, 'Member removed!');
         }
       } catch (e) {
-        if (mounted) AlertHelper.snackBarError(context, 'Failed to remove member: $e');
+        if (mounted)
+          AlertHelper.snackBarError(context, 'Failed to remove member: $e');
       } finally {
         setState(() => _isLoading = false);
       }
@@ -242,12 +273,20 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Group?'),
-        content: const Text('This action cannot be undone. All messages will be lost.'),
+        content: const Text(
+          'This action cannot be undone. All messages will be lost.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete', style: TextStyle(color: AppColors.errorRed)),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.errorRed),
+            ),
           ),
         ],
       ),
@@ -268,14 +307,12 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
         // 2️⃣ Then show snackbar after navigation
         Future.delayed(const Duration(milliseconds: 300), () {
-        if (!mounted) return;
-        AlertHelper.snackBarSuccess(
-        context,
-        'Group deleted successfully',
-      );
-});
+          if (!mounted) return;
+          AlertHelper.snackBarSuccess(context, 'Group deleted successfully');
+        });
       } catch (e) {
-        if (mounted) AlertHelper.snackBarError(context, 'Failed to delete group: $e');
+        if (mounted)
+          AlertHelper.snackBarError(context, 'Failed to delete group: $e');
       } finally {
         setState(() => _isLoading = false);
       }
@@ -287,12 +324,20 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Leave Group?'),
-        content: const Text('You will no longer receive messages from this group.'),
+        content: const Text(
+          'You will no longer receive messages from this group.',
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Leave', style: TextStyle(color: AppColors.errorRed)),
+            child: const Text(
+              'Leave',
+              style: TextStyle(color: AppColors.errorRed),
+            ),
           ),
         ],
       ),
@@ -307,7 +352,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         );
         if (mounted) Navigator.pop(context);
       } catch (e) {
-        if (mounted) AlertHelper.snackBarError(context, 'Failed to leave group: $e');
+        if (mounted)
+          AlertHelper.snackBarError(context, 'Failed to leave group: $e');
       } finally {
         setState(() => _isLoading = false);
       }
@@ -319,7 +365,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     try {
       final employee = _employees.firstWhere(
         (emp) => emp.employeeID == employeeId,
-        orElse: () => EmployeeModel(employeeID: employeeId, name: 'Unknown User'),
+        orElse: () =>
+            EmployeeModel(employeeID: employeeId, name: 'Unknown User'),
       );
       return employee.name;
     } catch (e) {
@@ -346,7 +393,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       height: 60,
                       errorWidget: (context, url, error) {
                         // handle invalid url, 403, etc.
-                        return const Icon(Icons.group, size: 30, color: Colors.white);
+                        return const Icon(
+                          Icons.group,
+                          size: 30,
+                          color: Colors.white,
+                        );
                       },
                       placeholder: (context, url) => const Center(
                         child: SizedBox(
@@ -367,7 +418,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               children: [
                 Text(_group.name, style: AppTextStyles.black18_600),
                 const SizedBox(height: 4),
-                Text('${_group.members.length} members', style: AppTextStyles.grey5C5C5C_16_600),
+                Text(
+                  '${_group.members.length} members',
+                  style: AppTextStyles.grey5C5C5C_16_600,
+                ),
               ],
             ),
           ),
@@ -390,7 +444,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               color: AppColors.greyE5E7EB,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(_group.description ?? 'No description', style: AppTextStyles.black14_400),
+            child: Text(
+              _group.description ?? 'No description',
+              style: AppTextStyles.black14_400,
+            ),
           ),
         ],
       ),
@@ -408,11 +465,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             children: [
               const Text('Members', style: AppTextStyles.black16_600),
               if (isadmin)
-              TextButton.icon(
-                onPressed: _addMembers,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add'),
-              ),
+                TextButton.icon(
+                  onPressed: _addMembers,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Add'),
+                ),
             ],
           ),
           const SizedBox(height: 8),
@@ -429,7 +486,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 subtitle: Text(memberId),
                 trailing: isadmin
                     ? IconButton(
-                        icon: const Icon(Icons.remove_circle, color: AppColors.errorRed),
+                        icon: const Icon(
+                          Icons.remove_circle,
+                          color: AppColors.errorRed,
+                        ),
                         onPressed: () => _removeMember(memberId),
                       )
                     : null,
@@ -448,11 +508,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         children: [
           // Edit Group Name
           if (isadmin)
-          ListTile(
-            leading: const Icon(Icons.edit, color: AppColors.primary),
-            title: const Text('Edit Group Name'),
-            onTap: _editGroupName,
-          ),
+            ListTile(
+              leading: const Icon(Icons.edit, color: AppColors.primary),
+              title: const Text('Edit Group Name'),
+              onTap: _editGroupName,
+            ),
           // Leave Group
           ListTile(
             leading: const Icon(Icons.logout, color: AppColors.errorRed),

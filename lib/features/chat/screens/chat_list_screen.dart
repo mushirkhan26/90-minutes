@@ -8,7 +8,8 @@ import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart' show AuthProvider;
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart'
+    show AuthProvider;
 import 'package:hrtz_hrms/features/chat/widgtes/employee_list_card.dart';
 import 'package:hrtz_hrms/features/chat/widgtes/group_chat_list_tile.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
@@ -23,7 +24,8 @@ class ChatListScreen extends StatefulWidget {
   State<ChatListScreen> createState() => _ChatListScreenState();
 }
 
-class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProviderStateMixin {
+class _ChatListScreenState extends State<ChatListScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   List<EmployeeModel> _filteredEmployees = [];
   List<EmployeeModel> _allEmployees = [];
@@ -99,7 +101,9 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: const Text(
                 'Create New Group',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
@@ -110,11 +114,20 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomTextField(controller: nameController, hintText: "Group Name"),
+                    CustomTextField(
+                      controller: nameController,
+                      hintText: "Group Name",
+                    ),
                     const SizedBox(height: 10),
-                    CustomTextField(controller: descController, hintText: "Description (optional)"),
+                    CustomTextField(
+                      controller: descController,
+                      hintText: "Description (optional)",
+                    ),
                     const SizedBox(height: 16),
-                    const Text('Select Members', style: TextStyle(fontWeight: FontWeight.w600)),
+                    const Text(
+                      'Select Members',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: ListView.builder(
@@ -142,7 +155,10 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                   ],
                 ),
               ),
-              actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              actionsPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               actions: [
                 Row(
                   children: [
@@ -164,7 +180,10 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                           final name = nameController.text.trim();
                           if (name.isEmpty) {
                             if (mounted) {
-                              AlertHelper.snackBarWarning(context, 'Please enter a group name');
+                              AlertHelper.snackBarWarning(
+                                context,
+                                'Please enter a group name',
+                              );
                             }
                             return;
                           }
@@ -179,10 +198,14 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                           }
 
                           Navigator.pop(context); // close dialog
-                          final createdBy = await context.getCurrentEmployeeId();
+                          final createdBy = await context
+                              .getCurrentEmployeeId();
                           if (createdBy == null) {
                             if (context.mounted) {
-                              AlertHelper.snackBarError(context, 'User ID not found in storage');
+                              AlertHelper.snackBarError(
+                                context,
+                                'User ID not found in storage',
+                              );
                             }
                             return;
                           }
@@ -193,7 +216,9 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                                 ? null
                                 : descController.text.trim(),
                             createdBy: createdBy,
-                            members: _selectedMembers.map((e) => e.employeeID).toList(),
+                            members: _selectedMembers
+                                .map((e) => e.employeeID)
+                                .toList(),
                           );
                         },
                       ),
@@ -287,7 +312,9 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
                 controller: _searchController,
                 onChanged: (value) {
                   _filterEmployees();
-                  setState(() {}); // Trigger rebuild to update group chat filter
+                  setState(
+                    () {},
+                  ); // Trigger rebuild to update group chat filter
                 },
                 hintText: 'Search...',
               ),
@@ -406,7 +433,8 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
           itemBuilder: (context, index) {
             final employee = sortedEmployees[index];
             final isActive = onlineIds.contains(employee.employeeID);
-            final unreadCount = socketProvider.unreadCounts[employee.employeeID] ?? 0;
+            final unreadCount =
+                socketProvider.unreadCounts[employee.employeeID] ?? 0;
             final statusText = presenceData[employee.employeeID] ?? "Offline";
 
             return EmployeeListCard(
@@ -437,10 +465,15 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
 
   /// Builds the group chats tab.
   Widget _buildGroupChatsTab(GroupSocketProvider groupSocketProvider) {
-    final filteredGroupChats = _filterGroupChats(groupSocketProvider.groupChats);
+    final filteredGroupChats = _filterGroupChats(
+      groupSocketProvider.groupChats,
+    );
     if (filteredGroupChats.isEmpty) {
       return const Center(
-        child: Text('No group chats found', style: TextStyle(color: Colors.grey)),
+        child: Text(
+          'No group chats found',
+          style: TextStyle(color: Colors.grey),
+        ),
       );
     }
 
@@ -449,7 +482,8 @@ class _ChatListScreenState extends State<ChatListScreen> with SingleTickerProvid
       itemCount: filteredGroupChats.length,
       itemBuilder: (context, index) {
         final groupChat = filteredGroupChats[index];
-        final unreadCount = groupSocketProvider.groupUnreadCounts[groupChat.groupId] ?? 0;
+        final unreadCount =
+            groupSocketProvider.groupUnreadCounts[groupChat.groupId] ?? 0;
         return GroupChatTile(
           groupName: groupChat.name,
           lastMessage: 'Tap to open chat',
