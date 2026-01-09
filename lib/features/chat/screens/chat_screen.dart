@@ -56,7 +56,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     _socketProvider.setActiveChatUserId(widget.otherUserId);
 
     _socketListener = () {
-      _logger.info('CHAT_SCREEN', '🔔 SocketProvider listener triggered - messages updated');
+      _logger.info(
+        'CHAT_SCREEN',
+        '🔔 SocketProvider listener triggered - messages updated',
+      );
       if (mounted) setState(() {});
     };
     _socketProvider.addListener(_socketListener);
@@ -79,26 +82,36 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     // Remove listener
     _socketProvider.removeListener(_socketListener);
     // Clear conversation messages from provider memory
-    _socketProvider.clearConversationMemory(_generateConversationId(), notify: false);
+    _socketProvider.clearConversationMemory(
+      _generateConversationId(),
+      notify: false,
+    );
 
     super.dispose();
   }
 
   // 🆕 inside _registerSocketEvents()
   // Add log to see when new message received or socket state updated
-  
 
   // 🆕 inside _loadInitialMessages()
   // Added logs to track what conversationId is loaded and how many messages received
   Future<void> _loadInitialMessages() async {
     setState(() => _isLoading = true);
     final conversationId = _generateConversationId();
-    _logger.info('CHAT_SCREEN', '📡 Loading messages for conversationId: $conversationId');
+    _logger.info(
+      'CHAT_SCREEN',
+      '📡 Loading messages for conversationId: $conversationId',
+    );
 
     try {
       await _socketProvider.loadConversationMessages(conversationId);
-      final totalMessages = _socketProvider.getConversationMessages(conversationId).length;
-      _logger.info('CHAT_SCREEN', '✅ Messages loaded successfully. Count: $totalMessages');
+      final totalMessages = _socketProvider
+          .getConversationMessages(conversationId)
+          .length;
+      _logger.info(
+        'CHAT_SCREEN',
+        '✅ Messages loaded successfully. Count: $totalMessages',
+      );
       setState(() => _isLoading = false);
     } catch (e) {
       _logger.error('CHAT_SCREEN', '❌ Failed to load messages', error: e);
@@ -127,7 +140,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   void _handleScroll() {
     if (_scrollController.position.atEdge) {
       final isBottom =
-          _scrollController.position.pixels == _scrollController.position.maxScrollExtent;
+          _scrollController.position.pixels ==
+          _scrollController.position.maxScrollExtent;
       if (isBottom != _isAtBottom) {
         setState(() => _isAtBottom = isBottom);
       }
@@ -154,7 +168,9 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   String _generateConversationId() {
     final sender = widget.currentUserId;
     final receiver = widget.otherUserId;
-    return sender.compareTo(receiver) < 0 ? '${sender}_$receiver' : '${receiver}_$sender';
+    return sender.compareTo(receiver) < 0
+        ? '${sender}_$receiver'
+        : '${receiver}_$sender';
   }
 
   String _formatDateHeader(DateTime date) {
@@ -186,67 +202,99 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Text(headerText, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          child: Text(
+            headerText,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
+          ),
         ),
       ),
     );
   }
 
+  // ===== [START: NEW FUNCTIONS FOR THREE-DOT MENU] =====
+  void _clearChat() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Clear Chat'),
+          content: const Text(
+            'Are you sure you want to clear the chat? This action cannot be undone.',
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            TextButton(
+              child: const Text('Clear', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                setState(() {});
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+  // ===== [END: NEW FUNCTIONS FOR THREE-DOT MENU] =====
+
   // 🆕 inside _sendMessage()
   // Added detailed logs to see exactly what data is being sent to the socket
   Future<void> _sendMessage({
-  String? text,
-  String? fileUrl,
-  String? fileName,
-  String type = 'text',
-}) async {
-  if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
+    String? text,
+    String? fileUrl,
+    String? fileName,
+    String type = 'text',
+  }) async {
+    if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
 
-  final conversationId = _generateConversationId();
-  final messageId = _uuid.v4();
-  final timestamp = DateTime.now();
+    final conversationId = _generateConversationId();
+    final messageId = _uuid.v4();
+    final timestamp = DateTime.now();
 
-  // ✅ 1️⃣ Local message create cheyyadam
-  final localMessage = ChatMessageModel(
-    messageId: messageId,
-    message: text,
-    sender: widget.currentUserId,
-    senderName: widget.currentUserName,
-    timestamp: timestamp,
-    messageType: type,
-    fileUrl: fileUrl,
-    fileName: fileName,
-    conversationId: conversationId,
-    delivered: false,
-    read: true,
-  );
-
-  // ✅ 2️⃣ UI lo immediate ga add cheyyadam
-  _socketProvider.addLocalMessage(localMessage);
-
-  _messageController.clear();
-  _scrollToBottom();
-
-  // ✅ 3️⃣ Socket ki send try cheyyadam
-  try {
-    await _socketProvider.sendMessage(
+    // ✅ 1️⃣ Local message create cheyyadam
+    final localMessage = ChatMessageModel(
+      messageId: messageId,
+      message: text,
       sender: widget.currentUserId,
       senderName: widget.currentUserName,
-      receiver: widget.otherUserId,
-      text: text ?? '',
-      messageId: messageId,
-      conversationId: conversationId,
+      timestamp: timestamp,
       messageType: type,
       fileUrl: fileUrl,
       fileName: fileName,
+      conversationId: conversationId,
+      delivered: false,
+      read: true,
     );
-  } catch (e) {
-    _logger.warning(
-      'CHAT_SCREEN',
-      '⚠️ Socket send failed, message kept locally',
-    );
+
+    // ✅ 2️⃣ UI lo immediate ga add cheyyadam
+    _socketProvider.addLocalMessage(localMessage);
+
+    _messageController.clear();
+    _scrollToBottom();
+
+    // ✅ 3️⃣ Socket ki send try cheyyadam
+    try {
+      await _socketProvider.sendMessage(
+        sender: widget.currentUserId,
+        senderName: widget.currentUserName,
+        receiver: widget.otherUserId,
+        text: text ?? '',
+        messageId: messageId,
+        conversationId: conversationId,
+        messageType: type,
+        fileUrl: fileUrl,
+        fileName: fileName,
+      );
+    } catch (e) {
+      _logger.warning(
+        'CHAT_SCREEN',
+        '⚠️ Socket send failed, message kept locally',
+      );
+    }
   }
-}
 
   Future<void> _sendImage() async {
     final picker = ImagePicker();
@@ -270,7 +318,12 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       final file = File(result.files.single.path!);
       final documentUrl = await _fileUploadService.uploadFile(file);
       if (documentUrl != null) {
-        await _sendMessage(fileUrl: documentUrl, fileName: picked.name, type: 'document', text: "document");
+        await _sendMessage(
+          fileUrl: documentUrl,
+          fileName: picked.name,
+          type: 'document',
+          text: "document",
+        );
       }
     }
   }
@@ -297,13 +350,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10.0,
+                  vertical: 8,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       "Choose what to do:",
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
@@ -321,19 +380,25 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                   ),
                   onTap: () {
                     Clipboard.setData(
-                      ClipboardData(text: isMedia ? message.fileUrl! : message.message!),
+                      ClipboardData(
+                        text: isMedia ? message.fileUrl! : message.message!,
+                      ),
                     );
                     Navigator.pop(context);
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Copied to clipboard')),
+                    );
                   },
                 ),
               ListTile(
                 leading: const Icon(Icons.delete, color: Colors.red),
                 title: Text(
                   'Unsend Message',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.red),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.red,
+                  ),
                 ),
                 onTap: () {
                   Navigator.pop(context);
@@ -355,7 +420,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
           title: const Text('Confirm'),
           content: const Text('Are you sure you want to unsend this message?'),
           actions: <Widget>[
-            TextButton(child: const Text('Cancel'), onPressed: () => Navigator.of(context).pop()),
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
             TextButton(
               child: const Text('Unsend', style: TextStyle(color: Colors.red)),
               onPressed: () {
@@ -386,7 +454,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         userId: widget.currentUserId,
         conversationId: conversationId,
       );
-      _logger.info('CHAT_SCREEN', '✅ Message unsent successfully - ID: $backendMessageId');
+      _logger.info(
+        'CHAT_SCREEN',
+        '✅ Message unsent successfully - ID: $backendMessageId',
+      );
 
       if (mounted) setState(() {});
     } catch (e) {
@@ -409,7 +480,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
     final hasMongoId = message.id != null;
 
     if (isNotMine && isUnread && hasMongoId) {
-      await _socketProvider.markMessageAsRead(messageId: message.id!, userId: widget.currentUserId);
+      await _socketProvider.markMessageAsRead(
+        messageId: message.id!,
+        userId: widget.currentUserId,
+      );
       _logger.logNetwork("👁 Marked message as read [${message.id}]");
     }
   }
@@ -417,10 +491,27 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final conversationId = _generateConversationId();
-    final conversationMessages = _socketProvider.getConversationMessages(conversationId);
+    final conversationMessages = _socketProvider.getConversationMessages(
+      conversationId,
+    );
 
     return Scaffold(
       appBar: AppBar(
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'clear_chat') {
+                _clearChat();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem<String>(
+                value: 'clear_chat',
+                child: Text('Clear Chat'),
+              ),
+            ],
+          ),
+        ],
         title: Row(
           children: [
             Initicon(text: widget.otherUserName, size: 30),
@@ -436,7 +527,10 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
               // Typing indicator
               if (_socketProvider.typingIndicators[widget.otherUserId] == true)
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 4,
+                    horizontal: 12,
+                  ),
                   color: Colors.grey[200],
                   child: Text(
                     "${widget.otherUserName} is typing...",
@@ -460,35 +554,43 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                               : null;
                           final showDateHeader =
                               previousMessage == null ||
-                              !ChatUtils().isSameDay(previousMessage.timestamp, message.timestamp);
+                              !ChatUtils().isSameDay(
+                                previousMessage.timestamp,
+                                message.timestamp,
+                              );
                           return Column(
                             children: [
-                              if (showDateHeader) _buildDateHeader(message.timestamp),
+                              if (showDateHeader)
+                                _buildDateHeader(message.timestamp),
                               if (message.messageType == 'text')
                                 MessageBubble(
                                   key: ValueKey('chat-msg-$index'),
                                   message: message,
                                   isMe: isMe,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId ?? "",
-                                    textToCopy: message.message,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId ?? "",
+                                        textToCopy: message.message,
+                                      ),
                                 ),
                               if (message.messageType == 'image')
                                 ImageMessageBubble(
                                   key: ValueKey('chat-msg-$index'),
                                   imageUrl: message.fileUrl!,
                                   isMe: isMe,
-                                  timestamp: DateFormat('hh:mm a').format(message.timestamp),
+                                  timestamp: DateFormat(
+                                    'hh:mm a',
+                                  ).format(message.timestamp),
                                   read: message.read,
                                   isDeleted: message.isDeleted,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId ?? "",
-                                    textToCopy: message.fileUrl,
-                                    isMedia: true,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId ?? "",
+                                        textToCopy: message.fileUrl,
+                                        isMedia: true,
+                                      ),
                                 ),
                               if (message.messageType == 'document')
                                 DocumentMessageBubble(
@@ -496,14 +598,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                   documentUrl: message.fileUrl!,
                                   fileName: message.fileName,
                                   isMe: isMe,
-                                  timestamp: DateFormat('hh:mm a').format(message.timestamp),
+                                  timestamp: DateFormat(
+                                    'hh:mm a',
+                                  ).format(message.timestamp),
                                   isDeleted: message.isDeleted,
-                                  onLongPress: () => _showMessageOptionsBottomSheet(
-                                    context,
-                                    message.messageId ?? "",
-                                    textToCopy: message.fileUrl,
-                                    isMedia: true,
-                                  ),
+                                  onLongPress: () =>
+                                      _showMessageOptionsBottomSheet(
+                                        context,
+                                        message.messageId ?? "",
+                                        textToCopy: message.fileUrl,
+                                        isMedia: true,
+                                      ),
                                 ),
                             ],
                           );
@@ -533,14 +638,19 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
       padding: const EdgeInsets.all(8),
       child: Row(
         children: [
-          IconButton(icon: const Icon(Icons.attach_file), onPressed: _sendDocument),
+          IconButton(
+            icon: const Icon(Icons.attach_file),
+            onPressed: _sendDocument,
+          ),
           IconButton(icon: const Icon(Icons.camera_alt), onPressed: _sendImage),
           Expanded(
             child: TextField(
               controller: _messageController,
               decoration: InputDecoration(
                 hintText: "Type a message...",
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
               onSubmitted: (_) => _sendMessage(text: _messageController.text),

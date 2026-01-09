@@ -15,7 +15,8 @@ class SocketProvider extends ChangeNotifier {
   final SocketManager _manager = SocketManager.instance;
   final LocalStorageService _localStorage = LocalStorageService();
   final LoggingService _logger = LoggingService.instance;
-  final LocalNotificationService _notificationService = LocalNotificationService();
+  final LocalNotificationService _notificationService =
+      LocalNotificationService();
 
   /// List of online users
   List<String> _onlineUsers = [];
@@ -36,7 +37,8 @@ class SocketProvider extends ChangeNotifier {
   /// 🟢 Last seen / presence tracking
   /// Cached last seen map (employeeID -> readable string)
   final Map<String, String> _lastSeenCache = {};
-  final StreamController<Map<String, String>> _presenceController = StreamController.broadcast();
+  final StreamController<Map<String, String>> _presenceController =
+      StreamController.broadcast();
   Stream<Map<String, String>> get presenceStream => _presenceController.stream;
 
   /// Getters
@@ -51,8 +53,10 @@ class SocketProvider extends ChangeNotifier {
   void addLocalMessage(ChatMessageModel message) async {
     _messages.add(message);
     notifyListeners();
-    if (message.conversationId != null){
-      final existing  = await _localStorage.getChatMessages(message.conversationId!);
+    if (message.conversationId != null) {
+      final existing = await _localStorage.getChatMessages(
+        message.conversationId!,
+      );
       existing.add(message);
       await _localStorage.saveChatMessages(message.conversationId!, existing);
       _logger.logNetwork(
@@ -64,7 +68,8 @@ class SocketProvider extends ChangeNotifier {
   ///  Helper to update a message by either MongoDB _id or messageId (fallback)
   void _updateMessage(ChatMessageModel updatedMessage) {
     final index = _messages.indexWhere(
-      (m) => m.id == updatedMessage.id || m.messageId == updatedMessage.messageId,
+      (m) =>
+          m.id == updatedMessage.id || m.messageId == updatedMessage.messageId,
     );
     if (index != -1) {
       _messages[index] = updatedMessage;
@@ -75,7 +80,9 @@ class SocketProvider extends ChangeNotifier {
   String? _activeChatUserId;
   void setActiveChatUserId(String? userId) {
     _activeChatUserId = userId;
-    _logger.logNetwork("[SocketProvider] Active chat user set: $_activeChatUserId");
+    _logger.logNetwork(
+      "[SocketProvider] Active chat user set: $_activeChatUserId",
+    );
   }
 
   // 🕓 Track user who was recently chatted with
@@ -101,7 +108,9 @@ class SocketProvider extends ChangeNotifier {
     /// 🟢 Online Users Listener with presence tracking
     _manager.registerEvent('onlineUsers', (data) async {
       final newOnlineUsers = List<String>.from(data);
-      final wentOffline = _onlineUsers.where((u) => !newOnlineUsers.contains(u)).toList();
+      final wentOffline = _onlineUsers
+          .where((u) => !newOnlineUsers.contains(u))
+          .toList();
 
       _onlineUsers = newOnlineUsers;
 
@@ -156,9 +165,14 @@ class SocketProvider extends ChangeNotifier {
       );
 
       if (message.conversationId != null) {
-        final existingMessages = await _localStorage.getChatMessages(message.conversationId!);
+        final existingMessages = await _localStorage.getChatMessages(
+          message.conversationId!,
+        );
         existingMessages.add(message);
-        await _localStorage.saveChatMessages(message.conversationId!, existingMessages);
+        await _localStorage.saveChatMessages(
+          message.conversationId!,
+          existingMessages,
+        );
         _logger.logNetwork(
           "[LocalStorage] Message saved for conversation: ${message.conversationId}",
         );
@@ -173,13 +187,18 @@ class SocketProvider extends ChangeNotifier {
 
       // 🧠 Show notification only if message is NOT from current user
       if (message.sender != _activeChatUserId &&
-          !(currentUserID == message.sender && currentUserName == message.senderName)) {
-        _unreadCounts[message.sender!] = (_unreadCounts[message.sender!] ?? 0) + 1;
+          !(currentUserID == message.sender &&
+              currentUserName == message.senderName)) {
+        _unreadCounts[message.sender!] =
+            (_unreadCounts[message.sender!] ?? 0) + 1;
         _logger.logNetwork(
           "[SocketProvider] Unread count for ${message.sender}: ${_unreadCounts[message.sender!]}",
         );
 
-        final totalUnread = _unreadCounts.values.fold<int>(0, (sum, c) => sum + c);
+        final totalUnread = _unreadCounts.values.fold<int>(
+          0,
+          (sum, c) => sum + c,
+        );
         final totalUsers = _unreadCounts.length;
 
         await _notificationService.showConsolidatedNotification(
@@ -190,7 +209,9 @@ class SocketProvider extends ChangeNotifier {
           currentUserData: currentUserData,
         );
       } else {
-        _logger.logNetwork("[SocketProvider] User is on the active chat. No notification.");
+        _logger.logNetwork(
+          "[SocketProvider] User is on the active chat. No notification.",
+        );
       }
     });
 
@@ -203,7 +224,8 @@ class SocketProvider extends ChangeNotifier {
 
       final index = _messages.indexWhere(
         (m) =>
-            (mongoId != null && m.id == mongoId) || (clientId != null && m.messageId == clientId),
+            (mongoId != null && m.id == mongoId) ||
+            (clientId != null && m.messageId == clientId),
       );
 
       if (index != -1) {
@@ -218,11 +240,16 @@ class SocketProvider extends ChangeNotifier {
 
         _messages[index] = updatedMessage;
         if (updatedMessage.conversationId != null) {
-          await _localStorage.updateChatMessage(updatedMessage.conversationId!, updatedMessage);
+          await _localStorage.updateChatMessage(
+            updatedMessage.conversationId!,
+            updatedMessage,
+          );
         }
 
         notifyListeners();
-        _logger.logNetwork("[Socket] Message status updated: ${mongoId ?? clientId} -> $status");
+        _logger.logNetwork(
+          "[Socket] Message status updated: ${mongoId ?? clientId} -> $status",
+        );
       }
     });
 
@@ -234,7 +261,8 @@ class SocketProvider extends ChangeNotifier {
 
       final index = _messages.indexWhere(
         (m) =>
-            (mongoId != null && m.id == mongoId) || (clientId != null && m.messageId == clientId),
+            (mongoId != null && m.id == mongoId) ||
+            (clientId != null && m.messageId == clientId),
       );
 
       if (index != -1) {
@@ -269,7 +297,9 @@ class SocketProvider extends ChangeNotifier {
     _manager.registerEvent('userTyping', (data) {
       _typingIndicators[data['userId']] = data['isTyping'];
       notifyListeners();
-      _logger.logNetwork("Typing status: ${data['userId']} -> ${data['isTyping']}");
+      _logger.logNetwork(
+        "Typing status: ${data['userId']} -> ${data['isTyping']}",
+      );
     });
 
     _logger.logNetwork("SocketProvider initialized");
@@ -343,7 +373,10 @@ class SocketProvider extends ChangeNotifier {
       _notificationService.clearNotifications();
     } else {
       // update remaining users’ notification
-      final totalUnread = _unreadCounts.values.fold<int>(0, (sum, c) => sum + c);
+      final totalUnread = _unreadCounts.values.fold<int>(
+        0,
+        (sum, c) => sum + c,
+      );
       final totalUsers = _unreadCounts.length;
       _notificationService.showConsolidatedNotification(
         totalUnreadCount: totalUnread,
@@ -407,7 +440,9 @@ class SocketProvider extends ChangeNotifier {
     required String userId,
     String? conversationId,
   }) async {
-    final index = _messages.indexWhere((m) => m.id == messageId || m.messageId == messageId);
+    final index = _messages.indexWhere(
+      (m) => m.id == messageId || m.messageId == messageId,
+    );
 
     if (index != -1) {
       final updatedMessage = _messages[index].copyWith(
@@ -437,21 +472,33 @@ class SocketProvider extends ChangeNotifier {
     required String targetUserId,
     required bool isTyping,
   }) {
-    _manager.sendTypingStatus(userId: userId, targetUserId: targetUserId, isTyping: isTyping);
+    _manager.sendTypingStatus(
+      userId: userId,
+      targetUserId: targetUserId,
+      isTyping: isTyping,
+    );
   }
 
   /// Marks a message as read.
-  Future<void> markMessageAsRead({required String messageId, required String userId}) async {
+  Future<void> markMessageAsRead({
+    required String messageId,
+    required String userId,
+  }) async {
     await _manager.markMessageAsRead(messageId: messageId, userId: userId);
 
-    final index = _messages.indexWhere((m) => m.id == messageId || m.messageId == messageId);
+    final index = _messages.indexWhere(
+      (m) => m.id == messageId || m.messageId == messageId,
+    );
 
     if (index != -1) {
       _messages[index] = _messages[index].copyWith(read: true);
       notifyListeners();
 
       if (_messages[index].conversationId != null) {
-        await _localStorage.updateChatMessage(_messages[index].conversationId!, _messages[index]);
+        await _localStorage.updateChatMessage(
+          _messages[index].conversationId!,
+          _messages[index],
+        );
       }
     }
   }
@@ -462,11 +509,15 @@ class SocketProvider extends ChangeNotifier {
     required String receiverId,
   }) async {
     final conversationId = [senderId, receiverId].join('_');
-    await _manager.markConversationAsRead(senderId: senderId, receiverId: receiverId);
+    await _manager.markConversationAsRead(
+      senderId: senderId,
+      receiverId: receiverId,
+    );
 
     // Update all unread messages in this conversation
     for (var i = 0; i < _messages.length; i++) {
-      if (_messages[i].conversationId == conversationId && !_messages[i].read!) {
+      if (_messages[i].conversationId == conversationId &&
+          !_messages[i].read!) {
         _messages[i] = _messages[i].copyWith(read: true);
 
         // Update in local storage
@@ -483,7 +534,11 @@ class SocketProvider extends ChangeNotifier {
     required String userId,
   }) async {
     final conversationId = [senderId, receiverId].join('_');
-    await _manager.clearConversation(senderId: senderId, receiverId: receiverId, userId: userId);
+    await _manager.clearConversation(
+      senderId: senderId,
+      receiverId: receiverId,
+      userId: userId,
+    );
 
     // Remove all messages in this conversation
     _messages.removeWhere((m) => m.conversationId == conversationId);
@@ -531,4 +586,6 @@ class SocketProvider extends ChangeNotifier {
     _manager.unregisterEvent('userTyping');
     _logger.logNetwork("SocketProvider disposed");
   }
+
+  void clearConversationMessages(String conversationId) {}
 }
