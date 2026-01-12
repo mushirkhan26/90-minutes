@@ -345,12 +345,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     if (shouldLeave == true) {
       try {
         setState(() => _isLoading = true);
-        await _groupSocketProvider.removeGroupMember(
-          _group.groupId,
-          _currentUserId ?? '',
-          _currentUserId ?? '',
+        // Use leaveGroup method instead of removeGroupMember for self-leaving
+        await _groupSocketProvider.leaveGroup(
+          groupId: _group.groupId,
+          userId: _currentUserId ?? '',
         );
-        if (mounted) Navigator.pop(context);
+        if (mounted) {
+           Navigator.popUntil(context, (route) => route.isFirst);
+           AlertHelper.snackBarSuccess(context, 'Left group successfully');
+        }
       } catch (e) {
         if (mounted)
           AlertHelper.snackBarError(context, 'Failed to leave group: $e');

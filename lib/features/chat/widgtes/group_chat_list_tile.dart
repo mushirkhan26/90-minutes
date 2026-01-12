@@ -29,7 +29,11 @@ class GroupChatTile extends StatelessWidget {
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          if (time != null) Text(DateFormat('hh:mm a').format(time!)),
+          if (time != null) 
+            Text(
+              DateFormat('hh:mm a').format(time!.toLocal()), // Added .toLocal() here
+              style: const TextStyle(fontSize: 12),
+            ),
           if (unreadCount > 0)
             Container(
               padding: const EdgeInsets.all(2),

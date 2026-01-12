@@ -215,12 +215,14 @@ class _GroupChatScreenState extends State<GroupChatScreen>
     if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
 
     final timestamp = DateTime.now();
+    // Use temp_ prefix for all optimistic messages
+    final messageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
     try {
       // ✅ 1️⃣ CREATE LOCAL MESSAGE (OPTIMISTIC UI)
       final localMessage = GroupMessageModel(
         id: null, // backend id later vastundi
-        messageId: 'local_${DateTime.now().millisecondsSinceEpoch}',
+        messageId: messageId,
         groupId: widget.groupId,
         sender: widget.currentUserId,
         senderName: widget.currentUserName,
@@ -248,6 +250,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
         sender: widget.currentUserId,
         senderName: widget.currentUserName,
         text: text ?? '',
+        messageId: messageId,
         messageType: type,
         fileUrl: fileUrl,
         fileName: fileName,
@@ -384,21 +387,22 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                     );
                   },
                 ),
-              ListTile(
-                leading: const Icon(Icons.delete, color: Colors.red),
-                title: Text(
-                  'Unsend Message',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.red,
+              if (message.sender == widget.currentUserId)
+                ListTile(
+                  leading: const Icon(Icons.delete, color: Colors.red),
+                  title: const Text(
+                    'Unsend Message',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.red,
+                    ),
                   ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _confirmDeleteMessage(messageIdForAction);
+                  },
                 ),
-                onTap: () {
-                  Navigator.pop(context);
-                  _confirmDeleteMessage(messageIdForAction);
-                },
-              ),
             ],
           ),
         );
@@ -408,7 +412,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
 
   /// Shows a confirmation dialog before deleting a message.
   void _confirmDeleteMessage(String messageId) {
-    if (messageId.startsWith('local_')) {
+    if (messageId.startsWith('temp_')) {
       // Local message ni delete cheyali ante direct ga provider nundi delete chey
       _groupSocketProvider.removeLocalGroupMessage(messageId);
       return;

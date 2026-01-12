@@ -36,9 +36,32 @@ class GroupMessageModel {
   // Create from backend/server map
   factory GroupMessageModel.fromMap(Map<String, dynamic> map) {
     final backendId = map['_id']?.toString();
+    
+    // Improved timestamp parsing with explicit local conversion
+    DateTime parsedTimestamp;
+    var tsValue = map['timestamp'];
+    if (tsValue is String) {
+      // If it's a string, try to parse and ensure it's treated as UTC if no offset exists
+      String ts = tsValue;
+      if (!ts.contains('Z') && !ts.contains('+') && !ts.contains('-')) {
+        ts += 'Z'; 
+      }
+      parsedTimestamp = DateTime.tryParse(ts)?.toLocal() ?? DateTime.now();
+    } else if (tsValue is int) {
+      // Handle seconds vs milliseconds (Unix timestamps are usually UTC)
+      if (tsValue < 10000000000) { 
+        parsedTimestamp = DateTime.fromMillisecondsSinceEpoch(tsValue * 1000).toLocal();
+      } else {
+        parsedTimestamp = DateTime.fromMillisecondsSinceEpoch(tsValue).toLocal();
+      }
+    } else {
+      parsedTimestamp = DateTime.now();
+    }
+
     return GroupMessageModel(
       id: backendId,
-      messageId: backendId ?? map['messageId']?.toString() ?? '',
+      // Prefer messageId from map (client-generated), fallback to backend _id
+      messageId: map['messageId']?.toString() ?? backendId ?? '',
       groupId: map['groupId']?.toString() ?? '',
       sender: map['sender']?.toString() ?? '',
       senderName: map['senderName']?.toString() ?? '',
@@ -47,15 +70,14 @@ class GroupMessageModel {
       fileName: map['fileName']?.toString(),
       fileUrl: map['fileUrl']?.toString(),
       replyTo: map['replyTo']?.toString(),
-      mentions: List<String>.from(map['mentions'] ?? []),
+      mentions: map['mentions'] != null ? List<String>.from(map['mentions']) : [],
       read: map['read'] ?? false,
       delivered: map['delivered'] ?? false,
       isDeleted: map['isDeleted'] ?? false,
-      timestamp: map['timestamp'] is String
-          ? DateTime.tryParse(map['timestamp']) ?? DateTime.now()
-          : DateTime.fromMillisecondsSinceEpoch(map['timestamp'] ?? 0),
+      timestamp: parsedTimestamp,
     );
   }
+
   // Convert to local storage map
   Map<String, dynamic> toLocalMap() {
     return {
@@ -86,7 +108,7 @@ class GroupMessageModel {
       sender: map['sender'],
       senderName: map['senderName'],
       text: map['text'],
-      timestamp: DateTime.parse(map['timestamp']),
+      timestamp: DateTime.parse(map['timestamp']).toLocal(),
       messageType: map['messageType'] ?? 'text',
       fileName: map['fileName'],
       fileUrl: map['fileUrl'],
