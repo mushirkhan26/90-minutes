@@ -20,6 +20,7 @@ import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart'; // Added
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
 import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart'; // Added Import
+import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
@@ -43,7 +44,9 @@ void main() async {
   SocketService.instance.init();
 
   // 🧩 Register background FCM handler (important for background/terminated messages)
-  FirebaseMessaging.onBackgroundMessage(PushNotificationService.firebaseMessagingBackgroundHandler);
+  FirebaseMessaging.onBackgroundMessage(
+    PushNotificationService.firebaseMessagingBackgroundHandler,
+  );
 
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -63,13 +66,17 @@ void main() async {
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
         ChangeNotifierProvider(create: (_) => MeetProvider()),
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
-        ChangeNotifierProvider(create:  (_) => HolidayProvider()),
-        ChangeNotifierProvider<MailProvider>(create: (_) => MailProvider()..fetchInbox()),
+        ChangeNotifierProvider(create: (_) => HolidayProvider()),
+        ChangeNotifierProvider(create: (_) => TasksProvider()),
+        ChangeNotifierProvider<MailProvider>(
+          create: (_) => MailProvider()..fetchInbox(),
+        ),
 
         ChangeNotifierProvider(
           create: (_) => ClockProvider()
             ..getAttendance(
-              date: '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
+              date:
+                  '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
             ),
         ),
       ],
@@ -116,7 +123,9 @@ class _MainAppState extends State<MainApp> {
         PushNotificationService.handleNotificationTap(payload);
         PushNotificationService.pendingPayload = null;
       } else {
-        LoggingService.instance.logNetwork("ℹ️ No pending payload on app start");
+        LoggingService.instance.logNetwork(
+          "ℹ️ No pending payload on app start",
+        );
       }
     });
   }

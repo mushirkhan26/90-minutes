@@ -7,6 +7,7 @@ import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
+import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
@@ -23,7 +24,10 @@ class HomeScreen extends StatelessWidget {
     final clockProvider = Provider.of<ClockProvider>(context);
     final secureStorage = SecureStorageService();
 
-    Future<void> showLogoutDialog(BuildContext context, AuthProvider authProvider) async {
+    Future<void> showLogoutDialog(
+      BuildContext context,
+      AuthProvider authProvider,
+    ) async {
       return showDialog<void>(
         context: context,
         barrierDismissible: false,
@@ -64,7 +68,8 @@ class HomeScreen extends StatelessWidget {
             onVerified: () async {
               if (isClockIn) {
                 await clockProvider.clockIn(
-                  department: authProvider.userData?['department'] ?? 'Department',
+                  department:
+                      authProvider.userData?['department'] ?? 'Department',
                   imageUrl: clockProvider.capturedImageUrl!,
                 );
               } else {
@@ -80,7 +85,11 @@ class HomeScreen extends StatelessWidget {
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(isClockIn ? 'Clock in successful!' : 'Clock out successful!'),
+                      content: Text(
+                        isClockIn
+                            ? 'Clock in successful!'
+                            : 'Clock out successful!',
+                      ),
                       backgroundColor: Colors.green,
                     ),
                   );
@@ -102,7 +111,8 @@ class HomeScreen extends StatelessWidget {
           future: secureStorage.getUserData(),
           builder: (context, snapshot) {
             final userData = snapshot.data;
-            return Column( // Changed ListView to Column to use Spacer
+            return Column(
+              // Changed ListView to Column to use Spacer
               children: [
                 DrawerHeader(
                   decoration: BoxDecoration(color: AppColors.primary),
@@ -116,12 +126,17 @@ class HomeScreen extends StatelessWidget {
                         'Welcome ${userData?['username'] ?? 'User'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ],
                   ),
                 ),
-                Expanded( // Added Expanded for scrollable part if needed
+                Expanded(
+                  // Added Expanded for scrollable part if needed
                   child: ListView(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
@@ -146,10 +161,24 @@ class HomeScreen extends StatelessWidget {
                         leading: const Icon(Icons.calendar_month),
                         title: const Text('Holiday Calendar'),
                         onTap: () {
-                          Navigator.push(context, MaterialPageRoute(
-                            builder: (_) => const HolidayCalendarScreen(),
-                          ));
-                        
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const HolidayCalendarScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      ListTile(
+                        leading: const Icon(Icons.task_sharp),
+                        title: const Text('Tasks'),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const TasksScreen(),
+                            ),
+                          );
                         },
                       ),
                       ListTile(
@@ -166,7 +195,10 @@ class HomeScreen extends StatelessWidget {
                 const Divider(),
                 ListTile(
                   leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                  title: const Text(
+                    'Logout',
+                    style: TextStyle(color: Colors.red),
+                  ),
                   onTap: () async {
                     Navigator.pop(context);
                     showLogoutDialog(context, authProvider);
@@ -237,7 +269,11 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 15),
                   Row(
                     children: [
-                      const Icon(Icons.timer_outlined, size: 20, color: Colors.green),
+                      const Icon(
+                        Icons.timer_outlined,
+                        size: 20,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Start Time: ${clockProvider.startTime ?? '00:00:00'}',
@@ -248,7 +284,11 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.timer_off_outlined, size: 20, color: Colors.blue),
+                      const Icon(
+                        Icons.timer_off_outlined,
+                        size: 20,
+                        color: Colors.blue,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'End Time: ${clockProvider.endTime ?? '00:00:00'}',
@@ -259,7 +299,11 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 20, color: Colors.purple),
+                      const Icon(
+                        Icons.access_time,
+                        size: 20,
+                        color: Colors.purple,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Worked Duration: ${clockProvider.workedDuration ?? '00:00:06'}',
@@ -276,9 +320,16 @@ class HomeScreen extends StatelessWidget {
               children: [
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clockProvider.isClockedIn ? Colors.grey : AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
+                    backgroundColor: clockProvider.isClockedIn
+                        ? Colors.grey
+                        : AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 35,
+                      vertical: 15,
+                    ),
                   ),
                   onPressed: clockProvider.isClockedIn
                       ? null
@@ -293,9 +344,16 @@ class HomeScreen extends StatelessWidget {
                 const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clockProvider.isClockedIn ? AppColors.primary : Colors.grey,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+                    backgroundColor: clockProvider.isClockedIn
+                        ? AppColors.primary
+                        : Colors.grey,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 30,
+                      vertical: 15,
+                    ),
                   ),
                   onPressed: !clockProvider.isClockedOut
                       ? () async {
@@ -304,7 +362,10 @@ class HomeScreen extends StatelessWidget {
                             if (clockProvider.state == ClockState.error) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(clockProvider.errorMessage ?? 'An error occurred'),
+                                  content: Text(
+                                    clockProvider.errorMessage ??
+                                        'An error occurred',
+                                  ),
                                   backgroundColor: Colors.red,
                                 ),
                               );
