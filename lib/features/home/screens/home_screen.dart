@@ -6,7 +6,7 @@ import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
-import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
+// import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
@@ -58,48 +58,48 @@ class HomeScreen extends StatelessWidget {
       );
     }
 
-    void showFaceVerificationDialog({required bool isClockIn}) {
-      showDialog(
-        context: context,
-        barrierColor: Colors.black.withValues(alpha: 0.5),
-        builder: (BuildContext context) {
-          return FaceVerification(
-            isClockIn: isClockIn,
-            onVerified: () async {
-              if (isClockIn) {
-                await clockProvider.clockIn(
-                  department:
-                      authProvider.userData?['department'] ?? 'Department',
-                  imageUrl: clockProvider.capturedImageUrl!,
-                );
-              } else {
-                await clockProvider.clockOut();
-              }
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (clockProvider.state == ClockState.error) {
-                  AlertHelper.snackBarError(
-                    context,
-                    clockProvider.errorMessage ?? 'An error occurred',
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        isClockIn
-                            ? 'Clock in successful!'
-                            : 'Clock out successful!',
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                }
-              }
-            },
-          );
-        },
-      );
-    }
+    // void showFaceVerificationDialog({required bool isClockIn}) {
+    //   showDialog(
+    //     context: context,
+    //     barrierColor: Colors.black.withValues(alpha: 0.5),
+    //     builder: (BuildContext context) {
+    //       return FaceVerification(
+    //         isClockIn: isClockIn,
+    //         onVerified: () async {
+    //           if (isClockIn) {
+    //             await clockProvider.clockIn(
+    //               department:
+    //                   authProvider.userData?['department'] ?? 'Department',
+    //               imageUrl: clockProvider.capturedImageUrl!,
+    //             );
+    //           } else {
+    //             await clockProvider.clockOut();
+    //           }
+    //           if (context.mounted) {
+    //             Navigator.pop(context);
+    //             if (clockProvider.state == ClockState.error) {
+    //               AlertHelper.snackBarError(
+    //                 context,
+    //                 clockProvider.errorMessage ?? 'An error occurred',
+    //               );
+    //             } else {
+    //               ScaffoldMessenger.of(context).showSnackBar(
+    //                 SnackBar(
+    //                   content: Text(
+    //                     isClockIn
+    //                         ? 'Clock in successful!'
+    //                         : 'Clock out successful!',
+    //                   ),
+    //                   backgroundColor: Colors.green,
+    //                 ),
+    //               );
+    //             }
+    //           }
+    //         },
+    //       );
+    //     },
+    //   );
+    // }
 
     return Scaffold(
       appBar: AppBar(
@@ -331,11 +331,39 @@ class HomeScreen extends StatelessWidget {
                       vertical: 15,
                     ),
                   ),
+
                   onPressed: clockProvider.isClockedIn
                       ? null
-                      : () {
-                          showFaceVerificationDialog(isClockIn: true);
-                        },
+                      // : () {
+                      //     showFaceVerificationDialog(isClockIn: true);
+                      //   },
+                      : () async {
+                    // showFaceVerificationDialog(isClockIn: true);
+                    // comment face recognizaton
+                    //
+                    await clockProvider.clockIn(
+                      department: authProvider.userData?['department'] ??
+                          'Department',
+                      imageUrl: '', // Face recognition is off
+                    );
+                    if (context.mounted) {
+                      if (clockProvider.state == ClockState.error) {
+                        AlertHelper.snackBarError(
+                          context,
+                          clockProvider.errorMessage ??
+                              'An error occurred',
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Clock in successful!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  //
                   child: const Text(
                     'Clock In',
                     style: TextStyle(fontSize: 16, color: Colors.white),

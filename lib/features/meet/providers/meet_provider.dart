@@ -24,7 +24,7 @@ class MeetProvider extends ChangeNotifier {
 
   static const cacheValidity = Duration(minutes: 10);
 
-  Future<void> fetchMeetingsForToday({bool forceRefresh = false}) async {
+  Future<void> fetchUpcomingMeetings({bool forceRefresh = false}) async {
     _state = MeetState.loading;
     notifyListeners();
 
@@ -52,10 +52,10 @@ class MeetProvider extends ChangeNotifier {
       final employeeId = await _secureStorage.getEmployeeId();
       if (employeeId == null) throw Exception('Employee ID not found');
 
-      final response = await _meetService.getMeetingsForToday(employeeId: employeeId);
+      // Changed from getMeetingsForToday to getUpcomingMeetings to show future meetings
+      final response = await _meetService.getUpcomingMeetings(employeeId: employeeId);
 
       if (response.success && response.data != null) {
-        // Extract the list of meetings from the 'data' key in the response
         final List<dynamic> meetsJson = response.data!['data'] as List<dynamic>;
         _meetList = meetsJson.map((json) => Meet.fromJson(json)).toList();
         await _localStorage.saveMeetList(_meetList);
@@ -66,7 +66,7 @@ class MeetProvider extends ChangeNotifier {
       }
     } catch (e, s) {
       _errorMessage = 'Failed to fetch meets: $e';
-      _logger.error('MEET_PROVIDER', 'fetchMeetingsForToday failed', error: e, stackTrace: s);
+      _logger.error('MEET_PROVIDER', 'fetchUpcomingMeetings failed', error: e, stackTrace: s);
       if (_meetList.isEmpty) _state = MeetState.error;
     }
     notifyListeners();
@@ -107,7 +107,7 @@ class MeetProvider extends ChangeNotifier {
 
     if (response.success) {
       _logger.logGeneral('✅ Meeting added successfully');
-      await fetchMeetingsForToday(); // Refresh list
+      await fetchUpcomingMeetings(); // Refresh list
       _state = MeetState.success;
       notifyListeners();
       return true;
@@ -129,7 +129,7 @@ class MeetProvider extends ChangeNotifier {
 
     if (response.success) {
       _logger.logGeneral('✅ Meeting updated successfully');
-      await fetchMeetingsForToday(); // Refresh list
+      await fetchUpcomingMeetings(); // Refresh list
       _state = MeetState.success;
       notifyListeners();
       return true;

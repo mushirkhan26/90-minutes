@@ -76,6 +76,14 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
           pickedTime.hour,
           pickedTime.minute,
         );
+        
+        if (combined.isBefore(DateTime.now())) {
+          if (mounted) {
+            AlertHelper.snackBarError(context, "Selected time cannot be in the past.");
+          }
+          return;
+        }
+        
         _startTimeController.text = combined.toIso8601String();
       }
     }

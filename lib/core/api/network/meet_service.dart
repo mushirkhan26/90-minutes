@@ -25,6 +25,14 @@ class MeetService {
     return await _apiHelper.post<Map<String, dynamic>>('meet', body);
   }
 
+  // Get Upcoming Meetings
+  Future<ApiResponse<Map<String, dynamic>>> getUpcomingMeetings({
+    required String employeeId,
+  }) async {
+    _logger.logGeneral('Fetching upcoming meetings for employeeId: $employeeId');
+    return await _apiHelper.get<Map<String, dynamic>>('meet/upcoming/$employeeId');
+  }
+
   // Get Meetings for Today
   Future<ApiResponse<Map<String, dynamic>>> getMeetingsForToday({
     required String employeeId,
@@ -40,7 +48,7 @@ class MeetService {
   }) async {
     final body = {"time": time};
     _logger.logGeneral('Updating meeting with ID: $id');
-    return await _apiHelper.put<Map<String, dynamic>>('meet/$id', body);
+    return await _apiHelper.put<Map<String, dynamic>>('meet/update-time/$id', body);
   }
 
   // Delete Meeting

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
 import 'package:hrtz_hrms/features/meet/widgets/meet_widget.dart';
 import 'package:hrtz_hrms/widgets/custom_search_bar.dart';
@@ -26,7 +27,7 @@ class _MeetScreenState extends State<MeetScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-      meetProvider.fetchMeetingsForToday();
+      meetProvider.fetchUpcomingMeetings();
     });
   }
 
@@ -43,7 +44,7 @@ class _MeetScreenState extends State<MeetScreen> {
               icon: const Icon(Icons.refresh),
               onPressed: () {
                 final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-                meetProvider.fetchMeetingsForToday(forceRefresh: true);
+                meetProvider.fetchUpcomingMeetings(forceRefresh: true);
               },
             ),
           ],
@@ -67,30 +68,30 @@ class _MeetScreenState extends State<MeetScreen> {
               child: meetProvider.state == MeetState.loading
                   ? const Center(child: CircularProgressIndicator())
                   : meetProvider.meetList.isEmpty
-                  ? const Center(child: Text('No meets available today'))
-                  : RefreshIndicator(
-                      onRefresh: () => meetProvider.fetchMeetingsForToday(forceRefresh: true),
-                      child: ListView.builder(
-                        itemCount: meetProvider.meetList.length,
-                        itemBuilder: (context, index) {
-                          final meeting = meetProvider.meetList[index];
-                          return FutureBuilder<String?>(
-                            future: _secureStorage.getEmployeeId(),
-                            builder: (context, snapshot) {
-                              final currentUserId = snapshot.data;
-                              return MeetWidget(
-                                meeting: meeting,
-                                showButtons:
-                                    currentUserId != null &&
-                                    meeting.createdBy['employeeId'] == currentUserId,
-                                onUpdate: () => _showUpdateDialog(context, meeting.id!),
-                                onDelete: () => meetProvider.deleteMeeting(meeting.id!),
+                      ? const Center(child: Text('No upcoming meetings available'))
+                      : RefreshIndicator(
+                          onRefresh: () => meetProvider.fetchUpcomingMeetings(forceRefresh: true),
+                          child: ListView.builder(
+                            itemCount: meetProvider.meetList.length,
+                            itemBuilder: (context, index) {
+                              final meeting = meetProvider.meetList[index];
+                              return FutureBuilder<String?>(
+                                future: _secureStorage.getEmployeeId(),
+                                builder: (context, snapshot) {
+                                  final currentUserId = snapshot.data;
+                                  return MeetWidget(
+                                    meeting: meeting,
+                                    showButtons:
+                                        currentUserId != null &&
+                                        meeting.createdBy['employeeId'] == currentUserId,
+                                    onUpdate: () => _showUpdateDialog(context, meeting.id!),
+                                    onDelete: () => meetProvider.deleteMeeting(meeting.id!),
+                                  );
+                                },
                               );
                             },
-                          );
-                        },
-                      ),
-                    ),
+                          ),
+                        ),
             ),
           ],
         ),
@@ -114,23 +115,55 @@ class _MeetScreenState extends State<MeetScreen> {
 
   void _showUpdateDialog(BuildContext context, String id) {
     final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-    final startTimeController = TextEditingController();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Update Meeting Time'),
-        content: TextField(
-          controller: startTimeController,
-          decoration: const InputDecoration(hintText: 'New Start Time (ISO 8601)'),
-        ),
+        content: const Text('Select a new date and time for this meeting.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              await meetProvider.updateMeeting(id: id, time: startTimeController.text);
-              if (context.mounted) Navigator.pop(context);
+              final DateTime? pickedDate = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime(2100),
+              );
+              if (pickedDate != null && context.mounted) {
+                final TimeOfDay? pickedTime = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay.now(),
+                );
+                if (pickedTime != null) {
+                  final DateTime combined = DateTime(
+                    pickedDate.year,
+                    pickedDate.month,
+                    pickedDate.day,
+                    pickedTime.hour,
+                    pickedTime.minute,
+                  );
+
+                  if (combined.isBefore(DateTime.now())) {
+                    if (context.mounted) {
+                      AlertHelper.snackBarError(context, "Selected time cannot be in the past.");
+                    }
+                    return;
+                  }
+
+                  final success = await meetProvider.updateMeeting(
+                    id: id,
+                    time: combined.toIso8601String(),
+                  );
+                  if (success && context.mounted) {
+                    AlertHelper.snackBarSuccess(context, "Meeting updated successfully!");
+                    Navigator.pop(context);
+                  }
+                }
+              }
             },
-            child: const Text('Update'),
+            child: const Text('Select Time & Update'),
           ),
         ],
       ),
