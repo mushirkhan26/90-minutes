@@ -169,6 +169,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   Widget _buildLeaveHistoryCard(Map<String, dynamic> leave) {
+    String status = leave['leaveStatus'] ?? 'Pending';
+    // Fix spelling mistake if present in API response
+    if (status.toLowerCase() == 'apporved') {
+      status = 'Approved';
+    }
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -180,7 +186,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(leave['type'] ?? 'Leave', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(leave['leaveStatus'] ?? 'Pending', style: TextStyle(color: _getStatusColor(leave['leaveStatus']), fontWeight: FontWeight.bold)),
+                Text(status, style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold)),
               ],
             ),
             const SizedBox(height: 8),
@@ -194,10 +200,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   Color _getStatusColor(String? status) {
-    switch (status) {
-      case 'Approved': return Colors.green;
-      case 'Rejected': return Colors.red;
-      case 'Waiting': return Colors.orange;
+    if (status == null) return Colors.grey;
+    switch (status.toLowerCase()) {
+      case 'approved': return Colors.green;
+      case 'rejected': return Colors.red;
+      case 'waiting': return Colors.orange;
+      case 'pending': return Colors.grey;
       default: return Colors.grey;
     }
   }
