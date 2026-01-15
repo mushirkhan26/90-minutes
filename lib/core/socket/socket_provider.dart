@@ -51,6 +51,11 @@ class SocketProvider extends ChangeNotifier {
   Map<String, int> get unreadCounts => Map.unmodifiable(_unreadCounts);
 
   void addLocalMessage(ChatMessageModel message) async {
+    // Deduplication check: if messageId already exists, don't add
+    if (message.messageId != null && _messages.any((m) => m.messageId == message.messageId)) {
+      return;
+    }
+    
     _messages.add(message);
     notifyListeners();
     if (message.conversationId != null) {
@@ -138,19 +143,35 @@ class SocketProvider extends ChangeNotifier {
       _logger.logNetwork("[Socket] Incoming raw message data: $data");
 
       final message = ChatMessageModel.fromBackendMap(data);
+      
+      // ✅ Fetch current user info for deduplication
+      final currentUserData = await SecureStorageService().getUserData();
+      final currentUserID = currentUserData?['employeeId'] ?? "";
+      final currentUserName = currentUserData?["username"] ?? "";
 
       // 🆕 Check duplicates using either `id` (MongoDB) or `messageId` (client)
-      final exists = _messages.any(
+      int index = _messages.indexWhere(
         (m) =>
             (message.id != null && m.id == message.id) ||
             (message.messageId != null && m.messageId == message.messageId),
       );
+      
+      // 🔍 Better deduplication for own messages if IDs don't match for some reason
+      if (index == -1 && message.sender == currentUserID) {
+        index = _messages.indexWhere((m) =>
+            m.sender == message.sender &&
+            m.message == message.message &&
+            // Check if they were sent within a 30 second window to be safe
+            message.timestamp.difference(m.timestamp).inSeconds.abs() < 30);
+      }
 
-      if (exists) {
-        _logger.warning(
-          "[Socket] Duplicate message ignored: ",
-          "${message.id ?? message.messageId}",
+      if (index != -1) {
+        // If message exists (likely the optimistic one), update it with backend ID and data
+        _messages[index] = message;
+        _logger.logNetwork(
+          "[Socket] Optimistic message updated with backend data: ${message.id}",
         );
+        notifyListeners();
         return;
       }
 
@@ -179,11 +200,6 @@ class SocketProvider extends ChangeNotifier {
       }
 
       notifyListeners();
-
-      // ✅ Fetch current user info
-      final currentUserData = await SecureStorageService().getUserData();
-      final currentUserID = currentUserData?['employeeId'] ?? "";
-      final currentUserName = currentUserData?["username"] ?? "";
 
       // 🧠 Show notification only if message is NOT from current user
       if (message.sender != _activeChatUserId &&
@@ -508,7 +524,9 @@ class SocketProvider extends ChangeNotifier {
     required String senderId,
     required String receiverId,
   }) async {
-    final conversationId = [senderId, receiverId].join('_');
+    final conversationId = senderId.compareTo(receiverId) < 0
+        ? '${senderId}_$receiverId'
+        : '${receiverId}_$senderId';
     await _manager.markConversationAsRead(
       senderId: senderId,
       receiverId: receiverId,
@@ -533,7 +551,9 @@ class SocketProvider extends ChangeNotifier {
     required String receiverId,
     required String userId,
   }) async {
-    final conversationId = [senderId, receiverId].join('_');
+    final conversationId = senderId.compareTo(receiverId) < 0
+        ? '${senderId}_$receiverId'
+        : '${receiverId}_$senderId';
     await _manager.clearConversation(
       senderId: senderId,
       receiverId: receiverId,

@@ -141,6 +141,14 @@ class GroupSocketProvider extends ChangeNotifier {
       notifyListeners();
     });
 
+    _manager.registerGroupEvent('groupChatCleared', (data) async {
+      final groupId = data['groupId'];
+      _groupMessages.removeWhere((m) => m.groupId == groupId);
+      await _localStorage.clearGroupMessages(groupId);
+      notifyListeners();
+      _logger.logNetwork("Group chat cleared via socket: $groupId");
+    });
+
     _manager.registerGroupEvent('removedFromGroup', (data) async {
       final groupId = data['groupId'];
       _groupChats.removeWhere((g) => g.groupId == groupId);
@@ -202,6 +210,11 @@ class GroupSocketProvider extends ChangeNotifier {
 
   Future<void> clearGroupChat({required String groupId, required String userId}) async {
     await _manager.clearGroupChat(groupId: groupId, userId: userId);
+    
+    // Clear locally immediately
+    _groupMessages.removeWhere((m) => m.groupId == groupId);
+    await _localStorage.clearGroupMessages(groupId);
+    notifyListeners();
   }
 
   void sendGroupTypingStatus({required String userId, required String userName, required String groupId, required bool isTyping}) {

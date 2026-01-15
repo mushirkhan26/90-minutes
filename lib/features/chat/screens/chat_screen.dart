@@ -228,9 +228,17 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
             ),
             TextButton(
               child: const Text('Clear', style: TextStyle(color: Colors.red)),
-              onPressed: () {
+              onPressed: () async {
                 Navigator.of(context).pop();
-                setState(() {});
+                try {
+                  await _socketProvider.clearConversation(
+                    senderId: widget.currentUserId,
+                    receiverId: widget.otherUserId,
+                    userId: widget.currentUserId,
+                  );
+                } catch (e) {
+                  _logger.error('CHAT_SCREEN', '❌ Failed to clear chat', error: e);
+                }
               },
             ),
           ],
