@@ -97,8 +97,8 @@ class AuthService {
     final body = {
       "name": name,
       "email": email,
-      "mobile": mobile,
-      "alterMobile": alterMobile,
+      "mobile": int.tryParse(mobile) ?? mobile,
+      "alterMobile": int.tryParse(alterMobile) ?? alterMobile,
       "gender": gender,
       "address": address,
     };

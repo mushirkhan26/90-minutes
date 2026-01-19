@@ -26,8 +26,8 @@ class EmployeeModel {
       employeeID: json['employeeID'] ?? '',
       profileImage: json['profileImage'],
       email: json['email'],
-      mobile: json['mobile'],
-      alterMobile: json['alterMobile'],
+      mobile: json['mobile']?.toString(),
+      alterMobile: json['alterMobile']?.toString(),
       gender: json['gender'],
       address: json['address'],
     );
