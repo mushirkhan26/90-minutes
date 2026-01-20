@@ -7,12 +7,10 @@ import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 // import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
-import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
-import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
 import '../widgets/home_chart.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -161,24 +159,16 @@ class HomeScreen extends StatelessWidget {
                         leading: const Icon(Icons.calendar_month),
                         title: const Text('Holiday Calendar'),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const HolidayCalendarScreen(),
-                            ),
-                          );
+                          Navigator.pop(context);
+                          context.holidayCalendar();
                         },
                       ),
                       ListTile(
                         leading: const Icon(Icons.task_sharp),
                         title: const Text('Tasks'),
                         onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const TasksScreen(),
-                            ),
-                          );
+                          Navigator.pop(context);
+                          context.goToTasks();
                         },
                       ),
                       ListTile(
