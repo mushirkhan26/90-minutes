@@ -29,7 +29,6 @@ class MeetProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Load cached data if available
       final cachedMeets = await _localStorage.getMeetList();
       final lastCacheTime = await _localStorage.getMeetListTimestamp();
       final now = DateTime.now();
@@ -48,19 +47,34 @@ class MeetProvider extends ChangeNotifier {
         return;
       }
 
-      // Fetch from API
       final employeeId = await _secureStorage.getEmployeeId();
       if (employeeId == null) throw Exception('Employee ID not found');
 
-      // Changed from getMeetingsForToday to getUpcomingMeetings to show future meetings
       final response = await _meetService.getUpcomingMeetings(employeeId: employeeId);
 
-      if (response.success && response.data != null) {
-        final List<dynamic> meetsJson = response.data!['data'] as List<dynamic>;
-        _meetList = meetsJson.map((json) => Meet.fromJson(json)).toList();
-        await _localStorage.saveMeetList(_meetList);
-        _state = MeetState.success;
-        _logger.logNetwork('✅ Meets refreshed (${_meetList.length} meets)');
+      if (response.success) {
+        if (response.data is Map<String, dynamic> && response.data['data'] is List) {
+          final List<dynamic> meetsJson = response.data['data'] as List<dynamic>;
+          _meetList = meetsJson.map((json) => Meet.fromJson(json)).toList();
+          await _localStorage.saveMeetList(_meetList);
+          _state = MeetState.success;
+          _logger.logNetwork('✅ Meets refreshed (${_meetList.length} meets)');
+        } else if (response.data is String && response.data == "Api is working") {
+          // Special handling for the dummy response from backend
+          _logger.logNetwork('⚠️ Backend returned dummy "Api is working" string');
+          // Don't clear the list if we have cached items (like the one we just added)
+          if (_meetList.isEmpty) {
+             _meetList = [];
+             _state = MeetState.success;
+          } else {
+             _state = MeetState.success;
+          }
+        } else {
+          _meetList = [];
+          await _localStorage.saveMeetList(_meetList);
+          _state = MeetState.success;
+          _logger.logNetwork('✅ Meets refreshed (0 meets - empty response)');
+        }
       } else {
         throw Exception(response.message);
       }
@@ -77,8 +91,8 @@ class MeetProvider extends ChangeNotifier {
       _filteredMeetList = [];
     } else {
       _filteredMeetList = _meetList.where((meet) {
-        return meet.description.toLowerCase().contains(query.toLowerCase()) ||
-            meet.createdBy['name']!.toLowerCase().contains(query.toLowerCase());
+        return (meet.description.toLowerCase().contains(query.toLowerCase())) ||
+            (meet.createdBy['name']?.toLowerCase().contains(query.toLowerCase()) ?? false);
       }).toList();
     }
     notifyListeners();
@@ -96,7 +110,6 @@ class MeetProvider extends ChangeNotifier {
     final employeeId = await _secureStorage.getEmployeeId();
     final employeeName = await _secureStorage.getUserName();
 
-    _logger.logGeneral('Attempting to add new meeting: $description');
     final response = await _meetService.addMeet(
       meetLink: meetLink,
       description: description,
@@ -107,13 +120,19 @@ class MeetProvider extends ChangeNotifier {
 
     if (response.success) {
       _logger.logGeneral('✅ Meeting added successfully');
-      await fetchUpcomingMeetings(); // Refresh list
-      _state = MeetState.success;
-      notifyListeners();
+      
+      // OPTIMISTIC UPDATE: Add the newly created meeting to the list immediately
+      // This ensures it shows up even if the "upcoming" API returns a dummy string
+      if (response.data is Map<String, dynamic> && response.data['data'] != null) {
+        final newMeet = Meet.fromJson(response.data['data']);
+        _meetList.insert(0, newMeet);
+        await _localStorage.saveMeetList(_meetList);
+      }
+      
+      await fetchUpcomingMeetings(forceRefresh: true); 
       return true;
     } else {
       _errorMessage = response.message;
-      _logger.logGeneral('❌ Failed to add meeting: ${response.message}', level: LogLevel.error);
       _state = MeetState.error;
       notifyListeners();
       return false;
@@ -124,18 +143,13 @@ class MeetProvider extends ChangeNotifier {
     _state = MeetState.loading;
     notifyListeners();
 
-    _logger.logGeneral('Updating meeting with ID: $id');
     final response = await _meetService.updateMeet(id: id, time: time);
 
     if (response.success) {
-      _logger.logGeneral('✅ Meeting updated successfully');
-      await fetchUpcomingMeetings(); // Refresh list
-      _state = MeetState.success;
-      notifyListeners();
+      await fetchUpcomingMeetings(forceRefresh: true);
       return true;
     } else {
       _errorMessage = response.message;
-      _logger.logGeneral('❌ Failed to update meeting: ${response.message}', level: LogLevel.error);
       _state = MeetState.error;
       notifyListeners();
       return false;
@@ -146,11 +160,9 @@ class MeetProvider extends ChangeNotifier {
     _state = MeetState.loading;
     notifyListeners();
 
-    _logger.logGeneral('Deleting meeting with ID: $id');
     final response = await _meetService.deleteMeet(id: id);
 
     if (response.success) {
-      _logger.logGeneral('✅ Meeting deleted successfully');
       _meetList.removeWhere((meet) => meet.id == id);
       await _localStorage.saveMeetList(_meetList);
       _state = MeetState.success;
@@ -158,7 +170,6 @@ class MeetProvider extends ChangeNotifier {
       return true;
     } else {
       _errorMessage = response.message;
-      _logger.logGeneral('❌ Failed to delete meeting: ${response.message}', level: LogLevel.error);
       _state = MeetState.error;
       notifyListeners();
       return false;

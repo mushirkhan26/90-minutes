@@ -39,6 +39,7 @@ class TasksScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: TextField(
+                    onChanged: (value) => tasksProvider.setSearchQuery(value),
                     decoration: InputDecoration(
                       hintText: 'Search tasks...',
                       prefixIcon: const Icon(Icons.search),
@@ -52,7 +53,7 @@ class TasksScreen extends StatelessWidget {
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.filter_list),
                   onSelected: (value) {
-                    // Implement filtering logic
+                    tasksProvider.setFilter(value);
                   },
                   itemBuilder: (BuildContext context) => [
                     const PopupMenuItem(value: 'all', child: Text('All Tasks')),
@@ -75,54 +76,56 @@ class TasksScreen extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: tasksProvider.tasks.length,
-              itemBuilder: (context, index) {
-                final task = tasksProvider.tasks[index];
-                return TaskCard(
-                  task: task,
-                  onEdit: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AddEditTaskDialog(
+            child: tasksProvider.tasks.isEmpty
+                ? const Center(child: Text('No tasks found'))
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: tasksProvider.tasks.length,
+                    itemBuilder: (context, index) {
+                      final task = tasksProvider.tasks[index];
+                      return TaskCard(
                         task: task,
-                        onSave: (updatedTask) {
-                          tasksProvider.updateTask(updatedTask);
-                        },
-                      ),
-                    );
-                  },
-                  onDelete: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => AlertDialog(
-                        title: const Text('Delete Task'),
-                        content: const Text(
-                          'Are you sure you want to delete this task?',
-                        ),
-                        actions: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Cancel'),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              tasksProvider.deleteTask(task.id);
-                              Navigator.pop(context);
-                            },
-                            child: const Text(
-                              'Delete',
-                              style: TextStyle(color: Colors.red),
+                        onEdit: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AddEditTaskDialog(
+                              task: task,
+                              onSave: (updatedTask) {
+                                tasksProvider.updateTask(updatedTask);
+                              },
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
+                          );
+                        },
+                        onDelete: () {
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Delete Task'),
+                              content: const Text(
+                                'Are you sure you want to delete this task?',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    tasksProvider.deleteTask(task.id);
+                                    Navigator.pop(context);
+                                  },
+                                  child: const Text(
+                                    'Delete',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),

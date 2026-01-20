@@ -128,6 +128,7 @@ class AuthService {
     required String reason,
     required int duration,
     required String type,
+    String? medicalCertificate,
   }) async {
     final body = {
       "name": name,
@@ -137,6 +138,7 @@ class AuthService {
       "reason": reason,
       "duration": duration,
       "type": type,
+      if (medicalCertificate != null) "medicalCertificate": [medicalCertificate],
     };
     
     _logger.logAuth('Adding leave request to leave/add');

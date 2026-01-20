@@ -73,6 +73,7 @@ class LeaveProvider extends ChangeNotifier {
     required String reason,
     required int duration,
     required String type,
+    String? medicalCertificate,
   }) async {
     final response = await _authService.addLeaveRequest(
       name: name,
@@ -82,6 +83,7 @@ class LeaveProvider extends ChangeNotifier {
       reason: reason,
       duration: duration,
       type: type,
+      medicalCertificate: medicalCertificate,
     );
 
     if (response.success) {

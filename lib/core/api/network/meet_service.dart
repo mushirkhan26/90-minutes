@@ -7,7 +7,7 @@ class MeetService {
   final LoggingService _logger = LoggingService.instance;
 
   // Add Meeting
-  Future<ApiResponse<Map<String, dynamic>>> addMeet({
+  Future<ApiResponse<dynamic>> addMeet({
     required String meetLink,
     required String description,
     required String time,
@@ -22,38 +22,38 @@ class MeetService {
       "description": description,
     };
     _logger.logGeneral('Adding new meeting: $description at $time');
-    return await _apiHelper.post<Map<String, dynamic>>('meet', body);
+    return await _apiHelper.post<dynamic>('meet', body);
   }
 
   // Get Upcoming Meetings
-  Future<ApiResponse<Map<String, dynamic>>> getUpcomingMeetings({
+  Future<ApiResponse<dynamic>> getUpcomingMeetings({
     required String employeeId,
   }) async {
     _logger.logGeneral('Fetching upcoming meetings for employeeId: $employeeId');
-    return await _apiHelper.get<Map<String, dynamic>>('meet/upcoming/$employeeId');
+    return await _apiHelper.get<dynamic>('meet/upcoming/$employeeId');
   }
 
   // Get Meetings for Today
-  Future<ApiResponse<Map<String, dynamic>>> getMeetingsForToday({
+  Future<ApiResponse<dynamic>> getMeetingsForToday({
     required String employeeId,
   }) async {
     _logger.logGeneral('Fetching meetings for today for employeeId: $employeeId');
-    return await _apiHelper.get<Map<String, dynamic>>('meet/today/$employeeId');
+    return await _apiHelper.get<dynamic>('meet/today/$employeeId');
   }
 
   // Update Meeting
-  Future<ApiResponse<Map<String, dynamic>>> updateMeet({
+  Future<ApiResponse<dynamic>> updateMeet({
     required String id,
     required String time,
   }) async {
     final body = {"time": time};
     _logger.logGeneral('Updating meeting with ID: $id');
-    return await _apiHelper.put<Map<String, dynamic>>('meet/update-time/$id', body);
+    return await _apiHelper.put<dynamic>('meet/update-time/$id', body);
   }
 
   // Delete Meeting
-  Future<ApiResponse<Map<String, dynamic>>> deleteMeet({required String id}) async {
+  Future<ApiResponse<dynamic>> deleteMeet({required String id}) async {
     _logger.logGeneral('Deleting meeting with ID: $id');
-    return await _apiHelper.delete<Map<String, dynamic>>('meet/$id');
+    return await _apiHelper.delete<dynamic>('meet/$id');
   }
 }

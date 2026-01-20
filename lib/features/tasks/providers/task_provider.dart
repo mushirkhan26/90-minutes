@@ -3,8 +3,41 @@ import 'package:hrtz_hrms/core/models/task_model.dart';
 
 class TasksProvider with ChangeNotifier {
   List<Task> _tasks = [];
+  String _searchQuery = '';
+  String _selectedFilter = 'all';
 
-  List<Task> get tasks => _tasks;
+  List<Task> get tasks {
+    List<Task> filteredTasks = _tasks;
+
+    // Apply filter
+    if (_selectedFilter != 'all') {
+      filteredTasks = filteredTasks
+          .where((task) =>
+              task.status.toLowerCase().replaceAll(' ', '_') == _selectedFilter)
+          .toList();
+    }
+
+    // Apply search
+    if (_searchQuery.isNotEmpty) {
+      filteredTasks = filteredTasks
+          .where((task) =>
+              task.title.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+              task.assignedTo.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+
+    return filteredTasks;
+  }
+
+  void setSearchQuery(String query) {
+    _searchQuery = query;
+    notifyListeners();
+  }
+
+  void setFilter(String filter) {
+    _selectedFilter = filter;
+    notifyListeners();
+  }
 
   void addTask(Task task) {
     _tasks.add(task);
