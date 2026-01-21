@@ -253,10 +253,25 @@ class GroupSocketProvider extends ChangeNotifier {
   }
 
   Future<void> addGroupMembers(String groupId, List<String> newMembers, String addedBy) async {
+    //  Optimistic Update in Provider
+    final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+    if (index != -1) {
+      _groupChats[index] = _groupChats[index].copyWith(
+        members: [..._groupChats[index].members, ...newMembers],
+      );
+      notifyListeners();
+    }
     await _manager.addGroupMembers(groupId: groupId, newMembers: newMembers, addedBy: addedBy);
   }
 
   Future<void> removeGroupMember(String groupId, String userToRemove, String removedBy) async {
+    // 🚀 Optimistic Update in Provider
+    final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+    if (index != -1) {
+      final updatedMembers = List<String>.from(_groupChats[index].members)..remove(userToRemove);
+      _groupChats[index] = _groupChats[index].copyWith(members: updatedMembers);
+      notifyListeners();
+    }
     await _manager.removeGroupMember(groupId: groupId, userToRemove: userToRemove, removedBy: removedBy);
   }
 

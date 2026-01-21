@@ -20,11 +20,7 @@ class MailScreen extends StatefulWidget {
 
 class _MailScreenState extends State<MailScreen> {
   final mailSearchController = TextEditingController();
-
-  // 🗂️ Currently selected folder
   String _selectedFolder = 'Inbox';
-
-  // ✅ Selection mode flags
   bool _isSelectionMode = false;
   final List<MailModel> _selectedMails = [];
 
@@ -32,46 +28,35 @@ class _MailScreenState extends State<MailScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MailProvider>();
+      context.read<MailProvider>().fetchInbox();
     });
   }
 
-  /// 🔄 Handle pull-to-refresh
   Future<void> _handleRefresh(MailProvider provider) async {
-    if (_selectedFolder == 'Inbox') {
-      await provider.fetchInbox(forceRefresh: true);
-    } else if (_selectedFolder == 'Sent') {
-      await provider.fetchSent(forceRefresh: true);
-    } else if (_selectedFolder == 'Trash') {
-      await provider.fetchTrash(forceRefresh: true);
-    } else if (_selectedFolder == 'Starred') {
-       await provider.fetchStarredMails();
-      }
-    
+    if (_selectedFolder == 'Inbox') await provider.fetchInbox(forceRefresh: true);
+    else if (_selectedFolder == 'Sent') await provider.fetchSent(forceRefresh: true);
+    else if (_selectedFolder == 'Trash') await provider.fetchTrash(forceRefresh: true);
+    else if (_selectedFolder == 'Starred') await provider.fetchStarredMails(forceRefresh: true);
   }
 
-  /// 📁 Change folder from drawer
   void _onFolderSelected(String folder) {
     Navigator.pop(context);
     setState(() {
       _selectedFolder = folder;
       _isSelectionMode = false;
       _selectedMails.clear();
+      mailSearchController.clear();
     });
 
     final provider = context.read<MailProvider>();
-    if (folder == 'Inbox') {
-      provider.fetchInbox();
-    } else if (folder == 'Sent') {
-      provider.fetchSent();
-    } else if (folder == 'Trash') {
-      provider.fetchTrash();
-    } else if (folder == 'Starred') {
-      provider.fetchStarredMails();
-    }
+    provider.setActiveFolder(folder);
+
+    if (folder == 'Inbox') provider.fetchInbox();
+    else if (folder == 'Sent') provider.fetchSent();
+    else if (folder == 'Trash') provider.fetchTrash();
+    else if (folder == 'Starred') provider.fetchStarredMails();
   }
 
-  /// 🟩 Toggle single mail selection
   void _toggleSelection(MailModel mail) {
     setState(() {
       if (_selectedMails.contains(mail)) {
@@ -83,7 +68,6 @@ class _MailScreenState extends State<MailScreen> {
     });
   }
 
-  /// 🔵 Enter selection mode on long press
   void _enterSelectionMode(MailModel mail) {
     setState(() {
       _isSelectionMode = true;
@@ -91,7 +75,6 @@ class _MailScreenState extends State<MailScreen> {
     });
   }
 
-  /// ❌ Exit selection mode
   void _exitSelectionMode() {
     setState(() {
       _isSelectionMode = false;
@@ -99,52 +82,21 @@ class _MailScreenState extends State<MailScreen> {
     });
   }
 
-  /// ✅ Select all mails
-  void _selectAll(List<MailModel> mails) {
-    setState(() {
-      _selectedMails.clear();
-      _selectedMails.addAll(mails);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<MailProvider>();
-
-    // 📨 Pick mails based on current folder
-    List<MailModel> mails;
-    switch (_selectedFolder) {
-      case 'Sent':
-        mails = provider.sentMails;
-        break;
-      case 'Trash':
-        mails = provider.trashMails;
-        break;
-      case 'Starred':
-        mails = provider.starredMails;
-        break;  
-      default:
-        mails = provider.inboxMails;
-    }
+    final mails = provider.displayedMails;
 
     return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) async {
-        // ⛔ Prevent exiting screen if in selection mode
-        if (!didPop && _isSelectionMode) {
-          _exitSelectionMode();
-        }
+      canPop: !_isSelectionMode,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop && _isSelectionMode) _exitSelectionMode();
       },
       child: SafeArea(
         child: Scaffold(
           backgroundColor: Colors.grey[100],
-
-          // 🧭 AppBar with selection / normal modes
           appBar: AppBar(
-            title: _isSelectionMode
-                ? Text('${_selectedMails.length} selected')
-                : Text(_selectedFolder),
-            elevation: 2,
+            title: _isSelectionMode ? Text('${_selectedMails.length} selected') : Text(_selectedFolder),
             leading: _isSelectionMode
                 ? IconButton(icon: const Icon(Icons.close), onPressed: _exitSelectionMode)
                 : null,
@@ -153,33 +105,24 @@ class _MailScreenState extends State<MailScreen> {
                 : [
                     IconButton(
                       icon: const Icon(Icons.refresh_rounded),
-                      tooltip: "Refresh",
                       onPressed: () => _handleRefresh(provider),
                     ),
                   ],
           ),
-
-          // 🗂️ Drawer (hidden in selection mode)
-          drawer: _isSelectionMode
-              ? null
-              : MailDrawer(selectedFolder: _selectedFolder, onFolderSelected: _onFolderSelected),
-
+          drawer: _isSelectionMode ? null : MailDrawer(selectedFolder: _selectedFolder, onFolderSelected: _onFolderSelected),
           body: Column(
             children: [
-              // 🔍 Search bar (only in normal mode)
               if (!_isSelectionMode)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   child: CustomSearchBar(
                     enable: true,
                     controller: mailSearchController,
-                    hintText: "Search mails here",
+                    hintText: "Search in $_selectedFolder",
                     onChanged: provider.searchMails,
                   ),
                 ),
-
-              // ♻ Trash folder actions
-              if (_selectedFolder == 'Trash' && !_isSelectionMode)
+              if (_selectedFolder == 'Trash' && !_isSelectionMode && mails.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   child: Row(
@@ -188,7 +131,7 @@ class _MailScreenState extends State<MailScreen> {
                       TextButton.icon(
                         icon: const Icon(Icons.restore_from_trash),
                         label: const Text('Restore All'),
-                        onPressed: () => provider.restoreMany(provider.trashMails),
+                        onPressed: () => provider.restoreMany(mails),
                       ),
                       TextButton.icon(
                         icon: const Icon(Icons.delete_forever),
@@ -198,60 +141,47 @@ class _MailScreenState extends State<MailScreen> {
                     ],
                   ),
                 ),
-
-              // 📬 Mail list
               Expanded(
                 child: provider.state == MailState.loading
                     ? const Center(child: CircularProgressIndicator())
                     : mails.isEmpty
-                    ? const Center(child: Text('No mails found'))
-                    : RefreshIndicator(
-                        onRefresh: () => _handleRefresh(provider),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          itemCount: mails.length,
-                          itemBuilder: (context, index) {
-                            final mail = mails[index];
-                            final isSelected = _selectedMails.contains(mail);
-
-                            return GestureDetector(
-                              onLongPress: () => _enterSelectionMode(mail),
-                              onTap: _isSelectionMode
-                                  ? () => _toggleSelection(mail)
-                                  : () => context.pushNamed(AppRoutes.mailDetail, extra: mail),
-                              child: MailTile(
-                                mail: mail,
-                                isTrash: _selectedFolder == 'Trash',
-                                isSelected: isSelected,
-                                isSelectionMode: _isSelectionMode,
-                                onToggleSelect: () => _toggleSelection(mail),
-                                onMoveToTrash: () => provider.moveMailToTrash(mail),
-                                onRestore: () => provider.restoreMail(mail),
-                                onDelete: () => provider.deleteMail(mail),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                        ? const Center(child: Text('No mails found'))
+                        : RefreshIndicator(
+                            onRefresh: () => _handleRefresh(provider),
+                            child: ListView.builder(
+                              itemCount: mails.length,
+                              itemBuilder: (context, index) {
+                                final mail = mails[index];
+                                final isSelected = _selectedMails.contains(mail);
+                                return GestureDetector(
+                                  onLongPress: () => _enterSelectionMode(mail),
+                                  onTap: _isSelectionMode
+                                      ? () => _toggleSelection(mail)
+                                      : () => context.pushNamed(AppRoutes.mailDetail, extra: mail),
+                                  child: MailTile(
+                                    mail: mail,
+                                    isTrash: _selectedFolder == 'Trash',
+                                    isSent: _selectedFolder == 'Sent',
+                                    isSelected: isSelected,
+                                    isSelectionMode: _isSelectionMode,
+                                    onToggleSelect: () => _toggleSelection(mail),
+                                    onMoveToTrash: () => provider.moveMailToTrash(mail),
+                                    onRestore: () => provider.restoreMail(mail),
+                                    onDelete: () => provider.deleteMail(mail),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
               ),
             ],
           ),
-
-          // 📝 Floating compose button
           floatingActionButton: (!_isSelectionMode && _selectedFolder != 'Trash')
               ? FloatingActionButton.extended(
                   backgroundColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-                  elevation: 6,
                   onPressed: () => context.pushNamed(AppRoutes.composeMail),
-                  icon: const Icon(Icons.edit_rounded, color: Colors.white, size: 22),
-                  label: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                    child: Text(
-                      'Compose',
-                      style: AppTextStyles.black12_400.copyWith(color: Colors.white),
-                    ),
-                  ),
+                  icon: const Icon(Icons.edit_rounded, color: Colors.white),
+                  label: Text('Compose', style: const TextStyle(color: Colors.white)),
                 )
               : null,
         ),
@@ -259,21 +189,20 @@ class _MailScreenState extends State<MailScreen> {
     );
   }
 
-  /// 🧰 AppBar actions when selection mode is active
   List<Widget> _buildSelectionActions(MailProvider provider, List<MailModel> mails) {
     return [
-      // ✅ Select All button
       IconButton(
         icon: const Icon(Icons.select_all),
-        tooltip: "Select All",
-        onPressed: () => _selectAll(mails),
+        onPressed: () {
+          setState(() {
+            _selectedMails.clear();
+            _selectedMails.addAll(mails);
+          });
+        },
       ),
-      const SizedBox(width: 4),
-
       if (_selectedFolder == 'Trash') ...[
         IconButton(
           icon: const Icon(Icons.restore_from_trash),
-          tooltip: "Restore selected",
           onPressed: () {
             provider.restoreMany(_selectedMails);
             _exitSelectionMode();
@@ -281,10 +210,9 @@ class _MailScreenState extends State<MailScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.delete_forever),
-          tooltip: "Delete selected",
           onPressed: () {
-            for (final mail in _selectedMails) {
-              provider.deleteMail(mail);
+            for (var m in _selectedMails) {
+              provider.deleteMail(m);
             }
             _exitSelectionMode();
           },
@@ -292,7 +220,6 @@ class _MailScreenState extends State<MailScreen> {
       ] else ...[
         IconButton(
           icon: const Icon(Icons.delete_outline),
-          tooltip: "Move to Trash",
           onPressed: () {
             provider.moveManyToTrash(_selectedMails);
             _exitSelectionMode();

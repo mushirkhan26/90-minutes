@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:intl/intl.dart';
 import '../provider/mail_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 
 import '../../../core/models/mail_model.dart';
 
 class MailTile extends StatelessWidget {
   final MailModel mail;
   final bool isTrash;
+  final bool isSent; // ✅ Added to distinguish between Inbox and Sent
 
   /// ✅ Whether this tile is currently selected (for multi-selection mode)
   final bool isSelected;
@@ -28,6 +29,7 @@ class MailTile extends StatelessWidget {
     super.key,
     required this.mail,
     required this.isTrash,
+    this.isSent = false, // ✅ Default to false
     required this.isSelected,
     required this.isSelectionMode,
     required this.onMoveToTrash,
@@ -47,10 +49,14 @@ class MailTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ Logic to show recipient name in Sent folder
+    final String displayName = isSent 
+        ? (mail.receiverName.isNotEmpty ? mail.receiverName.join(", ") : mail.receiver.join(", "))
+        : mail.senderName;
+
     return InkWell(
-      // 👆 Disable normal tap navigation when in selection mode
-      onTap: isSelectionMode
-          ? onToggleSelect
+      onTap: isSelectionMode 
+          ? onToggleSelect 
           : () => context.pushNamed(AppRoutes.mailDetail, extra: mail),
       borderRadius: BorderRadius.circular(12),
       child: Card(
@@ -69,7 +75,6 @@ class MailTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // ✅ Checkbox shown only in selection mode
               if (isSelectionMode) ...[
                 Checkbox(
                   value: isSelected,
@@ -80,12 +85,11 @@ class MailTile extends StatelessWidget {
                 const SizedBox(width: 6),
               ],
 
-              // 🧑 Sender Avatar
               CircleAvatar(
                 radius: 22,
                 backgroundColor: AppColors.primary,
                 child: Text(
-                  mail.senderName.isNotEmpty ? mail.senderName[0].toUpperCase() : '?',
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 18,
@@ -95,38 +99,30 @@ class MailTile extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // 📄 Mail Info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Sender + Timestamp
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
                           child: Text(
-                            mail.senderName,
+                            displayName,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                         ),
-                        // ⭐ STAR ICON (ADD HERE)
                         IconButton(
-                         padding: EdgeInsets.zero,
-                         constraints: const BoxConstraints(),
-                         icon: Icon(
-                         mail.isStarred ? Icons.star : Icons.star_border,
-                         color: mail.isStarred ? Colors.amber : Colors.grey,
-                         size: 20,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: Icon(
+                            mail.isStarred ? Icons.star : Icons.star_border,
+                            color: mail.isStarred ? Colors.amber : Colors.grey,
+                            size: 20,
+                          ),
+                          onPressed: () => context.read<MailProvider>().toggleStarMail(mail),
                         ),
-                        onPressed: () {
-                        context.read<MailProvider>().toggleStarMail(mail);
-                        },
-                        ),
-      
-    
-
                         const SizedBox(width: 6),
                         Text(
                           _formatTime(mail.createdAt),
@@ -135,7 +131,6 @@ class MailTile extends StatelessWidget {
                       ],
                     ),
 
-                    // Subject
                     Text(
                       mail.subject,
                       maxLines: 1,
@@ -143,7 +138,6 @@ class MailTile extends StatelessWidget {
                       style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
                     ),
 
-                    // Body Preview
                     Text(
                       mail.body,
                       maxLines: 1,
@@ -154,7 +148,6 @@ class MailTile extends StatelessWidget {
                 ),
               ),
 
-              // ⋮ Actions (hidden during selection)
               if (!isSelectionMode)
                 PopupMenuButton<String>(
                   tooltip: "More",
