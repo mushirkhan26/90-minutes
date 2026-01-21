@@ -23,6 +23,10 @@ class AuthProvider extends ChangeNotifier {
   bool _isFetchingEmployees = false;
   bool _isFetchingProfile = false;
 
+  // New account flags
+  bool _ndaSubmitted = false;
+  bool _onboardingCompleted = false;
+
   AuthState get state => _state;
   String? get errorMessage => _errorMessage;
   Map<String, dynamic>? get userData => _userData;
@@ -30,6 +34,9 @@ class AuthProvider extends ChangeNotifier {
   List<EmployeeModel>? get employeeList => _employeeList;
   bool get isFetchingEmployees => _isFetchingEmployees;
   bool get isFetchingProfile => _isFetchingProfile;
+
+  bool get ndaSubmitted => _ndaSubmitted;
+  bool get onboardingCompleted => _onboardingCompleted;
 
   Map<String, dynamic>? _attendanceData;
   bool _isFetchingAttendance = false;
@@ -45,6 +52,11 @@ class AuthProvider extends ChangeNotifier {
     if (response.success && response.data != null) {
       final data = response.data!;
       _userData = data;
+
+      // Extract new account flags from response
+      _ndaSubmitted = data['ndaSubmitted'] ?? false;
+      _onboardingCompleted = data['onboardingCompleted'] ?? false;
+
       // Save secure data
       await _secureStorage.saveUserData(
         token: data['token'],
@@ -52,11 +64,13 @@ class AuthProvider extends ChangeNotifier {
         username: data['username'],
         email: data['email'],
         role: data['role'],
+        ndaSubmitted: _ndaSubmitted,
+        onboardingCompleted: _onboardingCompleted,
       );
       // Save login state
       await _localStorage.setLoginState(true);
       _state = AuthState.authenticated;
-      _logger.logAuth('✅ User logged in successfully');
+      _logger.logAuth('✅ User logged in successfully. NDA: $_ndaSubmitted, Onboarding: $_onboardingCompleted');
       // ✅ Ensure FCM token is up-to-date
       await PushNotificationService.checkAndUpdateFCMToken();
     } else {
@@ -75,6 +89,8 @@ class AuthProvider extends ChangeNotifier {
     await _localStorage.setLoginState(false);
     _userData = null;
     _profileData = null;
+    _ndaSubmitted = false;
+    _onboardingCompleted = false;
     _state = AuthState.unauthenticated;
     _logger.logAuth('User logged out', level: LogLevel.warning);
     notifyListeners();
@@ -85,14 +101,32 @@ class AuthProvider extends ChangeNotifier {
     final loggedIn = await _localStorage.isLoggedIn();
     if (loggedIn) {
       _userData = await _secureStorage.getUserData();
+      if (_userData != null) {
+        _ndaSubmitted = _userData!['ndaSubmitted'] ?? false;
+        _onboardingCompleted = _userData!['onboardingCompleted'] ?? false;
+      }
       _state = AuthState.authenticated;
-      _logger.logAuth('User session found, authenticated');
+      _logger.logAuth('User session found, authenticated. NDA: $_ndaSubmitted, Onboarding: $_onboardingCompleted');
       // ✅ Ensure FCM token is up-to-date
       await PushNotificationService.checkAndUpdateFCMToken();
     } else {
       _state = AuthState.unauthenticated;
       _logger.logAuth('No user session found, unauthenticated');
     }
+    notifyListeners();
+  }
+
+  /// Update NDA status locally and in storage
+  Future<void> updateNdaStatus(bool submitted) async {
+    _ndaSubmitted = submitted;
+    await _secureStorage.setNdaSubmitted(submitted);
+    notifyListeners();
+  }
+
+  /// Update Onboarding status locally and in storage
+  Future<void> updateOnboardingStatus(bool completed) async {
+    _onboardingCompleted = completed;
+    await _secureStorage.setOnboardingCompleted(completed);
     notifyListeners();
   }
 

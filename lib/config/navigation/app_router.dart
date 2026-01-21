@@ -10,6 +10,7 @@ import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
+import 'package:hrtz_hrms/features/auth/screens/onboarding_form_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
@@ -29,6 +30,7 @@ import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
 
+import '../../features/auth/screens/nda_screen_form.dart';
 import '../../features/home/screens/profile_screen.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
@@ -48,6 +50,8 @@ String? authGuard(BuildContext context, GoRouterState state) {
 }
 
 final GoRouter appRouter = GoRouter(
+    // navigatorKey: rootNavigatorKey,
+    // initialLocation: AppRoutes.ndaRoute,
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splashRoute,
   errorBuilder: (context, state) =>
@@ -93,6 +97,20 @@ final GoRouter appRouter = GoRouter(
         final employeeId = state.extra as String;
         return ChangePasswordScreen(employeeId: employeeId);
       },
+    ),
+
+    /// 📄 NDA Screen
+    GoRoute(
+      path: AppRoutes.ndaRoute,
+      name: 'nda',
+      pageBuilder: (context, state) => buildTransitionPage(const NdaScreen()),
+    ),
+
+    /// 📝 Onboarding Screen
+    GoRoute(
+      path: AppRoutes.onboardingRoute,
+      name: 'onboarding',
+      pageBuilder: (context, state) => buildTransitionPage(const OnboardingFormScreen()),
     ),
 
     /// Navigation Shell for main app after login

@@ -45,7 +45,15 @@ class _LoginScreenState extends State<LoginScreen> {
       if (authProvider.state == AuthState.authenticated) {
         if (context.mounted) {
           AlertHelper.snackBarSuccess(context, 'Logged in successfully!');
-          context.go(AppRoutes.homeRoute);
+          
+          // Check for NDA and Onboarding
+          if (!authProvider.ndaSubmitted) {
+            context.go(AppRoutes.ndaRoute);
+          } else if (!authProvider.onboardingCompleted) {
+            context.go(AppRoutes.onboardingRoute);
+          } else {
+            context.go(AppRoutes.homeRoute);
+          }
         }
       } else if (authProvider.state == AuthState.error) {
         if (context.mounted) {
