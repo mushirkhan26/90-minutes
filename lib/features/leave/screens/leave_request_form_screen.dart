@@ -143,6 +143,23 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       return;
     }
 
+    // ✅ Validation for duration and leave type
+    if (_duration >= 3 && _leaveType != 'emergencyLeave') {
+      AlertHelper.snackBarInfo(context, 'Leaves for 3 or more days must be applied as Emergency Leave');
+      return;
+    }
+
+    if ((_leaveType == 'casualOrSickLeave' || _leaveType == 'earnedLeave') && _duration > 2) {
+      AlertHelper.snackBarInfo(context, 'Casual/Sick and Earned leaves can only be for 1 or 2 days');
+      return;
+    }
+
+    // ✅ Marriage leave restriction
+    if (_reasonController.text.toLowerCase().contains('marriage') && _leaveType != 'emergencyLeave') {
+      AlertHelper.snackBarInfo(context, 'Marriage leave must be applied as Emergency Leave');
+      return;
+    }
+
     // Check if medical certificate is required for emergency leave
     if (_leaveType == 'emergencyLeave' && _medicalCertificateFile == null) {
       AlertHelper.snackBarInfo(context, 'Medical certificate is required for emergency leave');

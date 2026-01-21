@@ -163,6 +163,15 @@ class AuthService {
     return await _apiHelper.get<Map<String, dynamic>>(endpoint);
   }
 
+  /// 🗑️ Delete Leave Request API
+  Future<ApiResponse<Map<String, dynamic>>> deleteLeaveRequest({
+    required String leaveId,
+  }) async {
+    _logger.logAuth('Deleting leave request: $leaveId');
+    final endpoint = 'leave/delete/$leaveId';
+    return await _apiHelper.delete<Map<String, dynamic>>(endpoint);
+  }
+
   /// 📅 Get Attendance API
   Future<ApiResponse<Map<String, dynamic>>> getAttendance({
     required String employeeId,

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'leave_request_form_screen.dart';
+import '../../../../core/utils/alert_utils.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({super.key});
@@ -30,6 +31,43 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     });
     if (_employeeId.isNotEmpty && mounted) {
       context.read<LeaveProvider>().fetchLeaveInfo(employeeId: _employeeId);
+    }
+  }
+
+  Future<void> _deleteLeave(String leaveId) async {
+    if (leaveId.isEmpty) {
+      AlertHelper.snackBarError(context, "Leave ID not found. Cannot delete.");
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Leave'),
+        content: const Text('Are you sure you want to delete this leave request?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      final leaveProvider = context.read<LeaveProvider>();
+      final (success, message) = await leaveProvider.deleteLeaveRequest(
+        leaveId: leaveId,
+        employeeId: _employeeId,
+      );
+
+      if (mounted) {
+        if (success) {
+          AlertHelper.snackBarSuccess(context, message);
+        } else {
+          AlertHelper.snackBarError(context, message);
+        }
+      }
     }
   }
 
@@ -170,7 +208,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   Widget _buildLeaveHistoryCard(Map<String, dynamic> leave) {
     String status = leave['leaveStatus'] ?? 'Pending';
-    // Fix spelling mistake if present in API response
+    final String leaveId = (leave['leaveId'] ?? leave['_id'] ?? leave['id'] ?? '').toString();
+
     if (status.toLowerCase() == 'apporved') {
       status = 'Approved';
     }
@@ -186,7 +225,16 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(leave['type'] ?? 'Leave', style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(status, style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Text(status, style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold)),
+                    if (status.toLowerCase() == 'pending' || status.toLowerCase() == 'waiting')
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        onPressed: () => _deleteLeave(leaveId),
+                      ),
+                  ],
+                ),
               ],
             ),
             const SizedBox(height: 8),

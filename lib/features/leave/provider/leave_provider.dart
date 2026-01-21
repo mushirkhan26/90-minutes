@@ -40,6 +40,13 @@ class LeaveProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         _leaveHistory = response.data!;
         await _localStorage.saveLeaveHistory(_leaveHistory!);
+      } else if (response.message != null && response.message!.contains("No leave records found")) {
+        // ✅ Handle case where backend returns error instead of empty list
+        _leaveHistory = {
+          'message': {'data': []}
+        };
+        await _localStorage.saveLeaveHistory(_leaveHistory!);
+        _logger.logAuth('ℹ️ No leaves found, clearing history UI');
       }
     } catch (e) {
       _logger.error('LEAVE_PROVIDER', 'Error fetching leave history', error: e);
@@ -91,6 +98,20 @@ class LeaveProvider extends ChangeNotifier {
       return (true, 'Leave request added successfully');
     } else {
       return (false, response.message ?? 'Failed to add leave request');
+    }
+  }
+
+  Future<(bool success, String message)> deleteLeaveRequest({
+    required String leaveId,
+    required String employeeId,
+  }) async {
+    final response = await _authService.deleteLeaveRequest(leaveId: leaveId);
+
+    if (response.success) {
+      await fetchLeaveInfo(employeeId: employeeId);
+      return (true, 'Leave request deleted successfully');
+    } else {
+      return (false, response.message ?? 'Failed to delete leave request');
     }
   }
 }
