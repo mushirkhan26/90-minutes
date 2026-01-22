@@ -9,6 +9,7 @@ import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import '../../../../core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/models/holiday_model.dart';
 
 class LeaveRequestFormScreen extends StatefulWidget {
   final String name;
@@ -35,7 +36,13 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   File? _medicalCertificateFile;
   bool _isUploadingFile = false;
 
-  Set<DateTime> _holidayDates = {};
+  // New Summary Variables
+  int _totalDays = 0;
+  int _weekendsCount = 0;
+  int _holidaysCount = 0;
+  List<HolidayModel> _foundHolidays = [];
+
+  List<HolidayModel> _allHolidays = [];
 
   final List<String> _leaveTypes = [
     'casualOrSickLeave',
@@ -46,15 +53,17 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   void initState() {
     super.initState();
     _loadHolidays();
+    // Fetch leave info to show available balance
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LeaveProvider>().fetchLeaveInfo(employeeId: widget.employeeId);
+    });
   }
 
   Future<void> _loadHolidays() async {
     final holidayProvider = Provider.of<HolidayProvider>(context, listen: false);
     await holidayProvider.fetchHolidays();
     setState(() {
-      _holidayDates = holidayProvider.holidays
-          .map((h) => DateTime.parse(h.date))
-          .toSet();
+      _allHolidays = holidayProvider.holidays;
     });
   }
   @override
@@ -93,29 +102,62 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
 
   void _calculateDuration() {
     if (_startDate == null || _endDate == null) {
-      setState(() => _duration = 0);
+      setState(() {
+        _duration = 0;
+        _totalDays = 0;
+        _weekendsCount = 0;
+        _holidaysCount = 0;
+        _foundHolidays = [];
+      });
       return;
     }
 
-    int count = 0;
+    int workingDays = 0;
+    int total = 0;
+    int weekends = 0;
+    int holidays = 0;
+    List<HolidayModel> holidaysInRange = [];
+
     DateTime current = _startDate!;
 
     while (!current.isAfter(_endDate!)) {
+      total++;
       final isSunday = current.weekday == DateTime.sunday;
-      final isHoliday = _holidayDates.any((h) =>
-        h.year == current.year &&
-        h.month == current.month &&
-        h.day == current.day
+      
+      final holiday = _allHolidays.firstWhere(
+        (h) {
+          try {
+            final hDate = DateTime.parse(h.date);
+            return hDate.year == current.year &&
+                   hDate.month == current.month &&
+                   hDate.day == current.day;
+          } catch (_) {
+            return false;
+          }
+        },
+        orElse: () => HolidayModel(date: '', day: '', holiday: ''),
       );
 
-      if (!isSunday && !isHoliday) {
-        count++;
+      bool isHoliday = holiday.date.isNotEmpty;
+
+      if (isSunday) {
+        weekends++;
+      } else if (isHoliday) {
+        holidays++;
+        holidaysInRange.add(holiday);
+      } else {
+        workingDays++;
       }
+      
       current = current.add(const Duration(days: 1));
     }
 
     setState(() {
-      _duration = count;
+      _duration = workingDays;
+      _totalDays = total;
+      _weekendsCount = weekends;
+      _holidaysCount = holidays;
+      _foundHolidays = holidaysInRange;
     });
   }
 
@@ -207,6 +249,9 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final leaveProvider = context.watch<LeaveProvider>();
+    final available = leaveProvider.availableLeave?['available'] ?? {};
+
     return Scaffold(
       appBar: AppBar(title: const Text('Apply for Leave')),
       body: _isSubmitting
@@ -245,9 +290,13 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       value: _leaveType,
-                      items: _leaveTypes
-                          .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                          .toList(),
+                      items: _leaveTypes.map((type) {
+                        final left = available[type] ?? 0;
+                        return DropdownMenuItem(
+                          value: type, 
+                          child: Text('$type ($left left)')
+                        );
+                      }).toList(),
                       decoration: const InputDecoration(
                         labelText: 'Leave Type',
                         prefixIcon: Icon(Icons.category),
@@ -255,7 +304,6 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       ),
                       onChanged: (val) => setState(() {
                         _leaveType = val;
-                        // Clear certificate if type changes away from emergency
                         if (val != 'emergencyLeave') {
                           _medicalCertificateFile = null;
                         }
@@ -288,15 +336,44 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    if (_duration > 0)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          'Duration: $_duration day${_duration > 1 ? 's' : ''}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    
+                    // ✅ Leave Summary Box
+                    if (_startDate != null && _endDate != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Leave Summary',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryItem('Total days', '$_totalDays'),
+                            _buildSummaryItem('Working days', '$_duration'),
+                            _buildSummaryItem('Weekends', '$_weekendsCount'),
+                            _buildSummaryItem('Holidays', '$_holidaysCount'),
+                            if (_foundHolidays.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              const Text('Holidays in range:', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                              ..._foundHolidays.map((h) => Padding(
+                                padding: const EdgeInsets.only(left: 8.0, top: 2),
+                                child: Text('• ${h.holiday} (${DateFormat('MMM d, yyyy').format(DateTime.parse(h.date))})', 
+                                  style: const TextStyle(fontSize: 13, color: Colors.redAccent)),
+                              )),
+                            ],
+                          ],
                         ),
                       ),
+                    ],
+
+                    const SizedBox(height: 16),
                     CustomTextField(
                       controller: _reasonController,
                       labelText: 'Reason',
@@ -351,6 +428,18 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        children: [
+          Text('• $label: ', style: const TextStyle(fontSize: 14)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        ],
+      ),
     );
   }
 }
