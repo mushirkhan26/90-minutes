@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/auth_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 
 class LeaveProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
   final LocalStorageService _localStorage = LocalStorageService();
+  final SecureStorageService _secureStorage = SecureStorageService();
   final LoggingService _logger = LoggingService.instance;
 
   Map<String, dynamic>? _leaveHistory;
@@ -41,12 +43,10 @@ class LeaveProvider extends ChangeNotifier {
         _leaveHistory = response.data!;
         await _localStorage.saveLeaveHistory(_leaveHistory!);
       } else if (response.message != null && response.message!.contains("No leave records found")) {
-        // ✅ Handle case where backend returns error instead of empty list
         _leaveHistory = {
           'message': {'data': []}
         };
         await _localStorage.saveLeaveHistory(_leaveHistory!);
-        _logger.logAuth('ℹ️ No leaves found, clearing history UI');
       }
     } catch (e) {
       _logger.error('LEAVE_PROVIDER', 'Error fetching leave history', error: e);
@@ -105,13 +105,40 @@ class LeaveProvider extends ChangeNotifier {
     required String leaveId,
     required String employeeId,
   }) async {
-    final response = await _authService.deleteLeaveRequest(leaveId: leaveId);
+    // 🔍 Find the leave in local history for restoration
+    final leaveData = _leaveHistory?['message']?['data'] as List?;
+    Map<String, dynamic>? leaveToRestore;
+    if (leaveData != null) {
+      leaveToRestore = leaveData.firstWhere(
+        (l) => (l['leaveId'] ?? l['_id'])?.toString() == leaveId, 
+        orElse: () => null
+      );
+    }
+
+    // ✅ Fix: Pass updatedBy name to the API
+    final updatedBy = await _secureStorage.getUserName() ?? "";
+    final response = await _authService.deleteLeaveRequest(
+      leaveId: leaveId, 
+      updatedBy: updatedBy
+    );
 
     if (response.success) {
+      // ✅ Step 2: Optimistic Restore of leaves locally
+      if (leaveToRestore != null && _availableLeave != null) {
+        final type = leaveToRestore['type'];
+        final duration = int.tryParse(leaveToRestore['duration']?.toString() ?? '0') ?? 0;
+        
+        if (_availableLeave!['available'] != null && _availableLeave!['available'][type] != null) {
+          _availableLeave!['available'][type] = (_availableLeave!['available'][type] ?? 0) + duration;
+          await _localStorage.saveAvailableLeave(_availableLeave!);
+          notifyListeners();
+        }
+      }
+
       await fetchLeaveInfo(employeeId: employeeId);
-      return (true, 'Leave request deleted successfully');
+      return (true, 'Leave request cancelled successfully');
     } else {
-      return (false, response.message ?? 'Failed to delete leave request');
+      return (false, response.message ?? 'Failed to cancel leave request');
     }
   }
 }

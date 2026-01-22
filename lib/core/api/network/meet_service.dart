@@ -48,7 +48,8 @@ class MeetService {
   }) async {
     final body = {"time": time};
     _logger.logGeneral('Updating meeting with ID: $id');
-    return await _apiHelper.put<dynamic>('meet/update-time/$id', body);
+    // Fix: Corrected endpoint path based on server error log
+    return await _apiHelper.put<dynamic>('meet/$id', body);
   }
 
   // Delete Meeting

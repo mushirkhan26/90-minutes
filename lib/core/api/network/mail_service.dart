@@ -90,7 +90,8 @@ class MailService {
     required String employeeId,
   }) async {
     _logger.logNetwork('Restoring many mails from trash: $mailIds');
-    return await _apiHelper.put<Map<String, dynamic>>('mail/restore-from-trash-many', {
+    // Fix: Changed from put to patch to match moveManyToTrash pattern
+    return await _apiHelper.patch<Map<String, dynamic>>('mail/restore-from-trash-many', {
       "mailIds": mailIds,
       "employeeId": employeeId,
     });

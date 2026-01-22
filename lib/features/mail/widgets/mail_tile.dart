@@ -5,31 +5,24 @@ import '../provider/mail_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-
 import '../../../core/models/mail_model.dart';
 
 class MailTile extends StatelessWidget {
   final MailModel mail;
   final bool isTrash;
-  final bool isSent; // ✅ Added to distinguish between Inbox and Sent
-
-  /// ✅ Whether this tile is currently selected (for multi-selection mode)
+  final String? currentUserId;
   final bool isSelected;
-
-  /// ✅ Whether the whole screen is currently in selection mode
   final bool isSelectionMode;
-
-  /// 🧩 Callbacks
   final VoidCallback onMoveToTrash;
   final VoidCallback onRestore;
   final VoidCallback onDelete;
-  final VoidCallback? onToggleSelect; // For checkbox toggle
+  final VoidCallback? onToggleSelect;
 
   const MailTile({
     super.key,
     required this.mail,
     required this.isTrash,
-    this.isSent = false, // ✅ Default to false
+    required this.currentUserId,
     required this.isSelected,
     required this.isSelectionMode,
     required this.onMoveToTrash,
@@ -40,18 +33,17 @@ class MailTile extends StatelessWidget {
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();
-    if (now.difference(time).inDays == 0) {
-      return DateFormat('hh:mm a').format(time);
-    } else {
-      return DateFormat('dd MMM').format(time);
-    }
+    return now.difference(time).inDays == 0
+        ? DateFormat('hh:mm a').format(time)
+        : DateFormat('dd MMM').format(time);
   }
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Logic to show recipient name in Sent folder
-    final String displayName = isSent 
-        ? (mail.receiverName.isNotEmpty ? mail.receiverName.join(", ") : mail.receiver.join(", "))
+    // ✅ Logic: If sent by current user, show recipients. Else show sender name.
+    final bool isSentByMe = mail.sender == currentUserId;
+    final String displayName = isSentByMe 
+        ? "To: ${mail.receiverName.isNotEmpty ? mail.receiverName.join(", ") : mail.receiver.join(", ")}"
         : mail.senderName;
 
     return InkWell(
@@ -61,44 +53,32 @@ class MailTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: Card(
         color: isSelected ? AppColors.primary.withValues(alpha: .08) : Colors.white,
-        surfaceTintColor: Colors.white,
         margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        elevation: 2,
+        elevation: 1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: isSelected
-              ? BorderSide(color: AppColors.primary.withValues(alpha: .5), width: 1.2)
-              : BorderSide.none,
+          side: isSelected ? BorderSide(color: AppColors.primary, width: 1) : BorderSide.none,
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.all(12),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               if (isSelectionMode) ...[
                 Checkbox(
                   value: isSelected,
                   activeColor: AppColors.primary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                   onChanged: (_) => onToggleSelect?.call(),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
               ],
-
               CircleAvatar(
-                radius: 22,
                 backgroundColor: AppColors.primary,
                 child: Text(
-                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  displayName.isNotEmpty ? displayName.replaceAll("To: ", "")[0].toUpperCase() : '?',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 12),
-
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,71 +87,30 @@ class MailTile extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          child: Text(
-                            displayName,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                          ),
+                          child: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
                         ),
                         IconButton(
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: Icon(
-                            mail.isStarred ? Icons.star : Icons.star_border,
-                            color: mail.isStarred ? Colors.amber : Colors.grey,
-                            size: 20,
-                          ),
+                          icon: Icon(mail.isStarred ? Icons.star : Icons.star_border, color: mail.isStarred ? Colors.amber : Colors.grey, size: 20),
                           onPressed: () => context.read<MailProvider>().toggleStarMail(mail),
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _formatTime(mail.createdAt),
-                          style: TextStyle(color: Colors.grey[600], fontSize: 12),
-                        ),
+                        Text(_formatTime(mail.createdAt), style: TextStyle(color: Colors.grey[600], fontSize: 11)),
                       ],
                     ),
-
-                    Text(
-                      mail.subject,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
-                    ),
-
-                    Text(
-                      mail.body,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(color: Colors.grey[700], fontSize: 13),
-                    ),
+                    Text(mail.subject, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                    Text(mail.body, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Colors.grey[700], fontSize: 12)),
                   ],
                 ),
               ),
-
               if (!isSelectionMode)
                 PopupMenuButton<String>(
-                  tooltip: "More",
-                  onSelected: (value) {
-                    if (value == 'moveToTrash') {
-                      onMoveToTrash();
-                    } else if (value == 'restore') {
-                      onRestore();
-                    } else if (value == 'delete') {
-                      onDelete();
-                    }
+                  onSelected: (val) {
+                    if (val == 'trash') onMoveToTrash();
+                    else if (val == 'restore') onRestore();
+                    else if (val == 'delete') onDelete();
                   },
-                  itemBuilder: (BuildContext context) {
-                    if (isTrash) {
-                      return [
-                        const PopupMenuItem(value: 'restore', child: Text('Restore')),
-                        const PopupMenuItem(value: 'delete', child: Text('Delete Permanently')),
-                      ];
-                    } else {
-                      return [
-                        const PopupMenuItem(value: 'moveToTrash', child: Text('Move to Trash')),
-                      ];
-                    }
-                  },
+                  itemBuilder: (ctx) => isTrash
+                      ? [const PopupMenuItem(value: 'restore', child: Text('Restore')), const PopupMenuItem(value: 'delete', child: Text('Delete Permanently'))]
+                      : [const PopupMenuItem(value: 'trash', child: Text('Move to Trash'))],
                 ),
             ],
           ),

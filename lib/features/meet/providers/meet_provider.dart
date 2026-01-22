@@ -60,15 +60,8 @@ class MeetProvider extends ChangeNotifier {
           _state = MeetState.success;
           _logger.logNetwork('✅ Meets refreshed (${_meetList.length} meets)');
         } else if (response.data is String && response.data == "Api is working") {
-          // Special handling for the dummy response from backend
           _logger.logNetwork('⚠️ Backend returned dummy "Api is working" string');
-          // Don't clear the list if we have cached items (like the one we just added)
-          if (_meetList.isEmpty) {
-             _meetList = [];
-             _state = MeetState.success;
-          } else {
-             _state = MeetState.success;
-          }
+          _state = MeetState.success;
         } else {
           _meetList = [];
           await _localStorage.saveMeetList(_meetList);
@@ -121,8 +114,6 @@ class MeetProvider extends ChangeNotifier {
     if (response.success) {
       _logger.logGeneral('✅ Meeting added successfully');
       
-      // OPTIMISTIC UPDATE: Add the newly created meeting to the list immediately
-      // This ensures it shows up even if the "upcoming" API returns a dummy string
       if (response.data is Map<String, dynamic> && response.data['data'] != null) {
         final newMeet = Meet.fromJson(response.data['data']);
         _meetList.insert(0, newMeet);
@@ -139,17 +130,44 @@ class MeetProvider extends ChangeNotifier {
     }
   }
 
+  // ✅ Fix: Updating local list immediately after update success
   Future<bool> updateMeeting({required String id, required String time}) async {
     _state = MeetState.loading;
     notifyListeners();
 
-    final response = await _meetService.updateMeet(id: id, time: time);
+    try {
+      final response = await _meetService.updateMeet(id: id, time: time);
 
-    if (response.success) {
-      await fetchUpcomingMeetings(forceRefresh: true);
-      return true;
-    } else {
-      _errorMessage = response.message;
+      if (response.success) {
+        // Find and update the meeting in the local list
+        final index = _meetList.indexWhere((m) => m.id == id);
+        if (index != -1) {
+          final updatedMeet = Meet(
+            id: _meetList[index].id,
+            meetLink: _meetList[index].meetLink,
+            createdBy: _meetList[index].createdBy,
+            participants: _meetList[index].participants,
+            time: time, // Update with new time
+            description: _meetList[index].description,
+            createdAt: _meetList[index].createdAt,
+            updatedAt: DateTime.now().toIso8601String(),
+          );
+          _meetList[index] = updatedMeet;
+          await _localStorage.saveMeetList(_meetList);
+        }
+        
+        _state = MeetState.success;
+        _logger.logGeneral('✅ Meeting updated locally and on server');
+        notifyListeners();
+        return true;
+      } else {
+        _errorMessage = response.message;
+        _state = MeetState.error;
+        notifyListeners();
+        return false;
+      }
+    } catch (e) {
+      _errorMessage = e.toString();
       _state = MeetState.error;
       notifyListeners();
       return false;

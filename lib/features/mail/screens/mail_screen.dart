@@ -161,7 +161,7 @@ class _MailScreenState extends State<MailScreen> {
                                   child: MailTile(
                                     mail: mail,
                                     isTrash: _selectedFolder == 'Trash',
-                                    isSent: _selectedFolder == 'Sent',
+                                    currentUserId: provider.currentUserId, // ✅ Corrected parameter
                                     isSelected: isSelected,
                                     isSelectionMode: _isSelectionMode,
                                     onToggleSelect: () => _toggleSelection(mail),
