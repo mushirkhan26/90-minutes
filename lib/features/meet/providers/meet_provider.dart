@@ -47,10 +47,8 @@ class MeetProvider extends ChangeNotifier {
         return;
       }
 
-      final employeeId = await _secureStorage.getEmployeeId();
-      if (employeeId == null) throw Exception('Employee ID not found');
-
-      final response = await _meetService.getUpcomingMeetings(employeeId: employeeId);
+      // ✅ Now using the new user-centric endpoint
+      final response = await _meetService.getUpcomingMeetings();
 
       if (response.success) {
         if (response.data is Map<String, dynamic> && response.data['data'] is List) {
@@ -60,13 +58,11 @@ class MeetProvider extends ChangeNotifier {
           _state = MeetState.success;
           _logger.logNetwork('✅ Meets refreshed (${_meetList.length} meets)');
         } else if (response.data is String && response.data == "Api is working") {
-          _logger.logNetwork('⚠️ Backend returned dummy "Api is working" string');
           _state = MeetState.success;
         } else {
           _meetList = [];
           await _localStorage.saveMeetList(_meetList);
           _state = MeetState.success;
-          _logger.logNetwork('✅ Meets refreshed (0 meets - empty response)');
         }
       } else {
         throw Exception(response.message);
@@ -130,7 +126,6 @@ class MeetProvider extends ChangeNotifier {
     }
   }
 
-  // ✅ Fix: Updating local list immediately after update success
   Future<bool> updateMeeting({required String id, required String time}) async {
     _state = MeetState.loading;
     notifyListeners();
@@ -139,7 +134,6 @@ class MeetProvider extends ChangeNotifier {
       final response = await _meetService.updateMeet(id: id, time: time);
 
       if (response.success) {
-        // Find and update the meeting in the local list
         final index = _meetList.indexWhere((m) => m.id == id);
         if (index != -1) {
           final updatedMeet = Meet(
@@ -147,7 +141,7 @@ class MeetProvider extends ChangeNotifier {
             meetLink: _meetList[index].meetLink,
             createdBy: _meetList[index].createdBy,
             participants: _meetList[index].participants,
-            time: time, // Update with new time
+            time: time,
             description: _meetList[index].description,
             createdAt: _meetList[index].createdAt,
             updatedAt: DateTime.now().toIso8601String(),
@@ -157,7 +151,6 @@ class MeetProvider extends ChangeNotifier {
         }
         
         _state = MeetState.success;
-        _logger.logGeneral('✅ Meeting updated locally and on server');
         notifyListeners();
         return true;
       } else {

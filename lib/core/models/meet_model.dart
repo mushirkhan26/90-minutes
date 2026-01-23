@@ -5,6 +5,8 @@ class Meet {
   final List<Map<String, String>> participants;
   final String time;
   final String description;
+  final String? agenda;
+  final int duration;
   final String? createdAt;
   final String? updatedAt;
 
@@ -15,6 +17,8 @@ class Meet {
     required this.participants,
     required this.time,
     required this.description,
+    this.agenda,
+    this.duration = 30,
     this.createdAt,
     this.updatedAt,
   });
@@ -27,19 +31,17 @@ class Meet {
         'employeeId': (json['createdBy']?['employeeId'] ?? '').toString(),
         'name': (json['createdBy']?['name'] ?? '').toString(),
       },
-      participants:
-          (json['participants'] as List<dynamic>?)
-              ?.map(
-                (p) => {
-                  'employeeId': (p['employeeId'] ?? '').toString(),
-                  'name': (p['name'] ?? '').toString(),
-                },
-              )
+      participants: (json['participants'] as List<dynamic>?)
+              ?.map((p) => {
+                    'employeeId': (p['employeeId'] ?? '').toString(),
+                    'name': (p['name'] ?? '').toString(),
+                  })
               .cast<Map<String, String>>()
-              .toList() ??
-          [],
+              .toList() ?? [],
       time: (json['time'] ?? '').toString(),
       description: (json['description'] ?? '').toString(),
+      agenda: json['agenda']?.toString(),
+      duration: int.tryParse(json['duration']?.toString() ?? '30') ?? 30,
       createdAt: json['createdAt']?.toString(),
       updatedAt: json['updatedAt']?.toString(),
     );
@@ -53,6 +55,8 @@ class Meet {
       'participants': participants,
       'time': time,
       'description': description,
+      'agenda': agenda,
+      'duration': duration,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };

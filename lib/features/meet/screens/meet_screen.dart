@@ -1,15 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
-import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
-import 'package:hrtz_hrms/features/meet/widgets/meet_widget.dart';
-import 'package:hrtz_hrms/widgets/custom_search_bar.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-
 import '../../../config/navigation/app_routes.dart';
+import '../widgets/meet_details_dialog.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 
 class MeetScreen extends StatefulWidget {
   const MeetScreen({super.key});
@@ -19,15 +17,67 @@ class MeetScreen extends StatefulWidget {
 }
 
 class _MeetScreenState extends State<MeetScreen> {
-  final TextEditingController _searchController = TextEditingController();
-  final SecureStorageService _secureStorage = SecureStorageService();
+  DateTime _selectedDate = DateTime.now();
+  String? _currentUserId;
+  final ScrollController _timelineScrollController = ScrollController(); 
+  final ScrollController _dateScrollController = ScrollController(); // 🚀 Added ScrollController for Dates
 
   @override
   void initState() {
     super.initState();
+    _loadUserId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-      meetProvider.fetchUpcomingMeetings();
+      context.read<MeetProvider>().fetchUpcomingMeetings();
+      _scrollToSelectedDate(); // 🎯 Initial scroll to today
+    });
+  }
+
+
+  @override
+  void dispose() {
+    _timelineScrollController.dispose();
+    _dateScrollController.dispose(); // 🧹 Clean up
+    super.dispose();
+  }
+
+  Future<void> _loadUserId() async {
+    _currentUserId = await SecureStorageService().getEmployeeId();
+    if (mounted) setState(() {});
+  }
+
+  // 🚀 Function to scroll to a specific hour in timeline
+  void _scrollToTime(int hour) {
+    if (hour < 9) hour = 9; 
+    if (hour > 24) hour = 24; 
+    
+    final int index = hour - 9;
+    final double offset = index * 70.0; 
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_timelineScrollController.hasClients) {
+        _timelineScrollController.animateTo(
+          offset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  // 🚀 Function to scroll to the selected date in date picker
+  void _scrollToSelectedDate() {
+    final startDate = DateTime.now().subtract(const Duration(days: 30));
+    final difference = _selectedDate.difference(startDate).inDays;
+    final double offset = (difference * 60.0) - (MediaQuery.of(context).size.width / 2) + 30;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_dateScrollController.hasClients) {
+        _dateScrollController.animateTo(
+          offset.clamp(0.0, _dateScrollController.position.maxScrollExtent),
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
@@ -35,137 +85,323 @@ class _MeetScreenState extends State<MeetScreen> {
   Widget build(BuildContext context) {
     final meetProvider = Provider.of<MeetProvider>(context);
 
-    return SafeArea(
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('Upcoming Meetings', style: AppTextStyles.black16_700),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-                meetProvider.fetchUpcomingMeetings(forceRefresh: true);
-              },
-            ),
-          ],
-        ),
-        body: Column(
-          children: [
-            // Only show search bar if there are meetings
-            if (meetProvider.meetList.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: CustomSearchBar(
-                  controller: _searchController,
-                  enable: true,
-                  hintText: 'Search meetings...',
-                  onChanged: (query) {
-                    meetProvider.searchMeets(query);
-                  },
-                ),
-              ),
-            Expanded(
-              child: meetProvider.state == MeetState.loading
-                  ? const Center(child: CircularProgressIndicator())
-                  : meetProvider.meetList.isEmpty
-                      ? const Center(child: Text('No upcoming meetings available'))
-                      : RefreshIndicator(
-                          onRefresh: () => meetProvider.fetchUpcomingMeetings(forceRefresh: true),
-                          child: ListView.builder(
-                            itemCount: meetProvider.meetList.length,
-                            itemBuilder: (context, index) {
-                              final meeting = meetProvider.meetList[index];
-                              return FutureBuilder<String?>(
-                                future: _secureStorage.getEmployeeId(),
-                                builder: (context, snapshot) {
-                                  final currentUserId = snapshot.data;
-                                  return MeetWidget(
-                                    meeting: meeting,
-                                    showButtons:
-                                        currentUserId != null &&
-                                        meeting.createdBy['employeeId'] == currentUserId,
-                                    onUpdate: () => _showUpdateDialog(context, meeting.id!),
-                                    onDelete: () => meetProvider.deleteMeeting(meeting.id!),
-                                  );
-                                },
-                              );
-                            },
-                          ),
-                        ),
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton.extended(
-          backgroundColor: AppColors.primary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-          elevation: 6,
-          onPressed: () => context.pushNamed(AppRoutes.scheduleMeetScreen),
-          icon: const Icon(Icons.add, color: Colors.white, size: 22),
-          label: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Text(
-              'Schedule Meet',
-              style: AppTextStyles.black12_400.copyWith(color: Colors.white),
-            ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: Column(
+        children: [
+          _buildHeader(meetProvider),
+          _buildDatePicker(), // 📅 Updated to scrollable date picker
+          Expanded(
+            child: meetProvider.state == MeetState.loading
+                ? const Center(child: CircularProgressIndicator())
+                : _buildMeetingTimeline(meetProvider.meetList),
           ),
-        ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.primary,
+        onPressed: () => context.pushNamed(AppRoutes.scheduleMeetScreen),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  void _showUpdateDialog(BuildContext context, String id) {
-    final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Update Meeting Time'),
-        content: const Text('Select a new date and time for this meeting.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () async {
-              final DateTime? pickedDate = await showDatePicker(
-                context: context,
-                initialDate: DateTime.now(),
-                firstDate: DateTime.now(),
-                lastDate: DateTime(2100),
-              );
-              if (pickedDate != null && context.mounted) {
-                final TimeOfDay? pickedTime = await showTimePicker(
-                  context: context,
-                  initialTime: TimeOfDay.now(),
-                );
-                if (pickedTime != null) {
-                  final DateTime combined = DateTime(
-                    pickedDate.year,
-                    pickedDate.month,
-                    pickedDate.day,
-                    pickedTime.hour,
-                    pickedTime.minute,
-                  );
-
-                  if (combined.isBefore(DateTime.now())) {
-                    if (context.mounted) {
-                      AlertHelper.snackBarError(context, "Selected time cannot be in the past.");
-                    }
-                    return;
-                  }
-
-                  final success = await meetProvider.updateMeeting(
-                    id: id,
-                    time: combined.toIso8601String(),
-                  );
-                  if (success && context.mounted) {
-                    AlertHelper.snackBarSuccess(context, "Meeting updated successfully!");
-                    Navigator.pop(context);
-                  }
-                }
-              }
-            },
-            child: const Text('Select Time & Update'),
+  Widget _buildHeader(MeetProvider provider) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(15, 40, 10, 20),
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(20),
+          bottomRight: Radius.circular(20),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            flex: 2,
+            child: InkWell(
+              onTap: () => _showMyCreatedMeetings(provider),
+              child: Row(
+                children: [
+                  const Icon(Icons.groups, color: Colors.white, size: 24),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('My Meetings ▾', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('${provider.meetList.length} meetings total', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Flexible(
+            flex: 3,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                _buildMonthYearPicker(),
+                const SizedBox(width: 8),
+                InkWell(
+                  onTap: () {
+                    setState(() => _selectedDate = DateTime.now());
+                    _scrollToSelectedDate();
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
+                    child: const Text('Today', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showMyCreatedMeetings(MeetProvider provider) {
+    final myMeets = provider.meetList.where((m) => m.createdBy['employeeId'] == _currentUserId).toList();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Meetings Created By You", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 15),
+              if (myMeets.isEmpty)
+                const Center(child: Text("No meetings created by you yet."))
+              else
+                Flexible(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: myMeets.length,
+                    itemBuilder: (context, index) {
+                      final meet = myMeets[index];
+                      final date = DateTime.parse(meet.time).toLocal();
+                      return ListTile(
+                        leading: const Icon(Icons.event, color: AppColors.primary),
+                        title: Text(meet.description, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} at ${DateFormat('hh:mm a').format(date)}"),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          setState(() => _selectedDate = date); // 🎯 Jump to date
+                          Navigator.pop(context);
+                          _scrollToSelectedDate();
+                          _scrollToTime(date.hour); // 🚀 Automatic scroll to meeting time
+                        },
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMonthYearPicker() {
+    return PopupMenuButton<DateTime>(
+      initialValue: _selectedDate,
+      onSelected: (DateTime date) {
+        setState(() {
+          _selectedDate = DateTime(_selectedDate.year, date.month, _selectedDate.day);
+          _scrollToSelectedDate();
+        });
+      },
+      itemBuilder: (context) {
+        return List.generate(12, (index) {
+          final date = DateTime(_selectedDate.year, index + 1);
+          return PopupMenuItem(
+            value: date,
+            child: Text(DateFormat('MMMM').format(date)),
+          );
+        });
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(DateFormat('MMMM yyyy').format(_selectedDate), style: const TextStyle(color: Colors.white, fontSize: 11)),
+          const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 14),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDatePicker() {
+    final startDate = DateTime.now().subtract(const Duration(days: 30)); // Start from 30 days ago
+    
+    return Container(
+      height: 90,
+      color: Colors.white,
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left, color: AppColors.primary, size: 20),
+            onPressed: () {
+              _dateScrollController.animateTo(
+                _dateScrollController.offset - 120,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: _dateScrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: 365, // Show 1 year of dates
+              itemBuilder: (context, index) {
+                final date = startDate.add(Duration(days: index));
+                bool isSelected = date.day == _selectedDate.day && 
+                                 date.month == _selectedDate.month && 
+                                 date.year == _selectedDate.year;
+                
+                return GestureDetector(
+                  onTap: () {
+                    setState(() => _selectedDate = date);
+                    _scrollToSelectedDate();
+                  },
+                  child: Container(
+                    width: 60,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    decoration: isSelected ? const BoxDecoration(
+                      border: Border(bottom: BorderSide(color: AppColors.primary, width: 2))
+                    ) : null,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(DateFormat('EEE').format(date), 
+                          style: TextStyle(
+                            color: isSelected ? AppColors.primary : Colors.grey, 
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
+                          )
+                        ),
+                        const SizedBox(height: 5),
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: isSelected ? const BoxDecoration(
+                            color: AppColors.primary, 
+                            shape: BoxShape.circle
+                          ) : null,
+                          child: Text('${date.day}', 
+                            style: TextStyle(
+                              color: isSelected ? Colors.white : Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            )
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right, color: AppColors.primary, size: 20),
+            onPressed: () {
+              _dateScrollController.animateTo(
+                _dateScrollController.offset + 120,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMeetingTimeline(List<Meet> meets) {
+    final dailyMeets = meets.where((m) {
+      final mDate = DateTime.parse(m.time).toLocal();
+      return mDate.day == _selectedDate.day && 
+             mDate.month == _selectedDate.month && 
+             mDate.year == _selectedDate.year;
+    }).toList();
+
+    return ListView.builder(
+      controller: _timelineScrollController, 
+      itemCount: 16, 
+      itemBuilder: (context, index) {
+        int hour = 9 + index;
+        String timeStr;
+        
+        if (hour < 12) timeStr = '$hour AM';
+        else if (hour == 12) timeStr = '12 PM';
+        else if (hour < 24) timeStr = '${hour - 12} PM';
+        else timeStr = '12 AM'; 
+
+        final hourMeets = dailyMeets.where((m) => DateTime.parse(m.time).toLocal().hour == hour).toList();
+
+        return Container(
+          height: 70,
+          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                alignment: Alignment.topCenter,
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: hourMeets.map((m) => _buildMeetingBlock(m)).toList(),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMeetingBlock(Meet meeting) {
+    final startTime = DateFormat('hh:mm a').format(DateTime.parse(meeting.time).toLocal());
+    return GestureDetector(
+      onTap: () => showDialog(context: context, builder: (context) => MeetDetailsDialog(meeting: meeting)),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+        padding: const EdgeInsets.all(8),
+        width: 120,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFF4081),
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(meeting.description, 
+              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), 
+              maxLines: 1, 
+              overflow: TextOverflow.ellipsis),
+            Text('$startTime - ${meeting.duration}m', 
+              style: const TextStyle(color: Colors.white70, fontSize: 8)),
+          ],
+        ),
       ),
     );
   }
