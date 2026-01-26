@@ -22,67 +22,119 @@ class _HolidayCalendarScreenState extends State<HolidayCalendarScreen> {
     final provider = context.watch<HolidayProvider>();
 
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Holiday Calendar'),
         centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
       ),
       body: provider.isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : Center(
+        child: SingleChildScrollView(
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            color: Colors.white,
+            child: Column(
               children: [
                 /// 🔹 Banner
                 Container(
-                  margin: const EdgeInsets.all(12),
                   height: 120,
+                  width: double.infinity,
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(4),
                     image: const DecorationImage(
                       fit: BoxFit.cover,
                       image: AssetImage('assets/images/holiday_banner.png'),
                     ),
                   ),
                 ),
+                const SizedBox(height: 20),
 
-                /// 🔹 Table
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(12),
-                    scrollDirection: Axis.vertical,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                      headingRowColor:
-                          WidgetStateProperty.all(const Color(0xff009990)),
-                      headingTextStyle: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      columns: const [
-                        DataColumn(label: Text('#')),
-                        DataColumn(label: Text('Date')),
-                        DataColumn(label: Text('Day')),
-                        DataColumn(label: Text('Holiday Name')),
+                /// 🔹 Print Layout Table
+                Table(
+                  border: TableBorder.all(color: Colors.black, width: 1),
+                  columnWidths: const {
+                    0: FixedColumnWidth(40),
+                    1: FlexColumnWidth(2.5),
+                    2: FlexColumnWidth(2.5),
+                    3: FlexColumnWidth(4),
+                  },
+                  children: [
+                    /// Table Header
+                    const TableRow(
+                      decoration: BoxDecoration(color: Color(0xffEEEEEE)),
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('#',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('Date',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('Day',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Text('Holiday Name',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center),
+                        ),
                       ],
-                      rows: List.generate(provider.holidays.length, (index) {
-                        final h = provider.holidays[index];
-                        return DataRow(cells: [
-                          DataCell(Text('${index + 1}')),
-                          DataCell(
-                            Text(
+                    ),
+
+                    /// Table Rows
+                    ...List.generate(provider.holidays.length, (index) {
+                      final h = provider.holidays[index];
+                      return TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text('${index + 1}',
+                                textAlign: TextAlign.center),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
                               DateFormat('dd-MM-yyyy')
                                   .format(DateTime.parse(h.date)),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                          DataCell(Text(h.day)),
-                          DataCell(Text(h.holiday)),
-                        ]);
-                      }),
-                      ),
-                    ),
-                  ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(h.day, textAlign: TextAlign.center),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(h.holiday),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  'End of Holiday List',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
     );
   }
 }

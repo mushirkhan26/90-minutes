@@ -339,6 +339,7 @@ class SocketManager {
     required String sender,
     required String senderName,
     required String text,
+    required String messageId, // ✅ Added messageId
     String messageType = 'text',
     String? fileName,
     String? fileUrl,
@@ -348,7 +349,7 @@ class SocketManager {
   }) async {
     if (!SocketService.instance.isConnected) {
       LoggingService.instance.error("Socket", "❌ Cannot send group message: socket not connected");
-      throw Exception("Socket not connected");
+      await SocketService.instance.waitForConnection();
     }
 
     final payload = {
@@ -356,6 +357,7 @@ class SocketManager {
       'sender': sender,
       'senderName': senderName,
       'text': text,
+      'messageId': messageId, // ✅ Include messageId
       'messageType': messageType,
       'fileName': fileName,
       'fileUrl': fileUrl,
@@ -373,7 +375,7 @@ class SocketManager {
       payload,
       ack: ([dynamic res]) {
         LoggingService.instance.logNetwork(
-          "[SOCKET][SEND_GROUP_ACK] ✅ Group message emit acknowledged",
+          "[SOCKET][SEND_GROUP_ACK] ✅ Group message emit acknowledged: $res",
         );
       },
     );

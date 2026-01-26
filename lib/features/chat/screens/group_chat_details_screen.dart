@@ -51,10 +51,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   }
 
   void _onGroupUpdated() {
+    //  Optimization: If we are currently performing an action (loading),
+    // ignore sync from provider to prevent flickering/reverting optimistic UI.
+    if (_isLoading) return;
+
     final updatedGroup = _groupSocketProvider.groupChats.firstWhere(
       (g) => g.groupId == _group.groupId,
       orElse: () => _group,
     );
+    
     if (updatedGroup != _group) {
       setState(() {
         _group = updatedGroup;
@@ -131,7 +136,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   );
                 }
               } finally {
-                setState(() => _isLoading = false);
+                if (mounted) setState(() => _isLoading = false);
               }
             },
             child: const Text('Save'),
@@ -153,7 +158,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     await showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) {
+        builder: (context, setDialogState) {
           return AlertDialog(
             title: const Text('Add Members'),
             content: SizedBox(
@@ -169,7 +174,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     subtitle: Text(emp.employeeID),
                     value: isSelected,
                     onChanged: (bool? value) {
-                      setState(() {
+                      setDialogState(() {
                         if (value == true) {
                           _selectedMembers.add(emp);
                         } else {
@@ -195,27 +200,49 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                     );
                     return;
                   }
+
+                  // 🚀 Optimistic UI Update
+                  final previousMembers = List<String>.from(_group.members);
+                  final newMemberIds = _selectedMembers.map((e) => e.employeeID).toList();
+                  
+                  setState(() {
+                    _isLoading = true; // Set loading first to block stale socket updates
+                    _group = _group.copyWith(
+                      members: [..._group.members, ...newMemberIds],
+                    );
+                    _filteredEmployees = _employees
+                        .where((emp) => !_group.members.contains(emp.employeeID))
+                        .toList();
+                  });
+
+                  Navigator.pop(context); 
+
                   try {
-                    setState(() => _isLoading = true);
                     await _groupSocketProvider.addGroupMembers(
                       _group.groupId,
-                      _selectedMembers.map((e) => e.employeeID).toList(),
+                      newMemberIds,
                       _currentUserId!,
                     );
-                    if (context.mounted) {
+                    
+                    if (mounted) {
+                       
+                      // ignore: use_build_context_synchronously
                       AlertHelper.snackBarSuccess(context, 'Members added!');
-                      Navigator.pop(context);
                     }
                     _selectedMembers.clear();
                   } catch (e) {
-                    if (context.mounted) {
-                      AlertHelper.snackBarError(
-                        context,
-                        'Failed to add members: $e',
-                      );
+                    if (mounted) {
+                      setState(() {
+                        _group = _group.copyWith(members: previousMembers);
+                        _filteredEmployees = _employees
+                            .where((emp) => !_group.members.contains(emp.employeeID))
+                            .toList();
+                      });
+                      // ignore: use_build_context_synchronously
+                      AlertHelper.snackBarError(context, 'Failed to add members: $e');
                     }
                   } finally {
-                    setState(() => _isLoading = false);
+                    if (mounted) setState(() => _isLoading = false);
                   }
                 },
                 child: const Text('Add'),
@@ -249,8 +276,19 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       ),
     );
     if (shouldRemove == true) {
+      // 🚀 Optimistic UI Update
+      final previousMembers = List<String>.from(_group.members);
+      setState(() {
+        _isLoading = true; // Block stale socket updates
+        _group = _group.copyWith(
+          members: List<String>.from(_group.members)..remove(userId),
+        );
+        _filteredEmployees = _employees
+            .where((emp) => !_group.members.contains(emp.employeeID))
+            .toList();
+      });
+
       try {
-        setState(() => _isLoading = true);
         await _groupSocketProvider.removeGroupMember(
           _group.groupId,
           userId,
@@ -261,10 +299,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         }
       } catch (e) {
         if (mounted) {
+          setState(() {
+            _group = _group.copyWith(members: previousMembers);
+            _filteredEmployees = _employees
+                .where((emp) => !_group.members.contains(emp.employeeID))
+                .toList();
+          });
           AlertHelper.snackBarError(context, 'Failed to remove member: $e');
         }
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -303,10 +347,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
         context.read<GroupSocketProvider>().fetchUserGroups();
 
-        // 1️⃣ First navigate
         Navigator.popUntil(context, (route) => route.isFirst);
 
-        // 2️⃣ Then show snackbar after navigation
         Future.delayed(const Duration(milliseconds: 300), () {
           if (!mounted) return;
           AlertHelper.snackBarSuccess(context, 'Group deleted successfully');
@@ -316,7 +358,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           AlertHelper.snackBarError(context, 'Failed to delete group: $e');
         }
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -347,23 +389,24 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     if (shouldLeave == true) {
       try {
         setState(() => _isLoading = true);
-        await _groupSocketProvider.removeGroupMember(
-          _group.groupId,
-          _currentUserId ?? '',
-          _currentUserId ?? '',
+        await _groupSocketProvider.leaveGroup(
+          groupId: _group.groupId,
+          userId: _currentUserId ?? '',
         );
-        if (mounted) Navigator.pop(context);
+        if (mounted) {
+           Navigator.popUntil(context, (route) => route.isFirst);
+           AlertHelper.snackBarSuccess(context, 'Left group successfully');
+        }
       } catch (e) {
         if (mounted) {
           AlertHelper.snackBarError(context, 'Failed to leave group: $e');
         }
       } finally {
-        setState(() => _isLoading = false);
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
 
-  // Helper method to get employee name by ID
   String _getEmployeeName(String employeeId) {
     try {
       final employee = _employees.firstWhere(
@@ -377,13 +420,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     }
   }
 
-  // --- UI Builders ---
   Widget _buildGroupHeader() {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         children: [
-          // Group Icon
           CircleAvatar(
             radius: 30,
             backgroundColor: AppColors.primary.withValues(alpha: .1),
@@ -395,7 +436,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       width: 60,
                       height: 60,
                       errorWidget: (context, url, error) {
-                        // handle invalid url, 403, etc.
                         return const Icon(
                           Icons.group,
                           size: 30,
@@ -414,7 +454,6 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             ),
           ),
           const SizedBox(width: 16),
-          // Group Name and Member Count
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,20 +548,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         children: [
-          // Edit Group Name
           if (isadmin)
             ListTile(
               leading: const Icon(Icons.edit, color: AppColors.primary),
               title: const Text('Edit Group Name'),
               onTap: _editGroupName,
             ),
-          // Leave Group
           ListTile(
             leading: const Icon(Icons.logout, color: AppColors.errorRed),
             title: const Text('Leave Group'),
             onTap: _leaveGroup,
           ),
-          // Delete Group (only for creator)
           if (isadmin)
             ListTile(
               leading: const Icon(Icons.delete, color: AppColors.errorRed),

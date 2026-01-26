@@ -10,11 +10,13 @@ import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/screens/change_password_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/login_screen.dart';
+import 'package:hrtz_hrms/features/auth/screens/onboarding_form_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/verify_otp_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
+import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
 import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; // Updated Import
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
@@ -23,10 +25,12 @@ import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
 import 'package:hrtz_hrms/features/settings/screens/permission_screen.dart';
+import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
 
+import '../../features/auth/screens/nda_screen_form.dart';
 import '../../features/home/screens/profile_screen.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
@@ -46,6 +50,8 @@ String? authGuard(BuildContext context, GoRouterState state) {
 }
 
 final GoRouter appRouter = GoRouter(
+    // navigatorKey: rootNavigatorKey,
+    // initialLocation: AppRoutes.ndaRoute,
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splashRoute,
   errorBuilder: (context, state) =>
@@ -91,6 +97,20 @@ final GoRouter appRouter = GoRouter(
         final employeeId = state.extra as String;
         return ChangePasswordScreen(employeeId: employeeId);
       },
+    ),
+
+    /// 📄 NDA Screen
+    GoRoute(
+      path: AppRoutes.ndaRoute,
+      name: 'nda',
+      pageBuilder: (context, state) => buildTransitionPage(const NdaScreen()),
+    ),
+
+    /// 📝 Onboarding Screen
+    GoRoute(
+      path: AppRoutes.onboardingRoute,
+      name: 'onboarding',
+      pageBuilder: (context, state) => buildTransitionPage(const OnboardingFormScreen()),
     ),
 
     /// Navigation Shell for main app after login
@@ -217,6 +237,16 @@ final GoRouter appRouter = GoRouter(
       name: '/leave-request',
       builder: (context, state) => const LeaveRequestScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.holidayCalendar,
+      name: '/holiday-calendar',
+      builder: (context, state) => const HolidayCalendarScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.tasksRoute,
+      name: '/tasks',
+      builder: (context, state) => const TasksScreen(),
+    ),
   ],
 );
 
@@ -294,6 +324,10 @@ extension AuthNavigation on BuildContext {
   void userProfile() => push(AppRoutes.userProfile);
 
   void leaveRequest() => push(AppRoutes.leaveRequest);
+
+  void holidayCalendar() => push(AppRoutes.holidayCalendar);
+
+  void goToTasks() => push(AppRoutes.tasksRoute);
 }
 
 /// ✨ Custom transition page helper

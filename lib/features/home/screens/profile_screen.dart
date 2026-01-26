@@ -164,12 +164,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Center(
                       child: CircleAvatar(
                         radius: 50,
+                        backgroundColor: Colors.grey[300],
                         backgroundImage: profileData?.profileImage != null
                             ? NetworkImage(profileData!.profileImage!)
-                            : const AssetImage(
-                                    'assets/images/default_profile.png',
-                                  )
-                                  as ImageProvider,
+                            : null,
                         child: profileData?.profileImage == null
                             ? const Icon(
                                 Icons.person,
@@ -220,10 +218,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _mobileController,
                       labelText: 'Mobile Number',
+
                       prefixIcon: Icon(Icons.phone),
+                      maxLength: 10,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your mobile number';
+                        }
+                        if (value.length != 10) {
+                          return 'Mobile number must be 10 digits';
                         }
                         return null;
                       },
@@ -237,6 +240,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _alterMobileController,
                       labelText: 'Alternate Mobile Number',
                       prefixIcon: Icon(Icons.phone_android),
+                      maxLength: 10,
+                      validator: (value) {
+                        if (value != null && value.isNotEmpty && value.length != 10) {
+                          return 'Mobile number must be 10 digits';
+                        }
+                        return null;
+                      },
                       readOnly: !_isEditing,
                       keyboardType: TextInputType.phone,
                     ),

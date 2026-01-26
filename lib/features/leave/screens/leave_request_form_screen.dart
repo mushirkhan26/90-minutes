@@ -1,4 +1,7 @@
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +9,7 @@ import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import '../../../../core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/models/holiday_model.dart';
 
 class LeaveRequestFormScreen extends StatefulWidget {
   final String name;
@@ -29,8 +33,16 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   String? _leaveType;
   int _duration = 0;
   bool _isSubmitting = false;
+  File? _medicalCertificateFile;
+  bool _isUploadingFile = false;
 
-  Set<DateTime> _holidayDates = {};
+  // New Summary Variables
+  int _totalDays = 0;
+  int _weekendsCount = 0;
+  int _holidaysCount = 0;
+  List<HolidayModel> _foundHolidays = [];
+
+  List<HolidayModel> _allHolidays = [];
 
   final List<String> _leaveTypes = [
     'casualOrSickLeave',
@@ -40,17 +52,18 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   @override
   void initState() {
     super.initState();
-    _loadHolidays(); // ✅ CHANGED
+    _loadHolidays();
+    // Fetch leave info to show available balance
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LeaveProvider>().fetchLeaveInfo(employeeId: widget.employeeId);
+    });
   }
 
-  // 🆕 ADDED → load holidays from provider
   Future<void> _loadHolidays() async {
     final holidayProvider = Provider.of<HolidayProvider>(context, listen: false);
     await holidayProvider.fetchHolidays();
     setState(() {
-      _holidayDates = holidayProvider.holidays
-          .map((h) => DateTime.parse(h.date))
-          .toSet();
+      _allHolidays = holidayProvider.holidays;
     });
   }
   @override
@@ -60,64 +73,106 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
   }
 
   Future<void> _selectDate({required bool isStartDate}) async {
-  final pickedDate = await showDatePicker(
-    context: context,
-    initialDate: isStartDate
-        ? (_startDate ?? DateTime.now())
-        : (_endDate ?? _startDate ?? DateTime.now()), // ✅ end date initial logic fix
-
-    firstDate: isStartDate
-        ? DateTime.now()
-        : (_startDate ?? DateTime.now()), // ✅ END DATE cannot be before START DATE
-
-    lastDate: DateTime(2100),
-  );
-
-  if (pickedDate != null) {
-    setState(() {
-      if (isStartDate) {
-        _startDate = pickedDate;
-
-        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-          _endDate = null;      // ✅ invalid end date reset
-          _duration = 0;        // ✅ duration reset
-        }
-      } else {
-        _endDate = pickedDate;  // ✅ now safe (cannot pick before start)
-      }
-      _calculateDuration();
-    });
-  }
-}
-  void _calculateDuration() {
-  if (_startDate == null || _endDate == null) {
-    setState(() => _duration = 0);
-    return;
-  }
-
-  int count = 0;
-  DateTime current = _startDate!;
-
-  while (!current.isAfter(_endDate!)) {
-    final isSunday = current.weekday == DateTime.sunday;
-
-    final isHoliday = _holidayDates.any((h) =>
-      h.year == current.year &&
-      h.month == current.month &&
-      h.day == current.day
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: isStartDate
+          ? (_startDate ?? DateTime.now())
+          : (_endDate ?? _startDate ?? DateTime.now()),
+      firstDate: isStartDate
+          ? DateTime.now()
+          : (_startDate ?? DateTime.now()),
+      lastDate: DateTime(2100),
     );
 
-    if (!isSunday && !isHoliday) {
-      count++;
+    if (pickedDate != null) {
+      setState(() {
+        if (isStartDate) {
+          _startDate = pickedDate;
+          if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+            _endDate = null;
+            _duration = 0;
+          }
+        } else {
+          _endDate = pickedDate;
+        }
+        _calculateDuration();
+      });
     }
-
-    current = current.add(const Duration(days: 1));
   }
 
-  setState(() {
-    _duration = count;
-  });
-}
+  void _calculateDuration() {
+    if (_startDate == null || _endDate == null) {
+      setState(() {
+        _duration = 0;
+        _totalDays = 0;
+        _weekendsCount = 0;
+        _holidaysCount = 0;
+        _foundHolidays = [];
+      });
+      return;
+    }
+
+    int workingDays = 0;
+    int total = 0;
+    int weekends = 0;
+    int holidays = 0;
+    List<HolidayModel> holidaysInRange = [];
+
+    DateTime current = _startDate!;
+
+    while (!current.isAfter(_endDate!)) {
+      total++;
+      final isSunday = current.weekday == DateTime.sunday;
+      
+      final holiday = _allHolidays.firstWhere(
+        (h) {
+          try {
+            final hDate = DateTime.parse(h.date);
+            return hDate.year == current.year &&
+                   hDate.month == current.month &&
+                   hDate.day == current.day;
+          } catch (_) {
+            return false;
+          }
+        },
+        orElse: () => HolidayModel(date: '', day: '', holiday: ''),
+      );
+
+      bool isHoliday = holiday.date.isNotEmpty;
+
+      if (isSunday) {
+        weekends++;
+      } else if (isHoliday) {
+        holidays++;
+        holidaysInRange.add(holiday);
+      } else {
+        workingDays++;
+      }
+      
+      current = current.add(const Duration(days: 1));
+    }
+
+    setState(() {
+      _duration = workingDays;
+      _totalDays = total;
+      _weekendsCount = weekends;
+      _holidaysCount = holidays;
+      _foundHolidays = holidaysInRange;
+    });
+  }
+
+  Future<void> _pickFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+    );
+
+    if (result != null && result.files.single.path != null) {
+      setState(() {
+        _medicalCertificateFile = File(result.files.single.path!);
+      });
+    }
+  }
 
   Future<void> _submitLeave() async {
     if (!_formKey.currentState!.validate()) return;
@@ -129,11 +184,49 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       AlertHelper.snackBarInfo(context, 'Please select a leave type');
       return;
     }
+
+    // ✅ Validation for duration and leave type
+    if (_duration >= 3 && _leaveType != 'emergencyLeave') {
+      AlertHelper.snackBarInfo(context, 'Leaves for 3 or more days must be applied as Emergency Leave');
+      return;
+    }
+
+    if ((_leaveType == 'casualOrSickLeave' || _leaveType == 'earnedLeave') && _duration > 2) {
+      AlertHelper.snackBarInfo(context, 'Casual/Sick and Earned leaves can only be for 1 or 2 days');
+      return;
+    }
+
+    // ✅ Marriage leave restriction
+    if (_reasonController.text.toLowerCase().contains('marriage') && _leaveType != 'emergencyLeave') {
+      AlertHelper.snackBarInfo(context, 'Marriage leave must be applied as Emergency Leave');
+      return;
+    }
+
+    // Check if medical certificate is required for emergency leave
+    if (_leaveType == 'emergencyLeave' && _medicalCertificateFile == null) {
+      AlertHelper.snackBarInfo(context, 'Medical certificate is required for emergency leave');
+      return;
+    }
+
     setState(() => _isSubmitting = true);
     
+    String? medicalCertificateUrl;
+    if (_medicalCertificateFile != null) {
+      setState(() => _isUploadingFile = true);
+      final uploadService = FileUploadService();
+      medicalCertificateUrl = await uploadService.uploadFile(_medicalCertificateFile!);
+      if(!mounted) return;
+      setState(() => _isUploadingFile = false);
+      
+      if (medicalCertificateUrl == null) {
+        AlertHelper.snackBarError(context, 'Failed to upload medical certificate');
+        setState(() => _isSubmitting = false);
+        return;
+      }
+    }
+
     final leaveProvider = Provider.of<LeaveProvider>(context, listen: false);
     
-    // Changing date format to yyyy-MM-dd as it's standard for most APIs
     final (success, message) = await leaveProvider.addLeaveRequest(
       name: widget.name,
       employeeId: widget.employeeId,
@@ -142,6 +235,7 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       reason: _reasonController.text.trim(),
       duration: _duration,
       type: _leaveType!,
+      medicalCertificate: medicalCertificateUrl,
     );
     
     if (!mounted) return;
@@ -156,10 +250,24 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final leaveProvider = context.watch<LeaveProvider>();
+    final available = leaveProvider.availableLeave?['available'] ?? {};
+
     return Scaffold(
       appBar: AppBar(title: const Text('Apply for Leave')),
       body: _isSubmitting
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  if (_isUploadingFile) ...[
+                    const SizedBox(height: 16),
+                    const Text('Uploading medical certificate...'),
+                  ],
+                ],
+              ),
+            )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
               child: Form(
@@ -183,15 +291,24 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
                       initialValue: _leaveType,
-                      items: _leaveTypes
-                          .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-                          .toList(),
+                      items: _leaveTypes.map((type) {
+                        final left = available[type] ?? 0;
+                        return DropdownMenuItem(
+                          value: type, 
+                          child: Text('$type ($left left)')
+                        );
+                      }).toList(),
                       decoration: const InputDecoration(
                         labelText: 'Leave Type',
                         prefixIcon: Icon(Icons.category),
                         border: OutlineInputBorder(),
                       ),
-                      onChanged: (val) => setState(() => _leaveType = val),
+                      onChanged: (val) => setState(() {
+                        _leaveType = val;
+                        if (val != 'emergencyLeave') {
+                          _medicalCertificateFile = null;
+                        }
+                      }),
                       validator: (val) => val == null ? 'Please select a leave type' : null,
                     ),
                     const SizedBox(height: 16),
@@ -220,15 +337,44 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    if (_duration > 0)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Text(
-                          'Duration: $_duration day${_duration > 1 ? 's' : ''}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    
+                    // ✅ Leave Summary Box
+                    if (_startDate != null && _endDate != null) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Leave Summary',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            _buildSummaryItem('Total days', '$_totalDays'),
+                            _buildSummaryItem('Working days', '$_duration'),
+                            _buildSummaryItem('Weekends', '$_weekendsCount'),
+                            _buildSummaryItem('Holidays', '$_holidaysCount'),
+                            if (_foundHolidays.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              const Text('Holidays in range:', style: TextStyle(fontSize: 13, color: Colors.grey)),
+                              ..._foundHolidays.map((h) => Padding(
+                                padding: const EdgeInsets.only(left: 8.0, top: 2),
+                                child: Text('• ${h.holiday} (${DateFormat('MMM d, yyyy').format(DateTime.parse(h.date))})', 
+                                  style: const TextStyle(fontSize: 13, color: Colors.redAccent)),
+                              )),
+                            ],
+                          ],
                         ),
                       ),
+                    ],
+
+                    const SizedBox(height: 16),
                     CustomTextField(
                       controller: _reasonController,
                       labelText: 'Reason',
@@ -236,6 +382,43 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                       maxLines: 4,
                       validator: (value) => (value == null || value.isEmpty) ? 'Please provide a reason' : null,
                     ),
+                    if (_leaveType == 'emergencyLeave') ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Medical Certificate (Required)',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 8),
+                      InkWell(
+                        onTap: _pickFile,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.attach_file),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _medicalCertificateFile == null
+                                      ? 'Select medical certificate (PDF, JPG, PNG)'
+                                      : _medicalCertificateFile!.path.split('/').last,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (_medicalCertificateFile != null)
+                                IconButton(
+                                  icon: const Icon(Icons.close, size: 20),
+                                  onPressed: () => setState(() => _medicalCertificateFile = null),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     CustomButton(
                       text: 'Submit Request',
@@ -246,6 +429,18 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildSummaryItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        children: [
+          Text('• $label: ', style: const TextStyle(fontSize: 14)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+        ],
+      ),
     );
   }
 }

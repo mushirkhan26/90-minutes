@@ -73,7 +73,9 @@ class AuthService {
     final response = await _apiHelper.get<Map<String, dynamic>>(endpoint);
 
     if (response.success && response.data != null) {
-      final employee = EmployeeModel.fromJson(response.data!);
+      // ✅ Corrected: Extract from 'message' key as per API response structure
+      final Map<String, dynamic> message = response.data!['message'];
+      final employee = EmployeeModel.fromJson(message);
       return ApiResponse.success(employee);
     } else {
       return ApiResponse.error(
@@ -97,8 +99,8 @@ class AuthService {
     final body = {
       "name": name,
       "email": email,
-      "mobile": mobile,
-      "alterMobile": alterMobile,
+      "mobile": int.tryParse(mobile) ?? mobile,
+      "alterMobile": int.tryParse(alterMobile) ?? alterMobile,
       "gender": gender,
       "address": address,
     };
@@ -128,6 +130,7 @@ class AuthService {
     required String reason,
     required int duration,
     required String type,
+    String? medicalCertificate,
   }) async {
     final body = {
       "name": name,
@@ -137,6 +140,7 @@ class AuthService {
       "reason": reason,
       "duration": duration,
       "type": type,
+      if (medicalCertificate != null) "medicalCertificate": [medicalCertificate],
     };
     
     _logger.logAuth('Adding leave request to leave/add');
@@ -159,6 +163,20 @@ class AuthService {
     _logger.logAuth('Fetching available leave for employeeId: $employeeId');
     final endpoint = 'leave/availableLeave/$employeeId';
     return await _apiHelper.get<Map<String, dynamic>>(endpoint);
+  }
+
+  /// 🗑️ Cancel/Delete Leave Request API
+  Future<ApiResponse<Map<String, dynamic>>> deleteLeaveRequest({
+    required String leaveId,
+    required String updatedBy,
+  }) async {
+    _logger.logAuth('Cancelling leave request: $leaveId');
+    final endpoint = 'leave/update/$leaveId';
+    final body = {
+      "status": "Cancelled",
+      "updatedBy": updatedBy
+    };
+    return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
 
   /// 📅 Get Attendance API

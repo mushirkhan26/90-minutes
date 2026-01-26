@@ -23,6 +23,10 @@ class SecureStorageService {
   static const String _keyAddress = 'address';
   static const String _keyProfileImage = 'profile_image';
 
+  // 🆕 New Account Keys
+  static const String _keyNdaSubmitted = 'nda_submitted';
+  static const String _keyOnboardingCompleted = 'onboarding_completed';
+
   /// ✅ Save user data securely
   Future<void> saveUserData({
     required String token,
@@ -30,12 +34,16 @@ class SecureStorageService {
     required String username,
     required String email,
     required String role,
+    bool ndaSubmitted = false,
+    bool onboardingCompleted = false,
   }) async {
     await _secureStorage.write(key: _keyToken, value: token);
     await _secureStorage.write(key: _keyEmployeeId, value: employeeId);
     await _secureStorage.write(key: _keyUsername, value: username);
     await _secureStorage.write(key: _keyEmail, value: email);
     await _secureStorage.write(key: _keyRole, value: role);
+    await _secureStorage.write(key: _keyNdaSubmitted, value: ndaSubmitted.toString());
+    await _secureStorage.write(key: _keyOnboardingCompleted, value: onboardingCompleted.toString());
   }
 
   /// 📥 Get user data
@@ -48,6 +56,8 @@ class SecureStorageService {
       "username": await _secureStorage.read(key: _keyUsername),
       "email": await _secureStorage.read(key: _keyEmail),
       "role": await _secureStorage.read(key: _keyRole),
+      "ndaSubmitted": (await _secureStorage.read(key: _keyNdaSubmitted)) == 'true',
+      "onboardingCompleted": (await _secureStorage.read(key: _keyOnboardingCompleted)) == 'true',
     };
   }
 
@@ -125,5 +135,15 @@ class SecureStorageService {
     await _secureStorage.delete(key: _keyGender);
     await _secureStorage.delete(key: _keyAddress);
     await _secureStorage.delete(key: _keyProfileImage);
+  }
+
+  /// Update NDA status
+  Future<void> setNdaSubmitted(bool submitted) async {
+    await _secureStorage.write(key: _keyNdaSubmitted, value: submitted.toString());
+  }
+
+  /// Update Onboarding status
+  Future<void> setOnboardingCompleted(bool completed) async {
+    await _secureStorage.write(key: _keyOnboardingCompleted, value: completed.toString());
   }
 }

@@ -7,6 +7,10 @@ class AppRoutes {
   static const String registrationRoute = '/registration';
   static const String changePaswordRoute = '/change-password';
 
+  // New Account Onboarding routes
+  static const String ndaRoute = '/nda';
+  static const String onboardingRoute = '/onboarding';
+
   //Main Navigation routes
 
   static const String homeRoute = '/home';
@@ -22,4 +26,6 @@ class AppRoutes {
   static const faceverification = '/face-verification';
   static const userProfile = '/user-profile';
   static const leaveRequest = '/leave-request';
+  static const String holidayCalendar = '/holiday-calendar';
+  static const String tasksRoute = '/tasks';
 }
