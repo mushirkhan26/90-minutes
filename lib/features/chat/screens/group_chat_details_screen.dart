@@ -260,8 +260,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           AlertHelper.snackBarSuccess(context, 'Member removed!');
         }
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AlertHelper.snackBarError(context, 'Failed to remove member: $e');
+        }
       } finally {
         setState(() => _isLoading = false);
       }
@@ -311,8 +312,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           AlertHelper.snackBarSuccess(context, 'Group deleted successfully');
         });
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AlertHelper.snackBarError(context, 'Failed to delete group: $e');
+        }
       } finally {
         setState(() => _isLoading = false);
       }
@@ -352,8 +354,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
         );
         if (mounted) Navigator.pop(context);
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AlertHelper.snackBarError(context, 'Failed to leave group: $e');
+        }
       } finally {
         setState(() => _isLoading = false);
       }
