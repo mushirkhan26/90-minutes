@@ -20,7 +20,7 @@ class _MeetScreenState extends State<MeetScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _currentUserId;
   final ScrollController _timelineScrollController = ScrollController(); 
-  final ScrollController _dateScrollController = ScrollController(); // 🚀 Added ScrollController for Dates
+  final ScrollController _dateScrollController = ScrollController(); 
 
   @override
   void initState() {
@@ -28,7 +28,7 @@ class _MeetScreenState extends State<MeetScreen> {
     _loadUserId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MeetProvider>().fetchUpcomingMeetings();
-      _scrollToSelectedDate(); // 🎯 Initial scroll to today
+      _scrollToSelectedDate(); 
     });
   }
 
@@ -36,7 +36,7 @@ class _MeetScreenState extends State<MeetScreen> {
   @override
   void dispose() {
     _timelineScrollController.dispose();
-    _dateScrollController.dispose(); // 🧹 Clean up
+    _dateScrollController.dispose(); 
     super.dispose();
   }
 
@@ -45,7 +45,6 @@ class _MeetScreenState extends State<MeetScreen> {
     if (mounted) setState(() {});
   }
 
-  // 🚀 Function to scroll to a specific hour in timeline
   void _scrollToTime(int hour) {
     if (hour < 9) hour = 9; 
     if (hour > 24) hour = 24; 
@@ -64,7 +63,6 @@ class _MeetScreenState extends State<MeetScreen> {
     });
   }
 
-  // 🚀 Function to scroll to the selected date in date picker
   void _scrollToSelectedDate() {
     final startDate = DateTime.now().subtract(const Duration(days: 30));
     final difference = _selectedDate.difference(startDate).inDays;
@@ -90,7 +88,7 @@ class _MeetScreenState extends State<MeetScreen> {
       body: Column(
         children: [
           _buildHeader(meetProvider),
-          _buildDatePicker(), // 📅 Updated to scrollable date picker
+          _buildDatePicker(), 
           Expanded(
             child: meetProvider.state == MeetState.loading
                 ? const Center(child: CircularProgressIndicator())
@@ -198,10 +196,10 @@ class _MeetScreenState extends State<MeetScreen> {
                         subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} at ${DateFormat('hh:mm a').format(date)}"),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          setState(() => _selectedDate = date); // 🎯 Jump to date
+                          setState(() => _selectedDate = date); 
                           Navigator.pop(context);
                           _scrollToSelectedDate();
-                          _scrollToTime(date.hour); // 🚀 Automatic scroll to meeting time
+                          _scrollToTime(date.hour); 
                         },
                       );
                     },
@@ -243,7 +241,7 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   Widget _buildDatePicker() {
-    final startDate = DateTime.now().subtract(const Duration(days: 30)); // Start from 30 days ago
+    final startDate = DateTime.now().subtract(const Duration(days: 30)); 
     
     return Container(
       height: 90,
@@ -264,7 +262,7 @@ class _MeetScreenState extends State<MeetScreen> {
             child: ListView.builder(
               controller: _dateScrollController,
               scrollDirection: Axis.horizontal,
-              itemCount: 365, // Show 1 year of dates
+              itemCount: 365, 
               itemBuilder: (context, index) {
                 final date = startDate.add(Duration(days: index));
                 bool isSelected = date.day == _selectedDate.day && 
@@ -329,12 +327,30 @@ class _MeetScreenState extends State<MeetScreen> {
     );
   }
 
+  // ✅ Updated logic to handle Recurrence (Daily/Weekly) in UI
   Widget _buildMeetingTimeline(List<Meet> meets) {
     final dailyMeets = meets.where((m) {
       final mDate = DateTime.parse(m.time).toLocal();
-      return mDate.day == _selectedDate.day && 
-             mDate.month == _selectedDate.month && 
-             mDate.year == _selectedDate.year;
+      final String recurrence = m.recurrence ?? "One-time meeting";
+      
+      // Basic check: Is the meeting on the selected date?
+      bool isSameDay = mDate.day == _selectedDate.day && 
+                       mDate.month == _selectedDate.month && 
+                       mDate.year == _selectedDate.year;
+      
+      if (isSameDay) return true;
+
+      // Handle Daily: Show if selected date is after meeting start date
+      if (recurrence == "Daily") {
+        return _selectedDate.isAfter(mDate);
+      }
+
+      // Handle Weekly: Show if selected date is after start date AND same day of week
+      if (recurrence == "Weekly") {
+        return _selectedDate.isAfter(mDate) && _selectedDate.weekday == mDate.weekday;
+      }
+
+      return false;
     }).toList();
 
     return ListView.builder(

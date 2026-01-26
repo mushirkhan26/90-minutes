@@ -88,10 +88,10 @@ class _ChatListScreenState extends State<ChatListScreen>
   }
 
   /// Opens dialog to create a new group
-  /// Opens dialog to create a new group
   Future<void> _showCreateGroupDialog() async {
     final TextEditingController nameController = TextEditingController();
     final TextEditingController descController = TextEditingController();
+    String? errorMessage;
     _selectedMembers.clear();
 
     await showDialog(
@@ -114,9 +114,25 @@ class _ChatListScreenState extends State<ChatListScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    if (errorMessage != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          errorMessage!,
+                          style: const TextStyle(
+                              color: Colors.red,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500),
+                        ),
+                      ),
                     CustomTextField(
                       controller: nameController,
                       hintText: "Group Name",
+                      onChanged: (val) {
+                        if (errorMessage != null) {
+                          setState(() => errorMessage = null);
+                        }
+                      },
                     ),
                     const SizedBox(height: 10),
                     CustomTextField(
@@ -146,6 +162,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                                 } else {
                                   _selectedMembers.remove(emp);
                                 }
+                                if (errorMessage != null &&
+                                    _selectedMembers.isNotEmpty) {
+                                  errorMessage = null;
+                                }
                               });
                             },
                           );
@@ -156,7 +176,7 @@ class _ChatListScreenState extends State<ChatListScreen>
                 ),
               ),
               actionsPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
+                horizontal: 8,
                 vertical: 12,
               ),
               actions: [
@@ -170,36 +190,29 @@ class _ChatListScreenState extends State<ChatListScreen>
                         onPressed: () => Navigator.pop(context),
                       ),
                     ),
-                    const SizedBox(width: 2),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: CustomButton(
                         text: "Create Group",
-
-                        fontSize: 10,
+                        fontSize: 9,
                         onPressed: () async {
                           final name = nameController.text.trim();
                           if (name.isEmpty) {
-                            if (mounted) {
-                              AlertHelper.snackBarWarning(
-                                context,
-                                'Please enter a group name',
-                              );
-                            }
+                            setState(() {
+                              errorMessage = 'Please enter a group name';
+                            });
                             return;
                           }
                           if (_selectedMembers.isEmpty) {
-                            if (mounted) {
-                              AlertHelper.snackBarWarning(
-                                context,
-                                'Please select at least one member',
-                              );
-                            }
+                            setState(() {
+                              errorMessage = 'Please select members';
+                            });
                             return;
                           }
 
                           Navigator.pop(context); // close dialog
-                          final createdBy = await context
-                              .getCurrentEmployeeId();
+                          final createdBy =
+                              await context.getCurrentEmployeeId();
                           if (createdBy == null) {
                             if (context.mounted) {
                               AlertHelper.snackBarError(
@@ -320,38 +333,6 @@ class _ChatListScreenState extends State<ChatListScreen>
               ),
             ),
 
-            // Employee list
-            // Expanded(
-            //   child: _filteredEmployees.isEmpty
-            //       ? const Center(
-            //           child: Text('No employees found', style: TextStyle(color: Colors.grey)),
-            //         )
-            //       : ListView.builder(
-            //           padding: EdgeInsets.all(AppConstants.paddingMedium),
-            //           itemCount: _filteredEmployees.length,
-            //           itemBuilder: (context, index) {
-            //             final employee = _filteredEmployees[index];
-
-            //             final unreadCount =
-            //                 context.watch<SocketProvider>().unreadCounts[employee.employeeID] ?? 0;
-            //             return EmployeeListCard(
-            //               name: employee.name,
-            //               message: 'Tap to start chat',
-            //               time: null, // We'll use current time when message is sent
-            //               isActive: true, // You can implement presence status later
-            //               onTap: () {
-            //                 // Navigate to individual chat
-            //                 context.goToIndividualChat(
-            //                   otherUserId: employee.employeeID,
-            //                   otherUserName: employee.name,
-            //                 );
-            //               },
-            //               unreadCount: unreadCount, // You can implement unread count logic later
-            //               isAccountDeleted: false,
-            //             );
-            //           },
-            //         ),
-            // ),
             Expanded(
               child: TabBarView(
                 controller: _tabController,

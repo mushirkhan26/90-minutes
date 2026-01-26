@@ -380,6 +380,21 @@ class AuthProvider extends ChangeNotifier {
           profileImage: _profileData?.profileImage,
         );
 
+        // Update local userData and its secure storage so other parts of the app use updated info
+        if (_userData != null) {
+          _userData!['username'] = name;
+          _userData!['email'] = email;
+          await _secureStorage.saveUserData(
+            token: _userData!['token'] ?? '',
+            employeeId: _userData!['employeeId'] ?? employeeId,
+            username: name,
+            email: email,
+            role: _userData!['role'] ?? '',
+            ndaSubmitted: _ndaSubmitted,
+            onboardingCompleted: _onboardingCompleted,
+          );
+        }
+
         _logger.logAuth('✅ Profile updated successfully');
         _state = AuthState.authenticated;
         notifyListeners();

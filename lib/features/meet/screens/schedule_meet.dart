@@ -25,10 +25,14 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   final TextEditingController _linkController = TextEditingController();
   final TextEditingController _agendaController = TextEditingController();
   final TextEditingController _dateController = TextEditingController();
+  final TextEditingController _startDateController = TextEditingController();
+  final TextEditingController _endDateController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   DateTime? _selectedDate;
+  DateTime? _startDate;
+  DateTime? _endDate;
   TimeOfDay? _selectedTime;
   String _recurrence = 'One-time meeting';
   List<EmployeeModel> _employees = [];
@@ -77,6 +81,44 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     }
   }
 
+  Future<void> _pickStartDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _startDate = picked;
+        _startDateController.text = DateFormat('dd-MM-yyyy').format(picked);
+        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+          _endDate = null;
+          _endDateController.clear();
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndDate() async {
+    if (_startDate == null) {
+      AlertHelper.snackBarWarning(context, "Please select Start Date first");
+      return;
+    }
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _startDate!,
+      firstDate: _startDate!,
+      lastDate: DateTime(2100),
+    );
+    if (picked != null) {
+      setState(() {
+        _endDate = picked;
+        _endDateController.text = DateFormat('dd-MM-yyyy').format(picked);
+      });
+    }
+  }
+
   Future<void> _pickTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -99,10 +141,49 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     }
   }
 
+  List<DateTime> _calculateRecurrenceDates() {
+    List<DateTime> dates = [];
+    if (_selectedTime == null) return dates;
+
+    if (_recurrence == 'One-time meeting') {
+      if (_selectedDate != null) {
+        dates.add(DateTime(_selectedDate!.year, _selectedDate!.month, _selectedDate!.day, _selectedTime!.hour, _selectedTime!.minute));
+      }
+    } else {
+      if (_startDate != null && _endDate != null) {
+        DateTime current = _startDate!;
+        while (current.isBefore(_endDate!) || current.isAtSameMomentAs(_endDate!)) {
+          dates.add(DateTime(current.year, current.month, current.day, _selectedTime!.hour, _selectedTime!.minute));
+          if (_recurrence == 'Daily') {
+            current = current.add(const Duration(days: 1));
+          } else if (_recurrence == 'Weekly') {
+            current = current.add(const Duration(days: 7));
+          } else {
+            break;
+          }
+        }
+      }
+    }
+    return dates;
+  }
+
   Future<void> _scheduleMeeting() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedDate == null || _selectedTime == null) {
-      AlertHelper.snackBarWarning(context, "Please select both Date and Time");
+    
+    if (_recurrence == 'One-time meeting') {
+      if (_selectedDate == null) {
+        AlertHelper.snackBarWarning(context, "Please select Date");
+        return;
+      }
+    } else {
+      if (_startDate == null || _endDate == null) {
+        AlertHelper.snackBarWarning(context, "Please select both Start and End Date");
+        return;
+      }
+    }
+
+    if (_selectedTime == null) {
+      AlertHelper.snackBarWarning(context, "Please select Time");
       return;
     }
     if (_selectedParticipants.isEmpty) {
@@ -110,25 +191,35 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       return;
     }
 
-    // 🕒 Fix: Create DateTime and convert to UTC for consistent display across zones
-    final DateTime localDateTime = DateTime(
-      _selectedDate!.year, _selectedDate!.month, _selectedDate!.day,
-      _selectedTime!.hour, _selectedTime!.minute,
-    );
+    final List<DateTime> scheduledDates = _calculateRecurrenceDates();
+    if (scheduledDates.isEmpty) {
+      AlertHelper.snackBarWarning(context, "No valid dates to schedule");
+      return;
+    }
 
     final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-    final success = await meetProvider.addMeeting(
-      meetLink: _linkController.text,
-      description: _titleController.text,
-      time: localDateTime.toUtc().toIso8601String(), // ✅ Sending as UTC
-      participants: _selectedParticipants
-          .map((e) => {"employeeId": e.employeeID, "name": e.name})
-          .toList(),
-    );
+    
+    // Show loading
+    bool allSuccess = true;
+    for (var date in scheduledDates) {
+      final success = await meetProvider.addMeeting(
+        meetLink: _linkController.text,
+        description: _titleController.text,
+        time: date.toUtc().toIso8601String(), // ✅ Sending as UTC
+        participants: _selectedParticipants
+            .map((e) => {"employeeId": e.employeeID, "name": e.name})
+            .toList(),
+        agenda: _agendaController.text,
+        duration: int.tryParse(_durationController.text) ?? 30,
+      );
+      if (!success) allSuccess = false;
+    }
 
-    if (success && mounted) {
-      AlertHelper.snackBarSuccess(context, "Meeting scheduled successfully!");
+    if (allSuccess && mounted) {
+      AlertHelper.snackBarSuccess(context, "Meeting(s) scheduled successfully!");
       Navigator.pop(context);
+    } else if (mounted) {
+      AlertHelper.snackBarError(context, "Some meetings failed to schedule.");
     }
   }
 
@@ -160,47 +251,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
               _buildLabel("Meeting Title *", Icons.description_outlined),
               CustomTextField(controller: _titleController, hintText: "Enter meeting title"),
               const SizedBox(height: 15),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("Date *", Icons.calendar_today_outlined),
-                        CustomTextField(
-                          controller: _dateController,
-                          hintText: "Select date",
-                          readOnly: true,
-                          onTap: _pickDate,
-                          suffixIcon: const Icon(Icons.keyboard_arrow_down),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("Time *", Icons.access_time),
-                        CustomTextField(
-                          controller: _timeController,
-                          hintText: "Select time",
-                          readOnly: true,
-                          onTap: _pickTime,
-                          suffixIcon: const Icon(Icons.keyboard_arrow_down),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 15),
-
-              _buildLabel("Duration (min) *", Icons.timer_outlined),
-              CustomTextField(controller: _durationController, hintText: "30", keyboardType: TextInputType.number),
-              const SizedBox(height: 15),
 
               _buildLabel("Recurrence", Icons.bookmark_border),
               DropdownButtonFormField<String>(
@@ -212,9 +262,162 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                 items: ['One-time meeting', 'Daily', 'Weekly'].map((String val) {
                   return DropdownMenuItem(value: val, child: Text(val, style: const TextStyle(fontSize: 14)));
                 }).toList(),
-                onChanged: (val) => setState(() => _recurrence = val!),
+                onChanged: (val) => setState(() {
+                  _recurrence = val!;
+                  // Reset dates when recurrence changes
+                  _selectedDate = null;
+                  _startDate = null;
+                  _endDate = null;
+                  _dateController.clear();
+                  _startDateController.clear();
+                  _endDateController.clear();
+                }),
               ),
               const SizedBox(height: 15),
+              
+              if (_recurrence == 'One-time meeting') ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel("Date *", Icons.calendar_today_outlined),
+                          CustomTextField(
+                            controller: _dateController,
+                            hintText: "Select date",
+                            readOnly: true,
+                            onTap: _pickDate,
+                            suffixIcon: const Icon(Icons.keyboard_arrow_down),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel("Time *", Icons.access_time),
+                          CustomTextField(
+                            controller: _timeController,
+                            hintText: "Select time",
+                            readOnly: true,
+                            onTap: _pickTime,
+                            suffixIcon: const Icon(Icons.keyboard_arrow_down),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.calendar_month, size: 18, color: Colors.blue.shade700),
+                          const SizedBox(width: 8),
+                          Text("Recurrence Period", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue.shade700)),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("Start Date *", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 4),
+                                CustomTextField(
+                                  controller: _startDateController,
+                                  hintText: "dd-mm-yyyy",
+                                  readOnly: true,
+                                  onTap: _pickStartDate,
+                                  suffixIcon: const Icon(Icons.calendar_today, size: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text("End Date *", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                                const SizedBox(height: 4),
+                                CustomTextField(
+                                  controller: _endDateController,
+                                  hintText: "dd-mm-yyyy",
+                                  readOnly: true,
+                                  onTap: _pickEndDate,
+                                  suffixIcon: const Icon(Icons.calendar_today, size: 16),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+                _buildLabel("Time *", Icons.access_time),
+                CustomTextField(
+                  controller: _timeController,
+                  hintText: "Select time",
+                  readOnly: true,
+                  onTap: _pickTime,
+                  suffixIcon: const Icon(Icons.keyboard_arrow_down),
+                ),
+              ],
+              
+              const SizedBox(height: 15),
+
+              _buildLabel("Duration (min) *", Icons.timer_outlined),
+              CustomTextField(controller: _durationController, hintText: "30", keyboardType: TextInputType.number),
+              const SizedBox(height: 15),
+
+              if (_calculateRecurrenceDates().length > 1) ...[
+                const Text("Scheduled Instances Preview:", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Container(
+                  height: 60,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _calculateRecurrenceDates().length,
+                    itemBuilder: (context, index) {
+                      final date = _calculateRecurrenceDates()[index];
+                      return Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(DateFormat('MMM dd').format(date), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                            Text(DateFormat('EEE').format(date), style: const TextStyle(fontSize: 10, color: Colors.grey)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 15),
+              ],
 
               _buildLabel("Participants *", Icons.people_outline),
               Container(

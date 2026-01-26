@@ -92,6 +92,8 @@ class MeetProvider extends ChangeNotifier {
     required String description,
     required String time,
     required List<Map<String, String>> participants,
+    String? agenda,
+    int? duration,
   }) async {
     _state = MeetState.loading;
     notifyListeners();
@@ -105,6 +107,8 @@ class MeetProvider extends ChangeNotifier {
       time: time,
       createdBy: {"employeeId": employeeId ?? "", "name": employeeName ?? ""},
       participants: participants,
+      agenda: agenda,
+      duration: duration,
     );
 
     if (response.success) {

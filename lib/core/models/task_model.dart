@@ -1,46 +1,51 @@
 class Task {
   final String id;
+  final String taskKey;
   final String title;
   final String description;
-  final DateTime dueDate;
-  final String status; // 'Pending', 'In Progress', 'Completed'
-  final String priority; // 'Low', 'Medium', 'High'
-  final String assignedTo;
+  final DateTime deadline;
+  final String status;
+  final String priority;
   final String assignedBy;
+  final String? itemType; // 'task' or 'subtask'
+  final int subtaskCount;
 
   Task({
     required this.id,
+    required this.taskKey,
     required this.title,
     required this.description,
-    required this.dueDate,
+    required this.deadline,
     required this.status,
     required this.priority,
-    required this.assignedTo,
     required this.assignedBy,
+    this.itemType,
+    this.subtaskCount = 0,
   });
 
   factory Task.fromMap(Map<String, dynamic> map) {
     return Task(
-      id: map['id'] ?? '',
-      title: map['title'] ?? '',
-      description: map['description'] ?? '',
-      dueDate: DateTime.parse(map['dueDate'] ?? DateTime.now().toString()),
-      status: map['status'] ?? 'Pending',
+      id: map['taskId'] ?? map['subtaskId'] ?? '',
+      taskKey: map['taskKey'] ?? '',
+      title: map['taskName'] ?? map['title'] ?? '',
+      description: map['taskDescription'] ?? map['description'] ?? '',
+      deadline: DateTime.parse(map['deadline'] ?? DateTime.now().toString()),
+      status: map['status'] ?? 'ToDo',
       priority: map['priority'] ?? 'Medium',
-      assignedTo: map['assignedTo'] ?? '',
       assignedBy: map['assignedBy'] ?? '',
+      itemType: map['itemType'],
+      subtaskCount: map['subtaskCount'] ?? 0,
     );
   }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
-      'title': title,
-      'description': description,
-      'dueDate': dueDate.toIso8601String(),
+      'taskId': id,
+      'taskName': title,
+      'taskDescription': description,
+      'deadline': deadline.toIso8601String(),
       'status': status,
       'priority': priority,
-      'assignedTo': assignedTo,
       'assignedBy': assignedBy,
     };
   }

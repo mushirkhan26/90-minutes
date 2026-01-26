@@ -7,6 +7,7 @@ class Meet {
   final String description;
   final String? agenda;
   final int duration;
+  final String? recurrence; // Added recurrence field
   final String? createdAt;
   final String? updatedAt;
 
@@ -19,6 +20,7 @@ class Meet {
     required this.description,
     this.agenda,
     this.duration = 30,
+    this.recurrence,
     this.createdAt,
     this.updatedAt,
   });
@@ -42,6 +44,7 @@ class Meet {
       description: (json['description'] ?? '').toString(),
       agenda: json['agenda']?.toString(),
       duration: int.tryParse(json['duration']?.toString() ?? '30') ?? 30,
+      recurrence: json['recurrence']?.toString(), // Added recurrence mapping
       createdAt: json['createdAt']?.toString(),
       updatedAt: json['updatedAt']?.toString(),
     );
@@ -57,6 +60,7 @@ class Meet {
       'description': description,
       'agenda': agenda,
       'duration': duration,
+      'recurrence': recurrence, // Added recurrence to json
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };

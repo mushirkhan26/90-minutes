@@ -73,7 +73,9 @@ class AuthService {
     final response = await _apiHelper.get<Map<String, dynamic>>(endpoint);
 
     if (response.success && response.data != null) {
-      final employee = EmployeeModel.fromJson(response.data!);
+      // ✅ Corrected: Extract from 'message' key as per API response structure
+      final Map<String, dynamic> message = response.data!['message'];
+      final employee = EmployeeModel.fromJson(message);
       return ApiResponse.success(employee);
     } else {
       return ApiResponse.error(

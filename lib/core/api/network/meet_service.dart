@@ -15,6 +15,7 @@ class MeetService {
     required List<Map<String, String>> participants,
     String? agenda,
     int? duration,
+    String? recurrence,
   }) async {
     final body = {
       "meetLink": meetLink,
@@ -24,6 +25,7 @@ class MeetService {
       "description": description,
       "agenda": agenda ?? "",
       "duration": duration ?? 30,
+      "recurrence": recurrence ?? "One-time meeting",
     };
     _logger.logGeneral('Adding dynamic meeting: $description');
     return await _apiHelper.post<dynamic>('meet', body);
