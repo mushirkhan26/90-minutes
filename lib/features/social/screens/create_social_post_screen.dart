@@ -21,12 +21,35 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   final TextEditingController _messageController = TextEditingController();
   final TextEditingController _employeeNameController = TextEditingController();
   
+  // Poll Controllers
+  final TextEditingController _questionController = TextEditingController();
+  final List<TextEditingController> _optionControllers = [
+    TextEditingController(text: 'Option 1'),
+    TextEditingController(text: 'Option 2'),
+  ];
+  DateTime? _pollExpiry;
+
+  // Event Date
+  DateTime? _eventDate;
+
   final FileUploadService _fileUploadService = FileUploadService();
   String? _uploadedImageUrl;
   bool _isUploading = false;
   bool _isPosting = false;
 
   final List<String> _postTypes = ['Birthday', 'Post', 'Poll', 'Event', 'Well Being'];
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _messageController.dispose();
+    _employeeNameController.dispose();
+    _questionController.dispose();
+    for (var controller in _optionControllers) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
 
   Future<void> _pickAndUploadImage() async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
@@ -104,6 +127,114 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                   ),
                   validator: (value) => value!.isEmpty ? 'Title is required' : null,
                 ),
+
+                if (_selectedType == 'Poll') ...[
+                  const SizedBox(height: 16),
+                  const Text('Question', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _questionController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter poll question',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    validator: (value) => _selectedType == 'Poll' && value!.isEmpty ? 'Question is required' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Options', style: TextStyle(fontWeight: FontWeight.w500)),
+                  ..._optionControllers.asMap().entries.map((entry) {
+                    int idx = entry.key;
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: entry.value,
+                              decoration: InputDecoration(
+                                hintText: 'Option ${idx + 1}',
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              validator: (value) => _selectedType == 'Poll' && value!.isEmpty ? 'Option required' : null,
+                            ),
+                          ),
+                          if (_optionControllers.length > 2)
+                            IconButton(
+                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                              onPressed: () => setState(() => _optionControllers.removeAt(idx)),
+                            ),
+                        ],
+                      ),
+                    );
+                  }),
+                  TextButton.icon(
+                    onPressed: () => setState(() => _optionControllers.add(TextEditingController())),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Option'),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text('Expiry Date', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now().add(const Duration(days: 1)),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 30)),
+                      );
+                      if (date != null) setState(() => _pollExpiry = date);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(_pollExpiry == null ? 'Select Expiry Date' : _pollExpiry.toString().split(' ')[0]),
+                    ),
+                  ),
+                ],
+
+                if (_selectedType == 'Event') ...[
+                  const SizedBox(height: 16),
+                  const Text('Event Date', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final date = await showDatePicker(
+                        context: context,
+                        initialDate: DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime.now().add(const Duration(days: 365)),
+                      );
+                      if (date != null) {
+                        if (mounted) {
+                          final time = await showTimePicker(
+                            context: context,
+                            initialTime: TimeOfDay.now(),
+                          );
+                          if (time != null) {
+                            setState(() {
+                              _eventDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                            });
+                          }
+                        }
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(_eventDate == null ? 'Select Event Date & Time' : _eventDate.toString().substring(0, 16)),
+                    ),
+                  ),
+                ],
+
                 if (_selectedType == 'Birthday') ...[
                   const SizedBox(height: 16),
                   const Text('Employee Name', style: TextStyle(fontWeight: FontWeight.w500)),
@@ -195,6 +326,16 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
 
   Future<void> _handlePost() async {
     if (_formKey.currentState!.validate()) {
+      if (_selectedType == 'Poll' && _pollExpiry == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select poll expiry date')));
+        return;
+      }
+      
+      if (_selectedType == 'Event' && _eventDate == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select event date')));
+        return;
+      }
+
       setState(() => _isPosting = true);
       
       final authProvider = context.read<AuthProvider>();
@@ -204,6 +345,8 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         id: '',
         type: _selectedType.toLowerCase().replaceAll(' ', ''),
         title: _titleController.text,
+        userName: authProvider.userData?['username'],
+        userId: authProvider.userData?['employeeId'],
         employeeName: _selectedType == 'Birthday' ? _employeeNameController.text : null,
         message: _messageController.text,
         imageUrl: _uploadedImageUrl,
@@ -211,6 +354,12 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         createdAt: DateTime.now(),
         likes: [],
         comments: [],
+        question: _selectedType == 'Poll' ? _questionController.text : null,
+        expiry: _selectedType == 'Poll' ? _pollExpiry : null,
+        options: _selectedType == 'Poll' 
+            ? _optionControllers.map((c) => PollOption(label: c.text)).toList() 
+            : null,
+        eventDate: _selectedType == 'Event' ? _eventDate : null,
       );
       
       final success = await socialProvider.createPost(newPost);

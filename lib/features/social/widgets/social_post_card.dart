@@ -97,21 +97,141 @@ class _SocialPostCardState extends State<SocialPostCard> {
               ],
             ),
           ),
-          if (widget.post.type != 'birthday' || widget.post.message.isNotEmpty)
+          
+          // Poll UI
+          if (widget.post.type == 'poll' && widget.post.question != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.post.question!,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.black87),
+                  ),
+                  const SizedBox(height: 12),
+                  if (widget.post.options != null)
+                    Builder(
+                      builder: (context) {
+                        final bool hasAnyVoted = widget.post.options!.any((opt) => opt.voters?.contains(currentUserId) ?? false);
+                        final int totalVotes = widget.post.options!.fold(0, (sum, item) => sum + item.votes);
+
+                        return Column(
+                          children: widget.post.options!.map((option) {
+                            final bool isMyVote = option.voters?.contains(currentUserId) ?? false;
+                            final double percentage = totalVotes > 0 ? (option.votes / totalVotes) : 0.0;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8.0),
+                              child: InkWell(
+                                onTap: hasAnyVoted ? null : () => socialProvider.vote(widget.post.id, option.id!, currentUserId),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: isMyVote ? const Color(0xFF26A69A) : Colors.grey.shade300),
+                                    color: isMyVote ? const Color(0xFF26A69A).withValues(alpha: 0.05) : Colors.white,
+                                  ),
+                                  child: Stack(
+                                    children: [
+                                      if (totalVotes > 0)
+                                        Positioned.fill(
+                                          child: LinearProgressIndicator(
+                                            value: percentage,
+                                            backgroundColor: Colors.transparent,
+                                            color: const Color(0xFF26A69A).withValues(alpha: 0.1),
+                                          ),
+                                        ),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            option.label,
+                                            style: TextStyle(
+                                              fontWeight: isMyVote ? FontWeight.bold : FontWeight.normal,
+                                              color: isMyVote ? const Color(0xFF26A69A) : Colors.black87,
+                                            ),
+                                          ),
+                                          if (totalVotes > 0)
+                                            Text(
+                                              '${(percentage * 100).toInt()}%',
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                            ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      }
+                    ),
+                ],
+              ),
+            ),
+
+          // Event Date Display
+          if (widget.post.type == 'event' && widget.post.eventDate != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.orange.shade100),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.event, size: 16, color: Colors.orange),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Scheduled for: ${DateFormat('MMM dd, yyyy • hh:mm a').format(widget.post.eventDate!)}',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange.shade900),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          if (widget.post.type != 'poll' && (widget.post.type != 'birthday' || widget.post.message.isNotEmpty))
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4),
               child: Text(widget.post.message, style: const TextStyle(fontSize: 14)),
             ),
+          
           if (widget.post.imageUrl != null && widget.post.imageUrl!.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(top: 12.0),
+              padding: const EdgeInsets.only(top: 8.0),
               child: ClipRRect(
-                child: Image.network(
-                  widget.post.imageUrl!,
+                borderRadius: const BorderRadius.vertical(bottom: Radius.zero),
+                child: Container(
+                  constraints: const BoxConstraints(maxHeight: 400),
                   width: double.infinity,
-                  height: 200,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                  color: Colors.grey.shade50,
+                  child: Image.network(
+                    widget.post.imageUrl!,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 150,
+                        alignment: Alignment.center,
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                              : null,
+                          strokeWidth: 2,
+                        ),
+                      );
+                    },
+                  ),
                 ),
               ),
             ),
@@ -178,6 +298,8 @@ class _SocialPostCardState extends State<SocialPostCard> {
               itemCount: widget.post.comments.length,
               itemBuilder: (context, index) {
                 final comment = widget.post.comments[index];
+                final bool canDeleteComment = comment.userId == currentUserId || isCreator;
+
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   child: Row(
@@ -199,7 +321,35 @@ class _SocialPostCardState extends State<SocialPostCard> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(comment.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(comment.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                                  if (canDeleteComment && comment.id != null)
+                                    GestureDetector(
+                                      onTap: () async {
+                                        final confirm = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Delete Comment'),
+                                            content: const Text('Are you sure you want to delete this comment?'),
+                                            actions: [
+                                              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+                                              TextButton(
+                                                onPressed: () => Navigator.pop(context, true),
+                                                child: const Text('Delete', style: TextStyle(color: Colors.red)),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                        if (confirm == true) {
+                                          await socialProvider.deleteComment(comment.id!);
+                                        }
+                                      },
+                                      child: const Icon(Icons.delete_outline, size: 14, color: Colors.red),
+                                    ),
+                                ],
+                              ),
                               Text(comment.comment, style: const TextStyle(fontSize: 13)),
                             ],
                           ),
