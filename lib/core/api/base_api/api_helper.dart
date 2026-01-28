@@ -6,7 +6,7 @@ import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:http/http.dart' as http;
 
 class ApiHelper {
-  static const String _defaultBaseUrl = "https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/";
+  static const String _defaultBaseUrl = "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/";
   // static String baseUrl2 = "https://hrms-socket.onrender.com";
 
   static const String otherBaseUrl =

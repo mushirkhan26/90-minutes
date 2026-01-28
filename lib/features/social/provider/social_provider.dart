@@ -30,9 +30,11 @@ class SocialProvider with ChangeNotifier {
     return _posts.where((post) => post.type == _selectedType).toList();
   }
 
-  Future<void> fetchPosts() async {
-    _state = SocialState.loading;
-    notifyListeners();
+  Future<void> fetchPosts({bool showLoader = true}) async {
+    if (showLoader) {
+      _state = SocialState.loading;
+      notifyListeners();
+    }
 
     try {
       final response = await _socialService.getPosts();
@@ -55,7 +57,7 @@ class SocialProvider with ChangeNotifier {
     try {
       final response = await _socialService.createPost(post);
       if (response.success) {
-        await fetchPosts();
+        await fetchPosts(showLoader: false);
         return true;
       }
       return false;
@@ -65,65 +67,121 @@ class SocialProvider with ChangeNotifier {
     }
   }
 
-  Future<void> toggleLike(String postId, String employeeId) async {
+  Future<void> toggleLike(String eventId, String userId) async {
+    // 🚀 Optimistic update: Update UI immediately
+    final index = _posts.indexWhere((p) => p.id == eventId);
+    if (index == -1) return;
+
+    final post = _posts[index];
+    final originalLikes = List<String>.from(post.likes);
+    final newLikes = List<String>.from(post.likes);
+
+    if (newLikes.contains(userId)) {
+      newLikes.remove(userId);
+    } else {
+      newLikes.add(userId);
+    }
+
+    // Update locally first
+    _posts[index] = _updatePostLikes(post, newLikes);
+    notifyListeners();
+
     try {
-      await _socialService.toggleLike(postId: postId, employeeId: employeeId);
-      // Optimistic update
-      final index = _posts.indexWhere((p) => p.id == postId);
-      if (index != -1) {
-        final post = _posts[index];
-        final newLikes = List<String>.from(post.likes);
-        if (newLikes.contains(employeeId)) {
-          newLikes.remove(employeeId);
-        } else {
-          newLikes.add(employeeId);
-        }
-        _posts[index] = SocialPostModel(
-          id: post.id,
-          type: post.type,
-          title: post.title,
-          employeeName: post.employeeName,
-          message: post.message,
-          imageUrl: post.imageUrl,
-          createdBy: post.createdBy,
-          createdAt: post.createdAt,
-          likes: newLikes,
-          comments: post.comments,
-        );
+      final body = {"action": "like", "userId": userId};
+      final response = await _socialService.updateEvent(eventId: eventId, body: body);
+      
+      if (!response.success) {
+        // Revert if API fails
+        _posts[index] = _updatePostLikes(post, originalLikes);
         notifyListeners();
       }
     } catch (e) {
+      _posts[index] = _updatePostLikes(post, originalLikes);
+      notifyListeners();
       LoggingService.instance.error('SOCIAL', 'Error toggling like', error: e);
     }
   }
 
-  Future<void> addComment(String postId, String employeeId, String userName, String comment) async {
+  SocialPostModel _updatePostLikes(SocialPostModel post, List<String> newLikes) {
+    return SocialPostModel(
+      id: post.id,
+      type: post.type,
+      title: post.title,
+      userName: post.userName,
+      userId: post.userId,
+      employeeName: post.employeeName,
+      message: post.message,
+      imageUrl: post.imageUrl,
+      createdBy: post.createdBy,
+      createdAt: post.createdAt,
+      likes: newLikes,
+      comments: post.comments,
+      question: post.question,
+      expiry: post.expiry,
+      options: post.options,
+      eventDate: post.eventDate,
+    );
+  }
+
+  Future<void> addComment(String eventId, String userId, String userName, String content) async {
     try {
       final response = await _socialService.addComment(
-        postId: postId,
-        employeeId: employeeId,
+        eventId: eventId,
+        userId: userId,
         userName: userName,
-        comment: comment,
+        content: content,
       );
       if (response.success) {
-        await fetchPosts();
+        // Refresh without showing full screen loader
+        await fetchPosts(showLoader: false);
       }
     } catch (e) {
       LoggingService.instance.error('SOCIAL', 'Error adding comment', error: e);
     }
   }
 
-  Future<bool> deletePost(String postId) async {
+  Future<void> vote(String eventId, String optionId, String userId) async {
     try {
-      final response = await _socialService.deletePost(postId);
+      final body = {
+        "action": "vote",
+        "optionId": optionId,
+        "userId": userId
+      };
+      final response = await _socialService.updateEvent(eventId: eventId, body: body);
       if (response.success) {
-        _posts.removeWhere((post) => post.id == postId);
+        await fetchPosts(showLoader: false);
+      }
+    } catch (e) {
+      LoggingService.instance.error('SOCIAL', 'Error voting', error: e);
+    }
+  }
+
+  Future<bool> deletePost(String eventId) async {
+    try {
+      final response = await _socialService.deletePost(eventId);
+      if (response.success) {
+        _posts.removeWhere((post) => post.id == eventId);
         notifyListeners();
         return true;
       }
       return false;
     } catch (e) {
       LoggingService.instance.error('SOCIAL', 'Error deleting post', error: e);
+      return false;
+    }
+  }
+
+  Future<bool> deleteComment(String commentId) async {
+    try {
+      final response = await _socialService.deleteComment(commentId);
+      if (response.success) {
+        // Refresh silently
+        await fetchPosts(showLoader: false);
+        return true;
+      }
+      return false;
+    } catch (e) {
+      LoggingService.instance.error('SOCIAL', 'Error deleting comment', error: e);
       return false;
     }
   }
