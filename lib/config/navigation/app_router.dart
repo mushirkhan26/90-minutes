@@ -25,6 +25,7 @@ import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
 import 'package:hrtz_hrms/features/settings/screens/permission_screen.dart';
+import 'package:hrtz_hrms/features/social/screens/social_hub_screen.dart';
 import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 
@@ -247,6 +248,11 @@ final GoRouter appRouter = GoRouter(
       name: '/tasks',
       builder: (context, state) => const TasksScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.socialHub,
+      name: '/social-hub',
+      builder: (context, state) => const SocialHubScreen(),
+    ),
   ],
 );
 
@@ -328,6 +334,8 @@ extension AuthNavigation on BuildContext {
   void holidayCalendar() => push(AppRoutes.holidayCalendar);
 
   void goToTasks() => push(AppRoutes.tasksRoute);
+  
+  void goToSocialHub() => push(AppRoutes.socialHub);
 }
 
 /// ✨ Custom transition page helper

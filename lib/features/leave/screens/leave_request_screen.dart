@@ -75,9 +75,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: const Color(0xFF26A69A),
+        foregroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'Leave Management',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+          'Leave Management',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: Consumer<LeaveProvider>(

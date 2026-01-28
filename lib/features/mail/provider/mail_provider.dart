@@ -49,8 +49,10 @@ class MailProvider extends ChangeNotifier {
   }
 
   void setActiveFolder(String folder) {
+    if (_activeFolder == folder) return;
     _activeFolder = folder;
-    _searchQuery = ''; 
+    _searchQuery = '';
+    // Optional: Clear specific list to show loading state clearly
     notifyListeners();
   }
 
@@ -60,7 +62,19 @@ class MailProvider extends ChangeNotifier {
   }
 
   Future<void> _ensureUserId() async {
-    _currentUserId ??= await _secureStorage.getEmployeeId();
+    final id = await _secureStorage.getEmployeeId();
+    if (_currentUserId != id) {
+      _currentUserId = id;
+      _clearAllData(); // Clear everything if user changed
+    }
+  }
+
+  void _clearAllData() {
+    _inboxMails = [];
+    _sentMails = [];
+    _trashMails = [];
+    _starredMails = [];
+    notifyListeners();
   }
 
   Future<void> fetchInbox({bool forceRefresh = false}) async {
@@ -68,15 +82,21 @@ class MailProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _ensureUserId();
-      _logger.logNetwork('Fetching inbox mails for user $_currentUserId');
+      if (_currentUserId == null) return;
+      
       final response = await _mailService.getInbox(employeeId: _currentUserId!);
       if (response.success && response.data != null) {
-        final List<dynamic> mailsJson = response.data!['data'];
+        final List<dynamic> mailsJson = response.data!['data'] ?? [];
         _inboxMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
+        
+        // Double check: Only keep mails where I am a receiver
+        _inboxMails = _inboxMails.where((m) => m.receiver.contains(_currentUserId)).toList();
+        
         await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
         _state = MailState.loaded;
       }
     } catch (e) {
+      _logger.error('MAIL_PROVIDER', 'Error fetching inbox', error: e);
       _state = MailState.error;
     }
     notifyListeners();
@@ -87,14 +107,21 @@ class MailProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _ensureUserId();
+      if (_currentUserId == null) return;
+
       final response = await _mailService.getSentMails(employeeId: _currentUserId!);
       if (response.success && response.data != null) {
-        final List<dynamic> mailsJson = response.data!['data'];
+        final List<dynamic> mailsJson = response.data!['data'] ?? [];
         _sentMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
+        
+        // Double check: Only keep mails sent by me
+        _sentMails = _sentMails.where((m) => m.sender == _currentUserId).toList();
+        
         await _local.saveMails(LocalStorageService.keySentMails, _sentMails);
         _state = MailState.loaded;
       }
     } catch (e) {
+      _logger.error('MAIL_PROVIDER', 'Error fetching sent', error: e);
       _state = MailState.error;
     }
     notifyListeners();
@@ -105,9 +132,11 @@ class MailProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _ensureUserId();
+      if (_currentUserId == null) return;
+
       final response = await _mailService.getTrashMails(employeeId: _currentUserId!);
       if (response.success && response.data != null) {
-        final List<dynamic> mailsJson = response.data!['data'];
+        final List<dynamic> mailsJson = response.data!['data'] ?? [];
         _trashMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
         await _local.saveMails(LocalStorageService.keyTrashMails, _trashMails);
         _state = MailState.loaded;
@@ -123,9 +152,11 @@ class MailProvider extends ChangeNotifier {
     notifyListeners();
     try {
       await _ensureUserId();
+      if (_currentUserId == null) return;
+
       final response = await _mailService.getStarredMails(employeeId: _currentUserId!);
       if (response.success && response.data != null) {
-        final List<dynamic> mailsJson = response.data!['data'];
+        final List<dynamic> mailsJson = response.data!['data'] ?? [];
         _starredMails = mailsJson.map((json) => MailModel.fromJson(json)).toList();
         _state = MailState.loaded;
       }
@@ -183,14 +214,16 @@ class MailProvider extends ChangeNotifier {
     try {
       for (var m in listToRestore) {
         _trashMails.removeWhere((x) => x.id == m.id);
-        if (!_inboxMails.any((x) => x.id == m.id)) _inboxMails.insert(0, m);
       }
       notifyListeners();
       await _ensureUserId();
       await _mailService.restoreManyFromTrash(mailIds: listToRestore.map((e) => e.id).toList(), employeeId: _currentUserId!);
+      
+      // Refresh to put them back in correct places (Inbox or Sent)
+      await Future.wait([fetchInbox(), fetchSent(), fetchTrash()]);
       await _saveAllLocally();
     } catch (e) {
-      fetchInbox(); fetchTrash();
+      fetchInbox(); fetchSent(); fetchTrash();
     }
   }
 

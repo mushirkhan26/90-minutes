@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/models/task_model.dart';
-import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -265,7 +264,7 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                                 const Text('Type', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<String>(
-                                  value: _type,
+                                  initialValue: _type,
                                   decoration: InputDecoration(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -286,7 +285,7 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                                 const Text('Priority', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                                 const SizedBox(height: 8),
                                 DropdownButtonFormField<String>(
-                                  value: _priority,
+                                  initialValue: _priority,
                                   decoration: InputDecoration(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -325,7 +324,7 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                       const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
-                        value: _category,
+                        initialValue: _category,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

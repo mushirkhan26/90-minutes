@@ -164,6 +164,14 @@ class HomeScreen extends StatelessWidget {
                         },
                       ),
                       ListTile(
+                        leading: const Icon(Icons.groups_outlined),
+                        title: const Text('Social Hub'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.goToSocialHub();
+                        },
+                      ),
+                      ListTile(
                         leading: const Icon(Icons.task_sharp),
                         title: const Text('Tasks'),
                         onTap: () {

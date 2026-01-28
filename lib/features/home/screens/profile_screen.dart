@@ -141,7 +141,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile'),
+        backgroundColor: const Color(0xFF26A69A),
+        foregroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
         actions: [
           if (!_isEditing)
             IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),

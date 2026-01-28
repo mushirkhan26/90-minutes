@@ -39,10 +39,11 @@ class _TasksScreenState extends State<TasksScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text("Tasks Management"),
-        elevation: 0,
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text("Tasks Management",style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        elevation: 0,
         actions: [
           // Show Add button only if user is Manager or Team Lead
           if (canAddTask)
