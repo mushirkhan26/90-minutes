@@ -13,6 +13,7 @@ import 'package:hrtz_hrms/features/mail/widgets/cc_bcc_filds.dart';
 import 'package:hrtz_hrms/features/mail/widgets/reciepient_selector.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:provider/provider.dart';
 
 class ComposeMailScreen extends StatefulWidget {
   const ComposeMailScreen({super.key});
@@ -31,7 +32,6 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
 
   final FileUploadService _fileUploadService = FileUploadService();
   final SecureStorageService _secureStorage = SecureStorageService();
-  final MailProvider _mailProvider = MailProvider();
 
   List<EmployeeModel> _employees = [];
   List<EmployeeModel> _filteredEmployees = [];
@@ -120,8 +120,10 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     try {
       final senderId = await _secureStorage.getEmployeeId() ?? '';
       final senderName = await _secureStorage.getUserName() ?? '';
+      
+      final mailProvider = context.read<MailProvider>();
 
-      final success = await _mailProvider.sendMail(
+      final success = await mailProvider.sendMail(
         sender: senderId,
         senderName: senderName,
         receiver: _selectedReceivers.map((e) => e.employeeID).toList(),
@@ -136,10 +138,8 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
       if (success) {
         if (mounted) {
           AlertHelper.snackBarSuccess(context, 'Mail sent successfully!');
-          //  Refresh Sent Mails after success
-          await _mailProvider.fetchSent(forceRefresh: true);
-        }
-        if (mounted) {
+          // Refresh Sent Mails
+          mailProvider.fetchSent(forceRefresh: true);
           Navigator.pop(context);
         }
       } else {
@@ -152,7 +152,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
         AlertHelper.snackBarError(context, 'Error: $e');
       }
     } finally {
-      setState(() => _isSending = false);
+      if (mounted) setState(() => _isSending = false);
     }
   }
 

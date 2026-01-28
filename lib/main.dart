@@ -16,10 +16,11 @@ import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
-import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart'; // Added Import
+import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
-import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart'; // Added Import
+import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
+import 'package:hrtz_hrms/features/social/provider/social_provider.dart';
 import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
 import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
@@ -68,6 +69,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LeaveProvider()),
         ChangeNotifierProvider(create: (_) => HolidayProvider()),
         ChangeNotifierProvider(create: (_) => TasksProvider()),
+        ChangeNotifierProvider(create: (_) => SocialProvider()),
         ChangeNotifierProvider<MailProvider>(
           create: (_) => MailProvider()..fetchInbox(),
         ),
