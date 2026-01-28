@@ -26,7 +26,12 @@ class TaskService {
 
   /// ➕ Create Task (Standalone or Sprint)
   Future<ApiResponse<Map<String, dynamic>>> addTask(Task task) async {
-    return await _apiHelper.post<Map<String, dynamic>>('task/create', task.toMap());
+    // Determine endpoint based on documentation 3.3 and 3.8
+    final bool isStandalone = task.sprintId == null || task.sprintId!.isEmpty;
+    final String endpoint = isStandalone ? 'task/standalone/create' : 'task/create';
+    
+    _logger.logNetwork('Creating ${isStandalone ? "standalone" : "sprint"} task at $endpoint');
+    return await _apiHelper.post<Map<String, dynamic>>(endpoint, task.toMap());
   }
 
   /// ✏️ Update Task Status
@@ -35,6 +40,7 @@ class TaskService {
       "employeeId": employeeId,
       "status": status
     };
+    // Documentation 3.4
     return await _apiHelper.put<Map<String, dynamic>>('task/update/$taskId', body);
   }
 

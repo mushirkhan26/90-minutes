@@ -1,3 +1,5 @@
+import 'package:intl/intl.dart';
+
 class Task {
   final String id;
   final String taskKey;
@@ -9,6 +11,16 @@ class Task {
   final String assignedBy;
   final String? itemType; // 'task' or 'subtask'
   final int subtaskCount;
+  
+  final String type; // Story, Task, Bug, Epic
+  final List<String> assignees;
+  final List<String> reviewers; 
+  final String? category; 
+  final int storyPoints;
+  final List<String>? references;
+  final String? department;
+  final String? sprintId;
+  final String? projectId;
 
   Task({
     required this.id,
@@ -21,9 +33,25 @@ class Task {
     required this.assignedBy,
     this.itemType,
     this.subtaskCount = 0,
+    this.type = 'Task',
+    this.assignees = const [],
+    this.reviewers = const [],
+    this.category,
+    this.storyPoints = 0,
+    this.references,
+    this.department,
+    this.sprintId,
+    this.projectId,
   });
 
   factory Task.fromMap(Map<String, dynamic> map) {
+    List<String> reviewerList = [];
+    if (map['reviewer'] is List) {
+      reviewerList = List<String>.from(map['reviewer']);
+    } else if (map['reviewer'] != null && map['reviewer'].toString().isNotEmpty) {
+      reviewerList = [map['reviewer'].toString()];
+    }
+
     return Task(
       id: map['taskId'] ?? map['subtaskId'] ?? '',
       taskKey: map['taskKey'] ?? '',
@@ -35,18 +63,42 @@ class Task {
       assignedBy: map['assignedBy'] ?? '',
       itemType: map['itemType'],
       subtaskCount: map['subtaskCount'] ?? 0,
+      type: map['type'] ?? 'Task',
+      assignees: List<String>.from(map['assignedTo'] ?? map['assignees'] ?? []),
+      reviewers: reviewerList,
+      category: map['category'],
+      storyPoints: map['storyPoints'] ?? 0,
+      references: map['referenceFileUrl'] != null ? List<String>.from(map['referenceFileUrl']) : (map['references'] != null ? List<String>.from(map['references']) : null),
+      department: map['department'],
+      sprintId: map['sprintId'],
+      projectId: map['projectId'],
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {
-      'taskId': id,
+    final map = {
       'taskName': title,
       'taskDescription': description,
-      'deadline': deadline.toIso8601String(),
-      'status': status,
+      'deadline': DateFormat('yyyy-MM-dd').format(deadline),
       'priority': priority,
       'assignedBy': assignedBy,
+      'type': type,
+      'assignedTo': assignees, 
+      // API only supports ONE reviewer string as per schema errors
+      'reviewer': reviewers.isNotEmpty ? reviewers.first : "", 
+      'category': category?.toLowerCase() ?? "development",
+      'department': department ?? "Development", 
+      'storyPoints': storyPoints,
+      'referenceFileUrl': references ?? [],
+      'sprintId': sprintId ?? "",
+      'projectId': projectId ?? "",
     };
+    
+    if (id.isNotEmpty) {
+      map['taskId'] = id;
+      map['status'] = status;
+    }
+    
+    return map;
   }
 }
