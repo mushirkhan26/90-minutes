@@ -121,6 +121,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
       final senderId = await _secureStorage.getEmployeeId() ?? '';
       final senderName = await _secureStorage.getUserName() ?? '';
       
+      // ignore: use_build_context_synchronously
       final mailProvider = context.read<MailProvider>();
 
       final success = await mailProvider.sendMail(
