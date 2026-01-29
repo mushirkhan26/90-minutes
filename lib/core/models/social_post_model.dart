@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 class SocialPostModel {
   final String id;
   final String type; // birthday, post, poll, event, wellbeing
@@ -13,7 +11,7 @@ class SocialPostModel {
   final DateTime createdAt;
   final List<String> likes;
   final List<SocialComment> comments;
-  
+
   // New fields for Poll
   final String? question;
   final DateTime? expiry;
@@ -52,7 +50,9 @@ class SocialPostModel {
       message: json['description'] ?? json['message'] ?? '',
       imageUrl: json['imageUrl'],
       createdBy: json['UserId'] ?? json['createdBy'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
       // API uses likeMembers for the list of user IDs
       likes: List<String>.from(json['likeMembers'] ?? json['likes'] ?? []),
       comments: (json['comments'] as List? ?? [])
@@ -63,7 +63,9 @@ class SocialPostModel {
       options: (json['options'] as List? ?? [])
           .map((x) => PollOption.fromJson(x))
           .toList(),
-      eventDate: json['eventDate'] != null ? DateTime.tryParse(json['eventDate']) : null,
+      eventDate: json['eventDate'] != null
+          ? DateTime.tryParse(json['eventDate'])
+          : null,
     );
   }
 
@@ -134,7 +136,9 @@ class SocialComment {
       userId: json['userId'] ?? '',
       userName: json['userName'] ?? '',
       comment: json['content'] ?? json['comment'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        json['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 }
