@@ -29,4 +29,5 @@ class AppRoutes {
   static const String holidayCalendar = '/holiday-calendar';
   static const String tasksRoute = '/tasks';
   static const String socialHub = '/social-hub';
+  static const String resignation = '/resignation';
 }
