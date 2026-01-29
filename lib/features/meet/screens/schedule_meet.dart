@@ -49,7 +49,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   List<EmployeeModel> _filteredEmployees = [];
   final List<EmployeeModel> _selectedParticipants = [];
   bool _showParticipantList = false;
-  List<File> _attachments = [];
+  final List<File> _attachments = [];
 
   @override
   void initState() {
@@ -387,7 +387,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
 
               _buildLabel("Recurrence", Icons.bookmark_border),
               DropdownButtonFormField<String>(
-                value: _recurrence,
+                initialValue: _recurrence,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   border: OutlineInputBorder(
@@ -455,9 +455,9 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.05),
+                    color: Colors.blue.withValues(alpha:  0.05),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                    border: Border.all(color: Colors.blue.withValues(alpha:  0.2)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -565,7 +565,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Container(
+                SizedBox(
                   height: 60,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,
@@ -579,11 +579,9 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withOpacity(0.1),
+                          color: AppColors.primary.withValues(alpha:  0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primary.withOpacity(0.3),
-                          ),
+                          border: Border.all(color: AppColors.primary.withValues(alpha:  0.3)),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,

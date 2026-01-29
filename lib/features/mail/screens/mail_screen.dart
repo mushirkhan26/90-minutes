@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/features/mail/widgets/mail_drawer.dart';
 import 'package:hrtz_hrms/widgets/custom_search_bar.dart';
@@ -33,10 +32,15 @@ class _MailScreenState extends State<MailScreen> {
   }
 
   Future<void> _handleRefresh(MailProvider provider) async {
-    if (_selectedFolder == 'Inbox') await provider.fetchInbox(forceRefresh: true);
-    else if (_selectedFolder == 'Sent') await provider.fetchSent(forceRefresh: true);
-    else if (_selectedFolder == 'Trash') await provider.fetchTrash(forceRefresh: true);
-    else if (_selectedFolder == 'Starred') await provider.fetchStarredMails(forceRefresh: true);
+    if (_selectedFolder == 'Inbox') {
+    await provider.fetchInbox(forceRefresh: true);
+  } else if (_selectedFolder == 'Sent'){
+   await provider.fetchSent(forceRefresh: true);
+   } else if (_selectedFolder == 'Trash') {
+    await provider.fetchTrash(forceRefresh: true);
+    } else if (_selectedFolder == 'Starred'){
+     await provider.fetchStarredMails(forceRefresh: true);
+  }
   }
 
   void _onFolderSelected(String folder) {
@@ -51,10 +55,15 @@ class _MailScreenState extends State<MailScreen> {
     final provider = context.read<MailProvider>();
     provider.setActiveFolder(folder);
 
-    if (folder == 'Inbox') provider.fetchInbox();
-    else if (folder == 'Sent') provider.fetchSent();
-    else if (folder == 'Trash') provider.fetchTrash();
-    else if (folder == 'Starred') provider.fetchStarredMails();
+    if (folder == 'Inbox') {
+    provider.fetchInbox();
+   } else if (folder == 'Sent') {
+    provider.fetchSent();
+    } else if (folder == 'Trash') {
+    provider.fetchTrash();
+   } else if (folder == 'Starred') {
+    provider.fetchStarredMails();
+  }
   }
 
   void _toggleSelection(MailModel mail) {

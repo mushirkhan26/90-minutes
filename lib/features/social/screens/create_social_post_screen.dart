@@ -102,7 +102,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                 const Text('Post Type', style: TextStyle(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedType,
+                  initialValue: _selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),

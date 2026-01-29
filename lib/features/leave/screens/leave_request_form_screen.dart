@@ -215,6 +215,7 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
       setState(() => _isUploadingFile = true);
       final uploadService = FileUploadService();
       medicalCertificateUrl = await uploadService.uploadFile(_medicalCertificateFile!);
+      if(!mounted) return;
       setState(() => _isUploadingFile = false);
       
       if (medicalCertificateUrl == null) {
@@ -289,7 +290,7 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      value: _leaveType,
+                      initialValue: _leaveType,
                       items: _leaveTypes.map((type) {
                         final left = available[type] ?? 0;
                         return DropdownMenuItem(

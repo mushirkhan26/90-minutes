@@ -89,7 +89,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
               const Text("Mode of Work *", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _modeOfWork,
+                initialValue: _modeOfWork,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),

@@ -223,7 +223,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       newMemberIds,
                       _currentUserId!,
                     );
+                    
                     if (mounted) {
+                       
+                      // ignore: use_build_context_synchronously
                       AlertHelper.snackBarSuccess(context, 'Members added!');
                     }
                     _selectedMembers.clear();
@@ -235,6 +238,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                             .where((emp) => !_group.members.contains(emp.employeeID))
                             .toList();
                       });
+                      // ignore: use_build_context_synchronously
                       AlertHelper.snackBarError(context, 'Failed to add members: $e');
                     }
                   } finally {
@@ -350,8 +354,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           AlertHelper.snackBarSuccess(context, 'Group deleted successfully');
         });
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AlertHelper.snackBarError(context, 'Failed to delete group: $e');
+        }
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
@@ -393,8 +398,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
            AlertHelper.snackBarSuccess(context, 'Left group successfully');
         }
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           AlertHelper.snackBarError(context, 'Failed to leave group: $e');
+        }
       } finally {
         if (mounted) setState(() => _isLoading = false);
       }
