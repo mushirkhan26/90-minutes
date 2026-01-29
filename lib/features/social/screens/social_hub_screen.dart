@@ -21,12 +21,12 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
   }
 
   final List<Map<String, dynamic>> _tabs = [
-    {'type': 'all', 'icon': Icons.groups_outlined},
-    {'type': 'birthday', 'icon': Icons.card_giftcard_outlined},
-    {'type': 'post', 'icon': Icons.chat_bubble_outline},
-    {'type': 'wellbeing', 'icon': Icons.pie_chart_outline},
-    {'type': 'event', 'icon': Icons.calendar_month_outlined},
-    {'type': 'poll', 'icon': Icons.favorite_border},
+    {'type': 'all', 'label': 'All', 'icon': Icons.groups_outlined},
+    {'type': 'birthday', 'label': 'Birthday', 'icon': Icons.card_giftcard_outlined},
+    {'type': 'post', 'label': 'Post', 'icon': Icons.chat_bubble_outline},
+    {'type': 'wellbeing', 'label': 'Well Being', 'icon': Icons.health_and_safety_outlined},
+    {'type': 'event', 'label': 'Event', 'icon': Icons.calendar_month_outlined},
+    {'type': 'poll', 'label': 'Poll', 'icon': Icons.poll_outlined},
   ];
 
   @override
@@ -34,10 +34,10 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
     final socialProvider = context.watch<SocialProvider>();
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
-        foregroundColor: Colors.black,
+        elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
           'Social Hub',
@@ -45,21 +45,19 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
         ),
         actions: [
           Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: OutlinedButton.icon(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: TextButton.icon(
               onPressed: () {
                 showDialog(
                   context: context,
                   builder: (context) => const CreateSocialPostScreen(),
                 );
               },
-              icon: const Icon(Icons.add_circle_outline, color: Color(0xFF26A69A), size: 18),
-              label: const Text('Create Social', style: TextStyle(color: Color(0xFF26A69A), fontSize: 12)),
-              style: OutlinedButton.styleFrom(
-                backgroundColor: Colors.white,
-                side: BorderSide.none,
+              icon: const Icon(Icons.add_circle_outline, color: Colors.white, size: 20),
+              label: const Text('Create', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.2),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
               ),
             ),
           ),
@@ -67,36 +65,54 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
       ),
       body: Column(
         children: [
-          const SizedBox(height: 10),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: _tabs.map((tab) {
-                bool isSelected = socialProvider.selectedType == tab['type'];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: GestureDetector(
-                    onTap: () => socialProvider.setSelectedType(tab['type']),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF26A69A) : Colors.transparent,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.grey.shade300),
-                      ),
-                      child: Icon(
-                        tab['icon'],
-                        color: isSelected ? Colors.white : Colors.grey,
-                        size: 20,
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: _tabs.map((tab) {
+                  bool isSelected = socialProvider.selectedType == tab['type'];
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: GestureDetector(
+                      onTap: () => socialProvider.setSelectedType(tab['type']),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isSelected ? const Color(0xFF26A69A) : Colors.grey.shade100,
+                              shape: BoxShape.circle,
+                              boxShadow: isSelected 
+                                ? [BoxShadow(color: const Color(0xFF26A69A).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))]
+                                : [],
+                            ),
+                            child: Icon(
+                              tab['icon'],
+                              color: isSelected ? Colors.white : Colors.grey.shade600,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            tab['label'],
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? const Color(0xFF26A69A) : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                );
-              }).toList(),
+                  );
+                }).toList(),
+              ),
             ),
           ),
-          const SizedBox(height: 20),
           Expanded(
             child: _buildBody(socialProvider),
           ),
@@ -106,40 +122,43 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
   }
 
   Widget _buildBody(SocialProvider provider) {
-    if (provider.state == SocialState.loading) {
-      return const Center(child: CircularProgressIndicator());
+    if (provider.state == SocialState.loading && provider.posts.isEmpty) {
+      return const Center(child: CircularProgressIndicator(color: Color(0xFF26A69A)));
     }
 
-    if (provider.filteredPosts.isEmpty) {
+    final filteredPosts = provider.filteredPosts;
+
+    if (filteredPosts.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Image.network(
-              'https://cdni.iconscout.com/illustration/premium/thumb/no-data-found-8867280-7265556.png',
-              height: 200,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'No social events found.',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.grey),
+            Icon(Icons.feed_outlined, size: 80, color: Colors.grey.shade300),
+            const SizedBox(height: 16),
+            Text(
+              'No ${provider.selectedType == 'all' ? '' : provider.selectedType} posts yet',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Please check back later or try a different tab.',
-              style: TextStyle(color: Colors.grey),
+            Text(
+              'Be the first to share something!',
+              style: TextStyle(color: Colors.grey.shade500),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: provider.filteredPosts.length,
-      itemBuilder: (context, index) {
-        return SocialPostCard(post: provider.filteredPosts[index]);
-      },
+    return RefreshIndicator(
+      onRefresh: () => provider.fetchPosts(showLoader: false),
+      color: const Color(0xFF26A69A),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        itemCount: filteredPosts.length,
+        itemBuilder: (context, index) {
+          return SocialPostCard(post: filteredPosts[index]);
+        },
+      ),
     );
   }
 }
