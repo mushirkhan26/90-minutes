@@ -32,14 +32,15 @@ class _MailScreenState extends State<MailScreen> {
   }
 
   Future<void> _handleRefresh(MailProvider provider) async {
-    if (_selectedFolder == 'Inbox')
+    if (_selectedFolder == 'Inbox') {
       await provider.fetchInbox(forceRefresh: true);
-    else if (_selectedFolder == 'Sent')
+    } else if (_selectedFolder == 'Sent') {
       await provider.fetchSent(forceRefresh: true);
-    else if (_selectedFolder == 'Trash')
+    } else if (_selectedFolder == 'Trash') {
       await provider.fetchTrash(forceRefresh: true);
-    else if (_selectedFolder == 'Starred')
+    } else if (_selectedFolder == 'Starred') {
       await provider.fetchStarredMails(forceRefresh: true);
+    }
   }
 
   void _onFolderSelected(String folder) {
@@ -54,14 +55,15 @@ class _MailScreenState extends State<MailScreen> {
     final provider = context.read<MailProvider>();
     provider.setActiveFolder(folder);
 
-    if (folder == 'Inbox')
+    if (folder == 'Inbox') {
       provider.fetchInbox();
-    else if (folder == 'Sent')
+    } else if (folder == 'Sent') {
       provider.fetchSent();
-    else if (folder == 'Trash')
+    } else if (folder == 'Trash') {
       provider.fetchTrash();
-    else if (folder == 'Starred')
+    } else if (folder == 'Starred') {
       provider.fetchStarredMails();
+    }
   }
 
   void _toggleSelection(MailModel mail) {
@@ -145,27 +147,30 @@ class _MailScreenState extends State<MailScreen> {
               if (_selectedFolder == 'Trash' &&
                   !_isSelectionMode &&
                   mails.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 4,
+                if (_selectedFolder == 'Trash' &&
+                    !_isSelectionMode &&
+                    mails.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton.icon(
+                          icon: const Icon(Icons.restore_from_trash),
+                          label: const Text('Restore All'),
+                          onPressed: () => provider.restoreMany(mails),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.delete_forever),
+                          label: const Text('Empty Trash'),
+                          onPressed: provider.deleteAllTrash,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.restore_from_trash),
-                        label: const Text('Restore All'),
-                        onPressed: () => provider.restoreMany(mails),
-                      ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.delete_forever),
-                        label: const Text('Empty Trash'),
-                        onPressed: provider.deleteAllTrash,
-                      ),
-                    ],
-                  ),
-                ),
               Expanded(
                 child: provider.state == MailState.loading
                     ? const Center(child: CircularProgressIndicator())
