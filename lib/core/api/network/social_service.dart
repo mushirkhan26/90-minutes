@@ -28,10 +28,6 @@ class SocialService {
           postsJson = response.data;
         }
 
-        if (postsJson is! List) {
-           postsJson = [];
-        }
-
         final posts = postsJson.map((json) => SocialPostModel.fromJson(json)).toList();
         return ApiResponse.success(posts);
       } catch (e) {

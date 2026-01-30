@@ -30,4 +30,6 @@ class AppRoutes {
   static const String tasksRoute = '/tasks';
   static const String socialHub = '/social-hub';
   static const String resignation = '/resignation';
+  static const String complaint = '/complaint';
+
 }
