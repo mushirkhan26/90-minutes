@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/errors/app_exception.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:http/http.dart' as http;
 
 class ApiHelper {
@@ -12,6 +13,7 @@ class ApiHelper {
   static const String otherBaseUrl =
       "https://hrms-socket.onrender.com/"; // Replace with your mail service base URL
   final LoggingService _logger = LoggingService.instance;
+  final SecureStorageService _secureStorage = SecureStorageService();
 
   String _currentBaseUrl; // Global base URL for the current service
 
@@ -64,34 +66,36 @@ class ApiHelper {
     http.Response response;
     final sanitizedBody = body != null ? _sanitizeRequestBody(jsonEncode(body)) : null;
 
+    // Fetch dynamic headers (including Token)
+    final defaultHeaders = await _defaultHeaders(headers);
     _logger.logApi(
-      '=== REQUEST START ===\nMethod: $method\nURL:\nHeaders: ${_sanitizeHeaders(headers ?? {})}\nBody: $sanitizedBody',
+      '=== REQUEST START ===\nMethod: $method\nURL: $url\nHeaders: ${_sanitizeHeaders(defaultHeaders)}\nBody: $sanitizedBody',
     );
 
     try {
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http.get(url, headers: _defaultHeaders(headers));
+          response = await http.get(url, headers: defaultHeaders);
           break;
         case 'POST':
           response = await http.post(
             url,
-            headers: _defaultHeaders(headers),
+            headers: defaultHeaders,
             body: jsonEncode(body),
           );
           break;
         case 'PUT':
-          response = await http.put(url, headers: _defaultHeaders(headers), body: jsonEncode(body));
+          response = await http.put(url, headers: defaultHeaders, body: jsonEncode(body));
           break;
         case 'PATCH':
           response = await http.patch(
             url,
-            headers: _defaultHeaders(headers),
+            headers: defaultHeaders,
             body: jsonEncode(body),
           );
           break;
         case 'DELETE':
-          response = await http.delete(url, headers: _defaultHeaders(headers));
+          response = await http.delete(url, headers: defaultHeaders);
           break;
         default:
           throw BadRequestException('Invalid HTTP method');
@@ -115,8 +119,13 @@ class ApiHelper {
     }
   }
 
-  Map<String, String> _defaultHeaders(Map<String, String>? customHeaders) {
-    return {'Content-Type': 'application/json', ...?customHeaders};
+  Future<Map<String, String>> _defaultHeaders(Map<String, String>? customHeaders) async {
+    final token = await _secureStorage.getToken();
+    return {
+      'Content-Type': 'application/json',
+      if (token != null) 'Authorization': 'Bearer $token',
+      ...?customHeaders
+    };
   }
 
   Map<String, String> _sanitizeHeaders(Map<String, String> headers) {

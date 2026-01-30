@@ -1,5 +1,6 @@
 // ignore_for_file: use_build_context_s, use_build_context_synchronously
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
@@ -22,6 +23,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _addressController;
   bool _isLoading = false;
   bool _isEditing = false;
+
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
 
   @override
   void initState() {
@@ -144,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
           if (!_isEditing)
             IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),
@@ -186,7 +189,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _nameController,
                       labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
+                      prefixIcon: const Icon(Icons.person),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your name';
@@ -201,7 +204,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _emailController,
                       labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
+                      prefixIcon: const Icon(Icons.email),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
@@ -222,7 +225,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _mobileController,
                       labelText: 'Mobile Number',
 
-                      prefixIcon: Icon(Icons.phone),
+                      prefixIcon: const Icon(Icons.phone),
                       maxLength: 10,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -242,7 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _alterMobileController,
                       labelText: 'Alternate Mobile Number',
-                      prefixIcon: Icon(Icons.phone_android),
+                      prefixIcon: const Icon(Icons.phone_android),
                       maxLength: 10,
                       validator: (value) {
                         if (value != null && value.isNotEmpty && value.length != 10) {
@@ -256,19 +259,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
 
                     // Gender Field
-                    CustomTextField(
-                      controller: _genderController,
-                      labelText: 'Gender',
-                      prefixIcon: Icon(Icons.transgender),
-                      readOnly: !_isEditing,
-                    ),
+                    _isEditing
+                        ? DropdownButtonFormField<String>(
+                            value: _genderOptions.contains(_genderController.text)
+                                ? _genderController.text
+                                : null,
+                            decoration: InputDecoration(
+                              labelText: 'Gender',
+                              prefixIcon: const Icon(Icons.transgender),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: Colors.grey.shade400),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: Colors.grey.shade400),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                              ),
+                            ),
+                            items: _genderOptions
+                                .map((gender) => DropdownMenuItem(
+                                      value: gender,
+                                      child: Text(gender),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _genderController.text = value ?? '';
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select your gender';
+                              }
+                              return null;
+                            },
+                          )
+                        : CustomTextField(
+                            controller: _genderController,
+                            labelText: 'Gender',
+                            prefixIcon: const Icon(Icons.transgender),
+                            readOnly: true,
+                          ),
                     const SizedBox(height: 16),
 
                     // Address Field
                     CustomTextField(
                       controller: _addressController,
                       labelText: 'Address',
-                      prefixIcon: Icon(Icons.home),
+                      prefixIcon: const Icon(Icons.home),
                       maxLines: 5,
                       readOnly: !_isEditing,
                     ),
@@ -288,7 +332,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return CustomTextField(
                           controller: employeeIdController,
                           labelText: 'Employee ID',
-                          prefixIcon: Icon(Icons.badge),
+                          prefixIcon: const Icon(Icons.badge),
                           readOnly: true,
                         );
                       },

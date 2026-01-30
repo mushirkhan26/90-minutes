@@ -31,6 +31,11 @@ class _SocialPostCardState extends State<SocialPostCard> {
     final currentUserId = authProvider.userData?['employeeId'] ?? '';
     final isLiked = widget.post.likes.contains(currentUserId);
     final isCreator = widget.post.createdBy == currentUserId;
+    
+    // Check user role for permission
+    final userRole = authProvider.userData?['role']?.toString().toLowerCase() ?? "";
+    final bool isManagement = userRole == 'manager' || userRole == 'team lead';
+    final bool canDeletePost = isCreator || isManagement;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -66,7 +71,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
                     ],
                   ),
                 ),
-                if (isCreator)
+                if (canDeletePost)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, size: 20),
                     onSelected: (value) async {
@@ -298,7 +303,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
               itemCount: widget.post.comments.length,
               itemBuilder: (context, index) {
                 final comment = widget.post.comments[index];
-                final bool canDeleteComment = comment.userId == currentUserId || isCreator;
+                final bool canDeleteComment = comment.userId == currentUserId || isCreator || isManagement;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

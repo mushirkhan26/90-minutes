@@ -17,7 +17,8 @@ import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
-import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; // Updated Import
+import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; 
+import 'package:hrtz_hrms/features/leave/screens/admin_leave_approval_screen.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
 import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
@@ -240,6 +241,11 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const LeaveRequestScreen(),
     ),
     GoRoute(
+      path: AppRoutes.adminLeaveApproval,
+      name: '/admin-leave-approval',
+      builder: (context, state) => const AdminLeaveApprovalScreen(),
+    ),
+    GoRoute(
       path: AppRoutes.holidayCalendar,
       name: '/holiday-calendar',
       builder: (context, state) => const HolidayCalendarScreen(),
@@ -336,6 +342,8 @@ extension AuthNavigation on BuildContext {
   void userProfile() => push(AppRoutes.userProfile);
 
   void leaveRequest() => push(AppRoutes.leaveRequest);
+
+  void goToAdminLeaveApproval() => push(AppRoutes.adminLeaveApproval);
 
   void holidayCalendar() => push(AppRoutes.holidayCalendar);
 

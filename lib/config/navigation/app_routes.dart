@@ -26,6 +26,7 @@ class AppRoutes {
   static const faceverification = '/face-verification';
   static const userProfile = '/user-profile';
   static const leaveRequest = '/leave-request';
+  static const adminLeaveApproval = '/admin-leave-approval';
   static const String holidayCalendar = '/holiday-calendar';
   static const String tasksRoute = '/tasks';
   static const String socialHub = '/social-hub';

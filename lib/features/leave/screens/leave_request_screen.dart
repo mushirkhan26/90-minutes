@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/navigation/app_router.dart';
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
@@ -73,6 +75,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final userRole = authProvider.userData?['role']?.toString().toLowerCase() ?? "";
+    final bool isAdmin =  userRole == 'manager' ;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
@@ -81,6 +87,14 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         title: const Text(
           'Leave Management',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          if (isAdmin)
+            IconButton(
+              icon: const Icon(Icons.admin_panel_settings, color: Colors.white),
+              onPressed: () => context.goToAdminLeaveApproval(),
+              tooltip: 'Admin Approval',
+            ),
+        ],
       ),
       body: Consumer<LeaveProvider>(
         builder: (context, leaveProvider, child) {
