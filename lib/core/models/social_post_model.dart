@@ -70,11 +70,12 @@ class SocialPostModel {
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {
       'UserId': userId ?? createdBy,
-      'UserName': userName ?? employeeName ?? 'User',
+      'UserName': userName ?? 'User',
       'eventType': type,
       'title': title,
       'description': message,
       'imageUrl': imageUrl ?? '',
+      'employeeName': employeeName, // Added this field
     };
 
     if (type == 'poll') {

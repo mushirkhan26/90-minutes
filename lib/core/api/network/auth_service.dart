@@ -95,6 +95,7 @@ class AuthService {
     required String alterMobile,
     required String gender,
     required String address,
+    String? profileImage,
   }) async {
     _logger.logAuth('Updating profile for employeeId: $employeeId');
     final endpoint = 'employee/profile/$employeeId';
@@ -105,6 +106,7 @@ class AuthService {
       "alterMobile": int.tryParse(alterMobile) ?? alterMobile,
       "gender": gender,
       "address": address,
+      if (profileImage != null) "profileImage": profileImage,
     };
     return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
