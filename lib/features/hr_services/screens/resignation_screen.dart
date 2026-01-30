@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+
+import '../provider/resignation_provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 
 class ResignationScreen extends StatefulWidget {
   const ResignationScreen({super.key});
@@ -10,19 +14,13 @@ class ResignationScreen extends StatefulWidget {
 
 class _ResignationScreenState extends State<ResignationScreen> {
   final _formKey = GlobalKey<FormState>();
-
-  // Dummy user data (later API nundi vastadi)
-  final String employeeId = '26010005';
-  final String employeeName = 'VISHNU VARDHAN';
-  final String reportingManager = 'Mukilan K';
-  final String managerId = '26010001';
+  final TextEditingController reasonController = TextEditingController();
 
   DateTime? resignationDate;
   DateTime? lastWorkingDate;
 
-  final TextEditingController reasonController = TextEditingController();
-
-  final DateFormat dateFormat = DateFormat('dd/MM/yyyy');
+  final DateFormat apiDateFormat = DateFormat('yyyy-MM-dd');
+  final DateFormat uiDateFormat = DateFormat('dd/MM/yyyy');
 
   void _pickResignationDate() async {
     final picked = await showDatePicker(
@@ -40,26 +38,41 @@ class _ResignationScreenState extends State<ResignationScreen> {
     }
   }
 
-  void _submitResignation() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
     if (resignationDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select resignation date'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Please select resignation date')),
       );
       return;
     }
 
-    // 🔸 Dummy submit (API later)
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Resignation submitted successfully'),
-        backgroundColor: Colors.green,
-      ),
+    final provider = context.read<ResignationProvider>();
+
+    final success = await provider.submitResignation(
+      resignationDate: apiDateFormat.format(resignationDate!),
+      reason: reasonController.text.trim(),
     );
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Resignation submitted successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage ?? 'Something went wrong'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Widget _readOnlyField(String label, String value) {
@@ -72,8 +85,8 @@ class _ResignationScreenState extends State<ResignationScreen> {
           initialValue: value,
           readOnly: true,
           decoration: const InputDecoration(
-            border: OutlineInputBorder(),
             filled: true,
+            border: OutlineInputBorder(),
           ),
         ),
         const SizedBox(height: 16),
@@ -83,133 +96,150 @@ class _ResignationScreenState extends State<ResignationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final resignationProvider = context.watch<ResignationProvider>();
+    final authProvider = context.watch<AuthProvider>();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Resignation')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Apply Resignation',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
+      appBar: AppBar(
+        title: const Text('Resignation'),
+        backgroundColor: const Color(0xFF2F9E9E),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Apply Resignation',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 20),
 
-              _readOnlyField('Employee ID', employeeId),
-              _readOnlyField('Name', employeeName),
-              _readOnlyField('Reporting Manager', reportingManager),
-              _readOnlyField('Manager ID', managerId),
+                /// ✅ AUTO-FILL FROM LOGIN (NO STATIC VALUES)
+                _readOnlyField(
+                  'Employee ID',
+                  authProvider.userData?['employeeId'] ?? '-',
+                ),
 
-              // Resignation Date
-              const Text(
-                'Resignation Date *',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              InkWell(
-                onTap: _pickResignationDate,
-                child: InputDecorator(
+                _readOnlyField(
+                  'Name',
+                  authProvider.userData?['username'] ?? '-',
+                ),
+
+                /// 📅 Resignation Date
+                const Text(
+                  'Resignation Date *',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                InkWell(
+                  onTap: _pickResignationDate,
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                    ),
+                    child: Text(
+                      resignationDate == null
+                          ? 'Select date'
+                          : uiDateFormat.format(resignationDate!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                /// 📆 Last Working Date
+                const Text(
+                  'Last Working Date *',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  readOnly: true,
+                  decoration: InputDecoration(
+                    filled: true,
+                    border: const OutlineInputBorder(),
+                    hintText: lastWorkingDate == null
+                        ? ''
+                        : apiDateFormat.format(lastWorkingDate!),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  'Calculated as 90 days from resignation date',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+
+                /// ✍️ Reason
+                const Text(
+                  'Reason *',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 6),
+                TextFormField(
+                  controller: reasonController,
+                  maxLines: 4,
+                  validator: (v) =>
+                      v == null || v.trim().length < 5
+                          ? 'Minimum 5 characters required'
+                          : null,
                   decoration: const InputDecoration(
+                    hintText:
+                        'Brief reason for resignation (minimum 5 characters)',
                     border: OutlineInputBorder(),
                   ),
-                  child: Text(
-                    resignationDate == null
-                        ? 'Select date'
-                        : dateFormat.format(resignationDate!),
-                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 20),
 
-              // Last Working Date
-              const Text(
-                'Last Working Date *',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                readOnly: true,
-                decoration: InputDecoration(
-                  border: const OutlineInputBorder(),
-                  filled: true,
-                  hintText: lastWorkingDate == null
-                      ? ''
-                      : dateFormat.format(lastWorkingDate!),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Calculated as 90 days from resignation date',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-              const SizedBox(height: 16),
-
-              // Reason
-              const Text(
-                'Reason *',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              const SizedBox(height: 6),
-              TextFormField(
-                controller: reasonController,
-                maxLines: 4,
-                validator: (value) {
-                  if (value == null || value.trim().length < 5) {
-                    return 'Minimum 5 characters required';
-                  }
-                  return null;
-                },
-                decoration: const InputDecoration(
-                  hintText: 'Brief reason for resignation',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Submit Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submitResignation,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: Colors.teal,
-                  ),
-                  child: const Text(
-                    'Submit Resignation',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Experience Letter Info
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade100),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Icon(Icons.description_outlined, color: Colors.blue),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Your experience letter will be available for download on your last working day after your resignation is accepted.',
-                        style: TextStyle(fontSize: 13),
-                      ),
+                /// 🚀 Submit Button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed:
+                        resignationProvider.isSubmitting ? null : _submit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2F9E9E),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                  ],
+                    child: resignationProvider.isSubmitting
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text(
+                            'Submit Resignation',
+                            style:
+                                TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 24),
+
+                /// ℹ️ Info box
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade100),
+                  ),
+                  child: const Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.description_outlined, color: Colors.blue),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Your experience letter will be available for download on your last working day after your resignation is accepted.',
+                          style: TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

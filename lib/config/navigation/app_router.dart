@@ -28,6 +28,11 @@ import 'package:hrtz_hrms/features/settings/screens/permission_screen.dart';
 import 'package:hrtz_hrms/features/social/screens/social_hub_screen.dart';
 import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/resignation_screen.dart';
+import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
+import 'package:hrtz_hrms/features/hr_services/provider/resignation_provider.dart';
+import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
+
+
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -255,10 +260,25 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SocialHubScreen(),
     ),
     GoRoute(
-      path: AppRoutes.resignation,
-      name: '/resignation',
-      builder: (context, state) => const ResignationScreen(),
-    )
+  path: AppRoutes.resignation,
+  name: '/resignation',
+  builder: (context, state) {
+    return ChangeNotifierProvider(
+      create: (_) => ResignationProvider(),
+      child: const ResignationScreen(),
+    );
+  },
+),
+    GoRoute(
+  path: AppRoutes.complaint,
+  name: '/complaint',
+  builder: (context, state) {
+    return ChangeNotifierProvider(
+      create: (_) => ComplaintProvider()..fetchComplaints(),
+      child: MyComplaintsScreen(),
+    );
+  },
+),
   ],
 );
 

@@ -23,6 +23,8 @@ class LocalStorageService {
 
   static const String _keyRecentChats = 'recent_chats';
   // employee list data related keys
+  static const String _keyEmployeeId = 'employee_id';
+  static const String _keyEmployeeName = 'employee_name';
   static const String _keyEmployeeList = 'employee_list';
   static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
   // meet caching data related keys
@@ -526,4 +528,20 @@ class LocalStorageService {
       return null;
     }
   }
+  Future<void> saveLoggedInEmployee({
+  required String employeeId,
+  required String employeeName,
+}) async {
+  await prefs.setString(_keyEmployeeId, employeeId);
+  await prefs.setString(_keyEmployeeName, employeeName);
+}
+/// 🔹 Get logged-in employee id
+Future<String?> getEmployeeId() async {
+  return prefs.getString(_keyEmployeeId);
+}
+
+/// 🔹 Get logged-in employee name
+Future<String?> getEmployeeName() async {
+  return prefs.getString(_keyEmployeeName);
+}
 }
