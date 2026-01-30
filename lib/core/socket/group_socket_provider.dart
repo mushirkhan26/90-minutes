@@ -23,9 +23,12 @@ class GroupSocketProvider extends ChangeNotifier {
 
   // Getters
   List<GroupChatModel> get groupChats => List.unmodifiable(_groupChats);
-  List<GroupMessageModel> get groupMessages => List.unmodifiable(_groupMessages);
-  Map<String, bool> get groupTypingIndicators => Map.unmodifiable(_groupTypingIndicators);
-  Map<String, int> get groupUnreadCounts => Map.unmodifiable(_groupUnreadCounts);
+  List<GroupMessageModel> get groupMessages =>
+      List.unmodifiable(_groupMessages);
+  Map<String, bool> get groupTypingIndicators =>
+      Map.unmodifiable(_groupTypingIndicators);
+  Map<String, int> get groupUnreadCounts =>
+      Map.unmodifiable(_groupUnreadCounts);
 
   // Active group chat
   String? _activeGroupId;
@@ -69,42 +72,56 @@ class GroupSocketProvider extends ChangeNotifier {
         final message = GroupMessageModel.fromMap(data);
 
         // ✅ 1. Check for backend ID duplicate
-        if (message.id != null && _groupMessages.any((m) => m.id == message.id)) {
-          _logger.logNetwork("[GroupSocket] ⛔ Duplicate backend ID ignored: ${message.id}");
+        if (message.id != null &&
+            _groupMessages.any((m) => m.id == message.id)) {
+          _logger.logNetwork(
+            "[GroupSocket] ⛔ Duplicate backend ID ignored: ${message.id}",
+          );
           return;
         }
 
         // ✅ 2. Advanced Deduplication Logic
         // Look for the optimistic message we just sent
         int index = -1;
-        
+
         // Try matching by messageId first
-        index = _groupMessages.indexWhere((m) => m.messageId == message.messageId);
-        
+        index = _groupMessages.indexWhere(
+          (m) => m.messageId == message.messageId,
+        );
+
         // Fallback: Match by sender + text + proximity in time (within 10 seconds)
-        if (index == -1 && message.sender == await _secureStorage.getEmployeeId()) {
-          index = _groupMessages.indexWhere((m) => 
-            m.sender == message.sender && 
-            m.text == message.text && 
-            m.messageId.startsWith('temp_') &&
-            message.timestamp.difference(m.timestamp).inSeconds.abs() < 10
+        if (index == -1 &&
+            message.sender == await _secureStorage.getEmployeeId()) {
+          index = _groupMessages.indexWhere(
+            (m) =>
+                m.sender == message.sender &&
+                m.text == message.text &&
+                m.messageId.startsWith('temp_') &&
+                message.timestamp.difference(m.timestamp).inSeconds.abs() < 10,
           );
         }
-        
+
         if (index != -1) {
-           // If we found a match, check if it's already a finalized message
-           if (!_groupMessages[index].messageId.startsWith('temp_') && _groupMessages[index].id != null) {
-              _logger.logNetwork("[GroupSocket] ⛔ Duplicate message ignored (already finalized)");
-              return;
-           }
-           // Update the optimistic/temp message with backend data (including the new ID)
-           _groupMessages[index] = message;
-           _logger.logNetwork("[GroupSocket] ✅ Optimistic message updated with backend data");
+          // If we found a match, check if it's already a finalized message
+          if (!_groupMessages[index].messageId.startsWith('temp_') &&
+              _groupMessages[index].id != null) {
+            _logger.logNetwork(
+              "[GroupSocket] ⛔ Duplicate message ignored (already finalized)",
+            );
+            return;
+          }
+          // Update the optimistic/temp message with backend data (including the new ID)
+          _groupMessages[index] = message;
+          _logger.logNetwork(
+            "[GroupSocket] ✅ Optimistic message updated with backend data",
+          );
         } else {
-           _groupMessages.add(message);
-           _logger.logNetwork("[GroupSocket] 📩 New group message added to list");
+          _groupMessages.add(message);
+          _logger.logNetwork(
+            "[GroupSocket] 📩 New group message added to list",
+          );
         }
-        
+
         await _localStorage.addGroupMessage(message.groupId, message);
 
         final currentUserData = await SecureStorageService().getUserData();
@@ -112,11 +129,18 @@ class GroupSocketProvider extends ChangeNotifier {
 
         if (message.sender != currentUserId) {
           if (message.groupId != _activeGroupId) {
-            _groupUnreadCounts[message.groupId] = (_groupUnreadCounts[message.groupId] ?? 0) + 1;
+            _groupUnreadCounts[message.groupId] =
+                (_groupUnreadCounts[message.groupId] ?? 0) + 1;
 
             final group = _groupChats.firstWhere(
               (g) => g.groupId == message.groupId,
-              orElse: () => GroupChatModel(groupId: message.groupId, name: "Group", members: [], createdBy: "", createdAt: DateTime.now()),
+              orElse: () => GroupChatModel(
+                groupId: message.groupId,
+                name: "Group",
+                members: [],
+                createdBy: "",
+                createdAt: DateTime.now(),
+              ),
             );
 
             await LocalNotificationService().showGroupNotification(
@@ -127,6 +151,8 @@ class GroupSocketProvider extends ChangeNotifier {
             );
           }
         }
+        // ✅ THIS FIXES YOUR BUG
+        _moveGroupToTop(message);
         notifyListeners();
       } catch (e) {
         _logger.error("GroupSocket", "Failed to parse group message", error: e);
@@ -136,7 +162,9 @@ class GroupSocketProvider extends ChangeNotifier {
     _manager.registerGroupEvent('groupMessageDeleted', (data) async {
       final messageId = data['messageId'];
       final groupId = data['groupId'];
-      _groupMessages.removeWhere((m) => m.messageId == messageId || m.id == messageId);
+      _groupMessages.removeWhere(
+        (m) => m.messageId == messageId || m.id == messageId,
+      );
       await _localStorage.deleteGroupMessage(groupId, messageId);
       notifyListeners();
     });
@@ -169,56 +197,90 @@ class GroupSocketProvider extends ChangeNotifier {
     await _manager.getUserGroups(userId ?? "");
   }
 
-  Future<void> createGroup({required String name, required String createdBy, required List<String> members, String? description, String? icon}) async {
-    await _manager.createGroup(name: name, createdBy: createdBy, members: members, description: description, icon: icon);
-  }
-
-  Future<void> sendGroupMessage({
-    required String groupId, 
-    required String sender, 
-    required String senderName, 
-    required String text, 
-    String? messageId,
-    String messageType = 'text', 
-    String? fileName, 
-    String? fileUrl, 
-    String? replyTo, 
-    List<String>? mentions
+  Future<void> createGroup({
+    required String name,
+    required String createdBy,
+    required List<String> members,
+    String? description,
+    String? icon,
   }) async {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    // Consistent temp_ prefix for deduplication match
-    final idToSend = messageId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
-    
-    await _manager.sendGroupMessage(
-      groupId: groupId, 
-      sender: sender, 
-      senderName: senderName, 
-      text: text, 
-      messageId: idToSend,
-      messageType: messageType, 
-      fileName: fileName, 
-      fileUrl: fileUrl, 
-      replyTo: replyTo, 
-      mentions: mentions, 
-      timestamp: timestamp
+    await _manager.createGroup(
+      name: name,
+      createdBy: createdBy,
+      members: members,
+      description: description,
+      icon: icon,
     );
   }
 
-  Future<void> deleteGroupMessage({required String messageId, required String userId, required String groupId}) async {
-    await _manager.deleteGroupMessage(messageId: messageId, userId: userId, groupId: groupId);
+  Future<void> sendGroupMessage({
+    required String groupId,
+    required String sender,
+    required String senderName,
+    required String text,
+    String? messageId,
+    String messageType = 'text',
+    String? fileName,
+    String? fileUrl,
+    String? replyTo,
+    List<String>? mentions,
+  }) async {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    // Consistent temp_ prefix for deduplication match
+    final idToSend =
+        messageId ?? 'temp_${DateTime.now().millisecondsSinceEpoch}';
+
+    await _manager.sendGroupMessage(
+      groupId: groupId,
+      sender: sender,
+      senderName: senderName,
+      text: text,
+      messageId: idToSend,
+      messageType: messageType,
+      fileName: fileName,
+      fileUrl: fileUrl,
+      replyTo: replyTo,
+      mentions: mentions,
+      timestamp: timestamp,
+    );
   }
 
-  Future<void> clearGroupChat({required String groupId, required String userId}) async {
+  Future<void> deleteGroupMessage({
+    required String messageId,
+    required String userId,
+    required String groupId,
+  }) async {
+    await _manager.deleteGroupMessage(
+      messageId: messageId,
+      userId: userId,
+      groupId: groupId,
+    );
+  }
+
+  Future<void> clearGroupChat({
+    required String groupId,
+    required String userId,
+  }) async {
     await _manager.clearGroupChat(groupId: groupId, userId: userId);
-    
+
     // Clear locally immediately
     _groupMessages.removeWhere((m) => m.groupId == groupId);
     await _localStorage.clearGroupMessages(groupId);
     notifyListeners();
   }
 
-  void sendGroupTypingStatus({required String userId, required String userName, required String groupId, required bool isTyping}) {
-    _manager.sendGroupTypingStatus(userId: userId, userName: userName, groupId: groupId, isTyping: isTyping);
+  void sendGroupTypingStatus({
+    required String userId,
+    required String userName,
+    required String groupId,
+    required bool isTyping,
+  }) {
+    _manager.sendGroupTypingStatus(
+      userId: userId,
+      userName: userName,
+      groupId: groupId,
+      isTyping: isTyping,
+    );
   }
 
   Future<void> loadGroupMessages(String groupId) async {
@@ -242,17 +304,29 @@ class GroupSocketProvider extends ChangeNotifier {
       if (notify) notifyListeners();
     }
   }
-  
+
   void removeLocalGroupMessage(String localmessageId) {
     _groupMessages.removeWhere((m) => m.messageId == localmessageId);
     notifyListeners();
   }
 
-  Future<void> editGroupName(String groupId, String newName, String userId) async {
-    await _manager.editGroupName(groupId: groupId, newName: newName, userId: userId);
+  Future<void> editGroupName(
+    String groupId,
+    String newName,
+    String userId,
+  ) async {
+    await _manager.editGroupName(
+      groupId: groupId,
+      newName: newName,
+      userId: userId,
+    );
   }
 
-  Future<void> addGroupMembers(String groupId, List<String> newMembers, String addedBy) async {
+  Future<void> addGroupMembers(
+    String groupId,
+    List<String> newMembers,
+    String addedBy,
+  ) async {
     //  Optimistic Update in Provider
     final index = _groupChats.indexWhere((g) => g.groupId == groupId);
     if (index != -1) {
@@ -261,30 +335,66 @@ class GroupSocketProvider extends ChangeNotifier {
       );
       notifyListeners();
     }
-    await _manager.addGroupMembers(groupId: groupId, newMembers: newMembers, addedBy: addedBy);
+    await _manager.addGroupMembers(
+      groupId: groupId,
+      newMembers: newMembers,
+      addedBy: addedBy,
+    );
   }
 
-  Future<void> removeGroupMember(String groupId, String userToRemove, String removedBy) async {
+  Future<void> removeGroupMember(
+    String groupId,
+    String userToRemove,
+    String removedBy,
+  ) async {
     // 🚀 Optimistic Update in Provider
     final index = _groupChats.indexWhere((g) => g.groupId == groupId);
     if (index != -1) {
-      final updatedMembers = List<String>.from(_groupChats[index].members)..remove(userToRemove);
+      final updatedMembers = List<String>.from(_groupChats[index].members)
+        ..remove(userToRemove);
       _groupChats[index] = _groupChats[index].copyWith(members: updatedMembers);
       notifyListeners();
     }
-    await _manager.removeGroupMember(groupId: groupId, userToRemove: userToRemove, removedBy: removedBy);
+    await _manager.removeGroupMember(
+      groupId: groupId,
+      userToRemove: userToRemove,
+      removedBy: removedBy,
+    );
   }
 
-  Future<void> leaveGroup({required String groupId, required String userId}) async {
+  Future<void> leaveGroup({
+    required String groupId,
+    required String userId,
+  }) async {
     await _manager.leaveGroup(groupId: groupId, userId: userId);
     _groupChats.removeWhere((g) => g.groupId == groupId);
     await _localStorage.saveGroupChats(_groupChats);
     notifyListeners();
   }
 
-  Future<void> deleteGroup({required String groupId, required String deletedBy}) async {
+  Future<void> deleteGroup({
+    required String groupId,
+    required String deletedBy,
+  }) async {
     await _manager.deleteGroup(groupId: groupId, deletedBy: deletedBy);
   }
 
-  Future<void> markGroupMessageAsRead({required String messageId, required String userId}) async {}
+  Future<void> markGroupMessageAsRead({
+    required String messageId,
+    required String userId,
+  }) async {}
+
+  void _moveGroupToTop(GroupMessageModel message) {
+    final index = _groupChats.indexWhere((g) => g.groupId == message.groupId);
+
+    if (index == -1) return;
+
+    final updatedGroup = _groupChats[index].copyWith(
+      lastMessage: message.text,
+      lastMessageTime: message.timestamp,
+    );
+
+    _groupChats.removeAt(index);
+    _groupChats.insert(0, updatedGroup);
+  }
 }

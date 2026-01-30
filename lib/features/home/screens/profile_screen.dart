@@ -1,4 +1,6 @@
 // ignore_for_file: use_build_context_s, use_build_context_synchronously
+import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _addressController;
   bool _isLoading = false;
   bool _isEditing = false;
+  File? _selectedProfileImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -98,6 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         alterMobile: _alterMobileController.text,
         gender: _genderController.text,
         address: _addressController.text,
+        profileImage: _selectedProfileImage,
       );
 
       if (success) {
@@ -134,6 +139,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickProfileImage() async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (pickedFile != null) {
+      setState(() {
+        _selectedProfileImage = File(pickedFile.path);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -144,7 +162,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         actions: [
           if (!_isEditing)
             IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),
@@ -165,21 +186,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     // Profile Image
                     Center(
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.grey[300],
-                        backgroundImage: profileData?.profileImage != null
-                            ? NetworkImage(profileData!.profileImage!)
-                            : null,
-                        child: profileData?.profileImage == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.white,
-                              )
-                            : null,
+                      child: Stack(
+                        children: [
+                          GestureDetector(
+                            onTap: _isEditing ? _pickProfileImage : null,
+                            child: CircleAvatar(
+                              radius: 50,
+                              backgroundColor: Colors.grey[300],
+                              backgroundImage: _selectedProfileImage != null
+                                  ? FileImage(_selectedProfileImage!)
+                                  : profileData?.profileImage != null
+                                  ? NetworkImage(profileData!.profileImage!)
+                                  : null,
+
+                              child: profileData?.profileImage == null
+                                  ? const Icon(
+                                      Icons.person,
+                                      size: 50,
+                                      color: Colors.white,
+                                    )
+                                  : null,
+                            ),
+                          ),
+                          if (_isEditing)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.teal,
+                                child: const Icon(
+                                  Icons.camera_alt,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
+
+                    // Center(
+                    //   child: CircleAvatar(
+                    //     radius: 50,
+                    //     backgroundColor: Colors.grey[300],
+                    //     backgroundImage: profileData?.profileImage != null
+                    //         ? NetworkImage(profileData!.profileImage!)
+                    //         : null,
+                    //     child: profileData?.profileImage == null
+                    //         ? const Icon(
+                    //             Icons.person,
+                    //             size: 50,
+                    //             color: Colors.white,
+                    //           )
+                    //         : null,
+                    //   ),
+                    // ),
                     const SizedBox(height: 16),
 
                     // Name Field
@@ -245,7 +307,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       prefixIcon: Icon(Icons.phone_android),
                       maxLength: 10,
                       validator: (value) {
-                        if (value != null && value.isNotEmpty && value.length != 10) {
+                        if (value != null &&
+                            value.isNotEmpty &&
+                            value.length != 10) {
                           return 'Mobile number must be 10 digits';
                         }
                         return null;

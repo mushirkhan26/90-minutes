@@ -2,6 +2,7 @@ import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'dart:io';
 
 class AuthService {
   final ApiHelper _apiHelper = ApiHelper();
@@ -93,6 +94,7 @@ class AuthService {
     required String alterMobile,
     required String gender,
     required String address,
+    File? profileImage,
   }) async {
     _logger.logAuth('Updating profile for employeeId: $employeeId');
     final endpoint = 'employee/profile/$employeeId';
@@ -140,9 +142,10 @@ class AuthService {
       "reason": reason,
       "duration": duration,
       "type": type,
-      if (medicalCertificate != null) "medicalCertificate": [medicalCertificate],
+      if (medicalCertificate != null)
+        "medicalCertificate": [medicalCertificate],
     };
-    
+
     _logger.logAuth('Adding leave request to leave/add');
     return await _apiHelper.post<Map<String, dynamic>>('leave/add', body);
   }
@@ -172,10 +175,7 @@ class AuthService {
   }) async {
     _logger.logAuth('Cancelling leave request: $leaveId');
     final endpoint = 'leave/update/$leaveId';
-    final body = {
-      "status": "Cancelled",
-      "updatedBy": updatedBy
-    };
+    final body = {"status": "Cancelled", "updatedBy": updatedBy};
     return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
 
