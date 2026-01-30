@@ -67,6 +67,13 @@ class AuthProvider extends ChangeNotifier {
         ndaSubmitted: _ndaSubmitted,
         onboardingCompleted: _onboardingCompleted,
       );
+      
+      // Save logged-in employee details
+      await _localStorage.saveLoggedInEmployee(
+        employeeId: data['employeeId'].toString(),
+        employeeName: data['username'],
+      );
+
       // Save login state
       await _localStorage.setLoginState(true);
       _state = AuthState.authenticated;
@@ -105,6 +112,10 @@ class AuthProvider extends ChangeNotifier {
         _ndaSubmitted = _userData!['ndaSubmitted'] ?? false;
         _onboardingCompleted = _userData!['onboardingCompleted'] ?? false;
       }
+      await _localStorage.saveLoggedInEmployee(
+        employeeId: _userData!['employeeId'].toString(),
+        employeeName: _userData!['username'],
+      );
       _state = AuthState.authenticated;
       _logger.logAuth('User session found, authenticated. NDA: $_ndaSubmitted, Onboarding: $_onboardingCompleted');
       // ✅ Ensure FCM token is up-to-date
