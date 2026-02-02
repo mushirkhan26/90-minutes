@@ -33,6 +33,7 @@ import 'package:hrtz_hrms/features/hr_services/provider/resignation_provider.dar
 import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 
 
+
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -263,9 +264,11 @@ final GoRouter appRouter = GoRouter(
   path: AppRoutes.resignation,
   name: '/resignation',
   builder: (context, state) {
-    return ChangeNotifierProvider(
-      create: (_) => ResignationProvider(),
-      child: const ResignationScreen(),
+    return Material(
+      child: ChangeNotifierProvider(
+        create: (_) => ResignationProvider(),
+        child: const ResignationScreen(),
+      ),
     );
   },
 ),

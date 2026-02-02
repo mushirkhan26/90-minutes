@@ -339,7 +339,7 @@ class _CreateComplaintBottomSheetState
         DropdownButtonFormField<String>(
           initialValue: value,
           hint: Text(hintText),
-          style: const TextStyle(color: Colors.grey),
+          style: const TextStyle(color: Colors.black, fontSize: 14),
           items: items
               .map(
                 (e) => DropdownMenuItem(
