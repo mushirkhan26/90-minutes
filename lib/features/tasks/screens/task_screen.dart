@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
 import 'package:hrtz_hrms/features/tasks/widgets/add_edit_task_dialog.dart';
@@ -31,10 +33,9 @@ class _TasksScreenState extends State<TasksScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
     final userName = authProvider.userData?['username'] ?? "User";
     final employeeId = authProvider.userData?['employeeId'] ?? "";
-    
-    // Check user role for permission
+
     final userRole = authProvider.userData?['role']?.toString().toLowerCase() ?? "";
-    final bool canAddTask = userRole == 'manager' || userRole == 'team lead';
+    final bool isManager = userRole == 'manager';
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -42,24 +43,12 @@ class _TasksScreenState extends State<TasksScreen> {
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text("Tasks Management",style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        title: const Text(
+          "Tasks Management",
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         actions: [
-          // Show Add button only if user is Manager or Team Lead
-          if (canAddTask)
-            IconButton(
-              icon: const Icon(Icons.add),
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AddEditTaskDialog(
-                    onSave: (task) {
-                      tasksProvider.addTask(task, employeeId);
-                    },
-                  ),
-                );
-              },
-            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () => tasksProvider.fetchTasks(employeeId),
@@ -86,16 +75,44 @@ class _TasksScreenState extends State<TasksScreen> {
                             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            "Welcome back, $userName! You have ${tasksProvider.totalItemsCount} active items",
+                            "Welcome back, $userName!",
                             style: TextStyle(color: Colors.grey[600], fontSize: 14),
                           ),
                         ],
                       ),
                     ),
 
-                    // Cards Row
+                    // Manager Only Section: General HR Tasks Link
+                    if (isManager)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+                        child: Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: ListTile(
+                              leading: const Icon(Icons.assignment_ind_outlined, color: Color(0xFF26A69A)),
+                              title: const Text(
+                                'General HR Tasks',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                              subtitle: const Text("Tasks not associated with any sprint", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                              trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                              onTap: () {
+                                context.push(AppRoutes.generalHrTasks);
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    // Stats Cards Row
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                       child: Row(
                         children: [
                           _buildStatCard(
@@ -125,43 +142,18 @@ class _TasksScreenState extends State<TasksScreen> {
                       ),
                     ),
 
-                    // Filter Row
+                    // Recent Activity Header
                     Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.filter_alt_outlined, color: Colors.grey),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              decoration: BoxDecoration(
-                                border: Border.all(color: Colors.blue.shade200),
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.white,
-                              ),
-                              child: DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: tasksProvider.selectedFilter,
-                                  items: const [
-                                    DropdownMenuItem(value: 'all', child: Text('All Items')),
-                                    DropdownMenuItem(value: 'tasks', child: Text('Tasks Only')),
-                                    DropdownMenuItem(value: 'subtasks', child: Text('Subtasks Only')),
-                                  ],
-                                  onChanged: (val) {
-                                    if (val != null) tasksProvider.setFilter(val);
-                                  },
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          _buildFilterDropdown(tasksProvider),
+                        ],
                       ),
                     ),
 
-                    // Task List or Empty State
                     tasksProvider.tasks.isEmpty
                         ? _buildEmptyState()
                         : ListView.builder(
@@ -179,7 +171,7 @@ class _TasksScreenState extends State<TasksScreen> {
                                     builder: (context) => AddEditTaskDialog(
                                       task: task,
                                       onSave: (updatedTask) {
-                                        tasksProvider.updateTask(updatedTask, employeeId);
+                                        tasksProvider.updateTaskStatus(updatedTask.id, employeeId, updatedTask.status);
                                       },
                                     ),
                                   );
@@ -195,6 +187,31 @@ class _TasksScreenState extends State<TasksScreen> {
                 ),
               ),
             ),
+    );
+  }
+
+  Widget _buildFilterDropdown(TasksProvider provider) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.blue.shade100),
+        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: provider.selectedFilter,
+          style: const TextStyle(fontSize: 12, color: Colors.black),
+          items: const [
+            DropdownMenuItem(value: 'all', child: Text('All Items')),
+            DropdownMenuItem(value: 'tasks', child: Text('Tasks Only')),
+            DropdownMenuItem(value: 'subtasks', child: Text('Subtasks Only')),
+          ],
+          onChanged: (val) {
+            if (val != null) provider.setFilter(val);
+          },
+        ),
+      ),
     );
   }
 
@@ -273,10 +290,7 @@ class _TasksScreenState extends State<TasksScreen> {
         title: const Text('Delete Task'),
         content: const Text('Are you sure you want to delete this task?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               provider.deleteTask(id, employeeId);

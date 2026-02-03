@@ -32,6 +32,12 @@ class _SocialPostCardState extends State<SocialPostCard> {
     final isLiked = widget.post.likes.contains(currentUserId);
     final isCreator = widget.post.createdBy == currentUserId;
 
+    // Check user role for permission
+    final userRole =
+        authProvider.userData?['role']?.toString().toLowerCase() ?? "";
+    final bool isManagement = userRole == 'manager' || userRole == 'team lead';
+    final bool canDeletePost = isCreator || isManagement;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       color: Colors.white,
@@ -53,16 +59,63 @@ class _SocialPostCardState extends State<SocialPostCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        widget.post.type == 'birthday'
-                            ? '${widget.post.title} ${widget.post.employeeName ?? ''}'
-                            : widget.post.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                      if (widget.post.type == 'birthday')
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(
+                              0xFF26A69A,
+                            ).withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(
+                                fontSize: 16,
+                                color: Colors.black,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              children: [
+                                const TextSpan(
+                                  text: '🎉 ',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                                TextSpan(
+                                  text: '${widget.post.title}: ',
+                                  style: TextStyle(
+                                    color: Colors.grey.shade700,
+                                    fontWeight: FontWeight.normal,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: widget.post.employeeName ?? '',
+                                  style: const TextStyle(
+                                    color: Color(0xFF26A69A),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const TextSpan(
+                                  text: ' 🎂',
+                                  style: TextStyle(fontSize: 18),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Text(
+                          widget.post.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
-                      ),
-
+                      const SizedBox(height: 2),
                       Text(
                         DateFormat(
                           'MMM dd, yyyy • hh:mm a',
@@ -75,7 +128,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
                     ],
                   ),
                 ),
-                if (isCreator)
+                if (canDeletePost)
                   PopupMenuButton<String>(
                     icon: const Icon(Icons.more_vert, size: 20),
                     onSelected: (value) async {
@@ -405,7 +458,9 @@ class _SocialPostCardState extends State<SocialPostCard> {
               itemBuilder: (context, index) {
                 final comment = widget.post.comments[index];
                 final bool canDeleteComment =
-                    comment.userId == currentUserId || isCreator;
+                    comment.userId == currentUserId ||
+                    isCreator ||
+                    isManagement;
 
                 return Padding(
                   padding: const EdgeInsets.symmetric(

@@ -196,17 +196,7 @@ class HomeScreen extends StatelessWidget {
                               title: const Text('Resignation'),
                               onTap: () {
                                 Navigator.pop(context);
-
-                                final role = context
-                                    .read<AuthProvider>()
-                                    .userData?['role']
-                                    ?.toString()
-                                    .toLowerCase();
-
-                                context.push(
-                                  AppRoutes.resignation,
-                                  extra: {'openManagement': role == 'manager'},
-                                );
+                                context.push(AppRoutes.resignation);
                               },
                             ),
                             ListTile(

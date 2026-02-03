@@ -1,25 +1,43 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
+import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/models/holiday_model.dart';
+import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class HolidayService {
-  final String url =
-      'https://7qj30pu8ee.execute-api.us-east-1.amazonaws.com/holiday';
+  final ApiHelper _apiHelper = ApiHelper();
+  final LoggingService _logger = LoggingService.instance;
 
-  //   Future<List<HolidayModel>> getHolidays() async {
-  //     final res = await http.get(Uri.parse(url));
-  //     final List data = jsonDecode(res.body);
-  //     return data.map((e) => HolidayModel.fromJson(e)).toList();
-  //   }
-  // }
-  Future<List<HolidayModel>> getHolidays() async {
-    final res = await http.get(Uri.parse(url));
+  /// 🗓️ Get Holidays
+  Future<ApiResponse<List<HolidayModel>>> getHolidays() async {
+    _logger.info('HOLIDAY', 'Fetching holidays');
+    final response = await _apiHelper.get<dynamic>('holiday');
 
-    if (res.statusCode == 200) {
-      final List data = jsonDecode(res.body);
-      return data.map((e) => HolidayModel.fromJson(e)).toList();
-    } else {
-      throw Exception('Failed to fetch holidays. Status: ${res.statusCode}');
+    if (response.success && response.data != null) {
+      try {
+        List<dynamic> holidayJson = [];
+        if (response.data is List) {
+          holidayJson = response.data;
+        } else if (response.data is Map<String, dynamic>) {
+          holidayJson =
+              response.data['items'] ??
+              response.data['data'] ??
+              response.data['message'] ??
+              [];
+        }
+
+        if (holidayJson is! List) {
+          holidayJson = [];
+        }
+
+        final holidays = holidayJson
+            .map((json) => HolidayModel.fromJson(json))
+            .toList();
+        return ApiResponse.success(holidays);
+      } catch (e) {
+        _logger.error('HOLIDAY', 'Error parsing holidays', error: e);
+        return ApiResponse.error('Failed to parse holidays');
+      }
     }
+    return ApiResponse.error(response.message ?? 'Failed to fetch holidays');
   }
 }

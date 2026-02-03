@@ -58,11 +58,16 @@ class AuthService {
     final response = await _apiHelper.get<Map<String, dynamic>>(
       'employee/employeeList',
     );
-    final List<dynamic> employeesJson = response.data!['message'];
-    final employees = employeesJson
-        .map((json) => EmployeeModel.fromJson(json))
-        .toList();
-    return ApiResponse.success(employees);
+    if (response.success && response.data != null) {
+      final List<dynamic> employeesJson = response.data!['message'] ?? [];
+      final employees = employeesJson
+          .map((json) => EmployeeModel.fromJson(json))
+          .toList();
+      return ApiResponse.success(employees);
+    }
+    return ApiResponse.error(
+      response.message ?? 'Failed to fetch employee list',
+    );
   }
 
   /// 📄 Get Employee Info API
@@ -74,7 +79,6 @@ class AuthService {
     final response = await _apiHelper.get<Map<String, dynamic>>(endpoint);
 
     if (response.success && response.data != null) {
-      // ✅ Corrected: Extract from 'message' key as per API response structure
       final Map<String, dynamic> message = response.data!['message'];
       final employee = EmployeeModel.fromJson(message);
       return ApiResponse.success(employee);
@@ -94,7 +98,7 @@ class AuthService {
     required String alterMobile,
     required String gender,
     required String address,
-    File? profileImage,
+    String? profileImage,
   }) async {
     _logger.logAuth('Updating profile for employeeId: $employeeId');
     final endpoint = 'employee/profile/$employeeId';
@@ -105,6 +109,7 @@ class AuthService {
       "alterMobile": int.tryParse(alterMobile) ?? alterMobile,
       "gender": gender,
       "address": address,
+      if (profileImage != null) "profileImage": profileImage,
     };
     return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
@@ -155,8 +160,28 @@ class AuthService {
     required String employeeId,
   }) async {
     _logger.logAuth('Fetching leave history for employeeId: $employeeId');
-    final endpoint = 'leave/history/$employeeId';
+    final endpoint = 'leave/history/$employeeId?limit=100';
     return await _apiHelper.get<Map<String, dynamic>>(endpoint);
+  }
+
+  /// 📜 Get All Leave Requests API (Admin)
+  Future<ApiResponse<Map<String, dynamic>>> getAllLeaveRequests() async {
+    _logger.logAuth('Fetching all leave requests for admin');
+    return await _apiHelper.get<Map<String, dynamic>>('leave/getAll');
+  }
+
+  /// ✅ Update Leave Status API (Admin Approval/Rejection)
+  Future<ApiResponse<Map<String, dynamic>>> updateLeaveStatus({
+    required String leaveId,
+    required String status,
+    required String updatedBy,
+  }) async {
+    _logger.logAuth(
+      'Updating leave status for $leaveId to $status by $updatedBy',
+    );
+    final endpoint = 'leave/update/$leaveId';
+    final body = {"status": status, "updatedBy": updatedBy};
+    return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
 
   /// 📊 Get Available Leave API
