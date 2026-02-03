@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
+import 'package:hrtz_hrms/core/services/file_upload_service.dart';
+import 'dart:io';
+
 
 class CreateComplaintBottomSheet extends StatefulWidget {
   const CreateComplaintBottomSheet({super.key});
@@ -45,21 +48,31 @@ class _CreateComplaintBottomSheetState
   }
 
   /// 🔹 File picker
-  Future<void> _pickFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-    );
+  final FileUploadService _uploader = FileUploadService();
 
-    if (result != null) {
+Future<void> _pickFile() async {
+  final result = await FilePicker.platform.pickFiles(
+    allowMultiple: true,
+  );
+
+  if (result == null) return;
+
+  for (final file in result.files) {
+    if (file.path == null) continue;
+
+    final s3Url = await _uploader.uploadFile(File(file.path!));
+
+    if (s3Url != null) {
       setState(() {
-        attachments = result.paths.whereType<String>().toList();
+        attachments.add(s3Url); // ✅ ONLY S3 URL
       });
     }
   }
-
+}
   @override
   Widget build(BuildContext context) {
     return Material(
+      color: Colors.white,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: SafeArea(
         child: Padding(
