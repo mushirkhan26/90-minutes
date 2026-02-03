@@ -62,16 +62,17 @@ class LeaveProvider extends ChangeNotifier {
         }
         
         await _localStorage.saveLeaveHistory(_leaveHistory!);
+        notifyListeners(); // Ensure UI updates with fresh API data
       } else if (response.message != null && response.message!.contains("No leave records found")) {
         _leaveHistory = {
           'message': {'data': []}
         };
         await _localStorage.saveLeaveHistory(_leaveHistory!);
+        notifyListeners();
       }
     } catch (e) {
       _logger.error('LEAVE_PROVIDER', 'Error fetching leave history', error: e);
     }
-    notifyListeners();
   }
 
   Future<void> fetchAvailableLeave({required String employeeId}) async {
@@ -79,17 +80,18 @@ class LeaveProvider extends ChangeNotifier {
       final cachedData = await _localStorage.getAvailableLeave();
       if (cachedData != null && _availableLeave == null) {
         _availableLeave = cachedData;
+        notifyListeners();
       }
 
       final response = await _authService.getAvailableLeave(employeeId: employeeId);
       if (response.success && response.data != null) {
         _availableLeave = response.data!;
         await _localStorage.saveAvailableLeave(_availableLeave!);
+        notifyListeners();
       }
     } catch (e) {
       _logger.error('LEAVE_PROVIDER', 'Error fetching available leave', error: e);
     }
-    notifyListeners();
   }
 
   /// Admin: Fetch all leave requests
@@ -111,7 +113,7 @@ class LeaveProvider extends ChangeNotifier {
           _allLeaveRequests = [];
         }
         
-        // 🚀 Sort admin requests
+        // 🚀 Sort admin requests by createdOn descending
         _allLeaveRequests.sort((a, b) {
           final dateA = DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
           final dateB = DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
@@ -171,9 +173,31 @@ class LeaveProvider extends ChangeNotifier {
     );
 
     if (response.success) {
-      // 🚀 Fix: Small delay to let backend process the write, then fresh fetch
-      await Future.delayed(const Duration(milliseconds: 500));
+      // 🚀 Ensure immediate refresh of locally sorted data
+      final Map<String, dynamic> newLeave = {
+        'employeeId': employeeId,
+        'name': name,
+        'startDate': startDate,
+        'endDate': endDate,
+        'reason': reason,
+        'duration': duration,
+        'type': type,
+        'leaveStatus': 'Waiting',
+        'createdOn': DateTime.now().toIso8601String(),
+        'leaveId': response.data?['leaveId'] ?? 'temp_${DateTime.now().millisecondsSinceEpoch}',
+      };
+
+      if (_leaveHistory != null && _leaveHistory!['message'] != null && _leaveHistory!['message']['data'] != null) {
+        final List<dynamic> data = List.from(_leaveHistory!['message']['data']);
+        data.insert(0, newLeave); // Add to the top immediately
+        _leaveHistory!['message']['data'] = data;
+        notifyListeners();
+      }
+
+      // Then trigger background refresh to sync with server
+      await Future.delayed(const Duration(seconds: 1));
       await fetchLeaveInfo(employeeId: employeeId, clearCache: true);
+      
       return (true, 'Leave request added successfully');
     } else {
       return (false, response.message ?? 'Failed to add leave request');

@@ -21,6 +21,7 @@ class Task {
   final String? department;
   final String? sprintId;
   final String? projectId;
+  final List<dynamic> activityLog; // Added for history
 
   Task({
     required this.id,
@@ -42,6 +43,7 @@ class Task {
     this.department,
     this.sprintId,
     this.projectId,
+    this.activityLog = const [],
   });
 
   factory Task.fromMap(Map<String, dynamic> map) {
@@ -72,6 +74,7 @@ class Task {
       department: map['department'],
       sprintId: map['sprintId'],
       projectId: map['projectId'],
+      activityLog: map['activityLog'] ?? [],
     );
   }
 
@@ -84,7 +87,6 @@ class Task {
       'assignedBy': assignedBy,
       'type': type,
       'assignedTo': assignees, 
-      // API only supports ONE reviewer string as per schema errors
       'reviewer': reviewers.isNotEmpty ? reviewers.first : "", 
       'category': category?.toLowerCase() ?? "development",
       'department': department ?? "Development", 

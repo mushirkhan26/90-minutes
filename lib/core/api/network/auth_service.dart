@@ -156,14 +156,13 @@ class AuthService {
     required String employeeId,
   }) async {
     _logger.logAuth('Fetching leave history for employeeId: $employeeId');
-    final endpoint = 'leave/history/$employeeId';
+    final endpoint = 'leave/history/$employeeId?limit=100';
     return await _apiHelper.get<Map<String, dynamic>>(endpoint);
   }
 
   /// 📜 Get All Leave Requests API (Admin)
   Future<ApiResponse<Map<String, dynamic>>> getAllLeaveRequests() async {
     _logger.logAuth('Fetching all leave requests for admin');
-    // Changed endpoint to
     return await _apiHelper.get<Map<String, dynamic>>('leave/getAll');
   }
 

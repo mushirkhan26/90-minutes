@@ -29,6 +29,7 @@ class AppRoutes {
   static const adminLeaveApproval = '/admin-leave-approval';
   static const String holidayCalendar = '/holiday-calendar';
   static const String tasksRoute = '/tasks';
+  static const String generalHrTasks = '/general-hr-tasks';
   static const String socialHub = '/social-hub';
   static const String resignation = '/resignation';
   static const String complaint = '/complaint';

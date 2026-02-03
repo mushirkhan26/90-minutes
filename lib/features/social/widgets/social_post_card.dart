@@ -59,25 +59,32 @@ class _SocialPostCardState extends State<SocialPostCard> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (widget.post.type == 'birthday')
-                        RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.bold),
-                            children: [
-                              const TextSpan(text: '🎉 ', style: TextStyle(fontSize: 18)),
-                              TextSpan(
-                                text: '${widget.post.title}: ',
-                                style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.normal),
-                              ),
-                              TextSpan(
-                                text: widget.post.employeeName ?? '',
-                                style: const TextStyle(
-                                  color: Color(0xFF26A69A),
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w900,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF26A69A).withValues(alpha: 0.05),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: RichText(
+                            text: TextSpan(
+                              style: const TextStyle(fontSize: 16, color: Colors.black, fontWeight: FontWeight.bold),
+                              children: [
+                                const TextSpan(text: '🎉 ', style: TextStyle(fontSize: 18)),
+                                TextSpan(
+                                  text: '${widget.post.title}: ',
+                                  style: TextStyle(color: Colors.grey.shade700, fontWeight: FontWeight.normal, fontSize: 14),
                                 ),
-                              ),
-                              const TextSpan(text: ' 🎂', style: TextStyle(fontSize: 18)),
-                            ],
+                                TextSpan(
+                                  text: widget.post.employeeName ?? '',
+                                  style: const TextStyle(
+                                    color: Color(0xFF26A69A),
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                const TextSpan(text: ' 🎂', style: TextStyle(fontSize: 18)),
+                              ],
+                            ),
                           ),
                         )
                       else
@@ -85,6 +92,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
                           widget.post.title,
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
+                      const SizedBox(height: 2),
                       Text(
                         DateFormat('MMM dd, yyyy • hh:mm a').format(widget.post.createdAt),
                         style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
