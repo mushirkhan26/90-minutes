@@ -20,6 +20,10 @@ class ScheduleMeet extends StatefulWidget {
 }
 
 class _ScheduleMeetState extends State<ScheduleMeet> {
+  bool _isSunday(DateTime date) {
+    return date.weekday == DateTime.sunday;
+  }
+
   bool _isValidUrl(String url) {
     final uri = Uri.tryParse(url);
     return uri != null &&
@@ -56,7 +60,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     super.initState();
     _loadEmployees();
     context.read<MeetProvider>().fetchUpcomingMeetings(forceRefresh: true);
-    context.read<MeetProvider>().fetchUpcomingMeetings(forceRefresh: true);
   }
 
   Future<void> _loadEmployees() async {
@@ -72,11 +75,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   void _filterEmployees(String query) {
     setState(() {
       _filteredEmployees = _employees
-          .where(
-            (e) =>
-                e.name.toLowerCase().contains(query.toLowerCase()) ||
-                e.employeeID.toLowerCase().contains(query.toLowerCase()),
-          )
           .where(
             (e) =>
                 e.name.toLowerCase().contains(query.toLowerCase()) ||
@@ -104,6 +102,14 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
+      if (_isSunday(picked)) {
+        AlertHelper.snackBarWarning(
+          context,
+          "Meetings cannot be scheduled on Sundays",
+        );
+        return;
+      }
+
       setState(() {
         _selectedDate = picked;
         _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
@@ -119,6 +125,13 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
+      if (_isSunday(picked)) {
+        AlertHelper.snackBarWarning(
+          context,
+          "Meetings cannot start on Sundays",
+        );
+        return;
+      }
       setState(() {
         _startDate = picked;
         _startDateController.text = DateFormat('dd-MM-yyyy').format(picked);
@@ -142,6 +155,10 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
+      if (_isSunday(picked)) {
+        AlertHelper.snackBarWarning(context, "Meetings cannot end on Sundays");
+        return;
+      }
       setState(() {
         _endDate = picked;
         _endDateController.text = DateFormat('dd-MM-yyyy').format(picked);
@@ -214,7 +231,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     if (_selectedTime == null) return dates;
 
     if (_recurrence == 'One-time meeting') {
-      if (_selectedDate != null) {
+      if (_selectedDate != null && !_isSunday(_selectedDate!)) {
         dates.add(
           DateTime(
             _selectedDate!.year,
@@ -230,17 +247,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
         DateTime current = _startDate!;
         while (current.isBefore(_endDate!) ||
             current.isAtSameMomentAs(_endDate!)) {
-          dates.add(
-            DateTime(
-              current.year,
-              current.month,
-              current.day,
-              _selectedTime!.hour,
-              _selectedTime!.minute,
-            ),
-          );
-          while (current.isBefore(_endDate!) ||
-              current.isAtSameMomentAs(_endDate!)) {
+          if (!_isSunday(current)) {
             dates.add(
               DateTime(
                 current.year,
@@ -278,10 +285,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
           context,
           "Please select both Start and End Date",
         );
-        AlertHelper.snackBarWarning(
-          context,
-          "Please select both Start and End Date",
-        );
         return;
       }
     }
@@ -295,10 +298,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
         context,
         "Please add at least one participant",
       );
-      AlertHelper.snackBarWarning(
-        context,
-        "Please add at least one participant",
-      );
       return;
     }
 
@@ -306,17 +305,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     if (scheduledDates.isEmpty) {
       AlertHelper.snackBarWarning(context, "No valid dates to schedule");
       return;
-    }
-
-    /// 🔥 AM/PM COMPLETED TIME BLOCK
-    for (final date in scheduledDates) {
-      if (_isPastDateTime(date)) {
-        AlertHelper.snackBarWarning(
-          context,
-          "Selected time is already completed. Please choose a future time.",
-        );
-        return;
-      }
     }
 
     /// 🔥 AM/PM COMPLETED TIME BLOCK
