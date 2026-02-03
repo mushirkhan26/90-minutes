@@ -13,8 +13,11 @@ class ComplaintCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F7F6),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300,
+        width: 1
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,22 +69,38 @@ class ComplaintCard extends StatelessWidget {
 
   /// 🔹 STATUS CHIP
   Widget _statusChip(String status) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade100,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: const TextStyle(
-          color: Colors.orange,
-          fontSize: 12,
-        ),
-      ),
-    );
+  final s = status.toLowerCase().trim();
+
+  Color bgColor;
+  Color textColor;
+
+  if (s == 'resolved') {
+    bgColor = const Color(0xFFDFF9E6); // 🟢 light green
+    textColor = const Color(0xFF22C55E); // 🟢 green text
+  } else if (s == 'pending') {
+    bgColor = const Color(0xFFFFF4D6); // 🟡 light orange
+    textColor = const Color(0xFFF59E0B); // 🟠 orange text
+  } else {
+    bgColor = Colors.grey.shade200;
+    textColor = Colors.grey;
   }
 
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: bgColor,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      status,
+      style: TextStyle(
+        color: textColor,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
+}
   /// 🔹 BOTTOM SHEET
   void _showComplaintDetails(BuildContext context) {
     showModalBottomSheet(

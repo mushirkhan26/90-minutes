@@ -311,6 +311,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                             context: context,
                             initialTime: TimeOfDay.now(),
                           );
+                          if(!mounted) return;
                           if (time != null) {
                             setState(() {
                               _eventDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);

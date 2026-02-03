@@ -193,14 +193,24 @@ class HomeScreen extends StatelessWidget {
                         children: [
                         ListTile(
                         leading: const Icon(
-                        Icons.person_remove_alt_1,
-                        color: Color(0xFF2F9E9E),
-                       ),
+                          Icons.person_remove_alt_1,
+                          color: Color(0xFF2F9E9E),
+                        ),
                         title: const Text('Resignation'),
-                       onTap: () {
-                       Navigator.pop(context);
-                       context.push(AppRoutes.resignation);
-                     },
+                          onTap: () {
+                          Navigator.pop(context);
+
+                          final role =
+                            context.read<AuthProvider>().userData?['role']?.toString().toLowerCase();
+
+                            context.push(
+                            AppRoutes.resignation,
+                            extra: {
+                             'openManagement': role == 'manager',
+                            },
+                          );
+                        },
+
                     ),
                     ListTile(
                       leading: const Icon(

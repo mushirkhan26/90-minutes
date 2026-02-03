@@ -39,7 +39,7 @@ class _CreateComplaintScreenState
     final provider = context.watch<ComplaintProvider>();
 
     return Scaffold(
-      backgroundColor: Colors.black.withOpacity(0.4),
+      backgroundColor: Colors.black.withValues(alpha:  0.4),
       body: Center(
         child: Container(
           margin: const EdgeInsets.all(12),
@@ -191,8 +191,11 @@ class _CreateComplaintScreenState
                         onPressed: provider.isLoading
                             ? null
                             : () async {
-                                if (!_formKey.currentState!.validate())
+                                if (!_formKey.currentState!.validate()) {
                                   return;
+                                }
+                            
+                                
 
                                 final ok =
                                     await provider.addComplaint(
@@ -203,6 +206,7 @@ class _CreateComplaintScreenState
                                       addInfoCtrl.text.trim(),
                                   attachment: [],
                                 );
+                                if(!mounted) return;
 
                                 if (ok && mounted) {
                                   Navigator.pop(context);
@@ -267,7 +271,7 @@ class _CreateComplaintScreenState
         children: [
           _label(label),
           DropdownButtonFormField<String>(
-            value: value,
+            initialValue: value,
             items: items
                 .map((e) =>
                     DropdownMenuItem(value: e, child: Text(e)))

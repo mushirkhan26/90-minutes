@@ -8,27 +8,19 @@ class ComplaintProvider extends ChangeNotifier {
   final ComplaintService _complaintService = ComplaintService();
   final LocalStorageService _localStorage = LocalStorageService();
 
-  // ---------------------------------------------------------------------------
-  // 🔹 LOGGED-IN USER DATA
-  // ---------------------------------------------------------------------------
+ 
   String loggedInName = "";
   String loggedInEmployeeId = "";
 
-  // ---------------------------------------------------------------------------
-  // 🔹 DROPDOWN DATA (STATIC – AS PER REQUIREMENT)
-  // ---------------------------------------------------------------------------
+  
   final List<String> categories = ["IT", "HR", "Facilities"];
   final List<String> mentionPeople = ["Team Lead", "Manager", "CEO"];
 
-  // ---------------------------------------------------------------------------
-  // 🔹 COMPLAINT STATE
-  // ---------------------------------------------------------------------------
+  
   List<ComplaintModel> complaints = [];
   bool isLoading = false;
 
-  // ---------------------------------------------------------------------------
-  // 🔹 LOAD LOGIN USER (FROM LocalStorageService)
-  // ---------------------------------------------------------------------------
+ 
   Future<void> loadLoginUser() async {
     loggedInName = await _localStorage.getEmployeeName() ?? "";
     loggedInEmployeeId = await _localStorage.getEmployeeId() ?? "";
@@ -40,9 +32,7 @@ class ComplaintProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 FETCH COMPLAINT HISTORY
-  // ---------------------------------------------------------------------------
+ 
   Future<void> fetchComplaints() async {
   isLoading = true;
   notifyListeners();
@@ -83,9 +73,7 @@ class ComplaintProvider extends ChangeNotifier {
   notifyListeners();
 }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 ADD COMPLAINT
-  // ---------------------------------------------------------------------------
+  
   Future<bool> addComplaint({
     required String category,
     required String title,
@@ -135,9 +123,7 @@ class ComplaintProvider extends ChangeNotifier {
     return false;
   }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 CLEAR DATA (ON LOGOUT)
-  // ---------------------------------------------------------------------------
+ 
   void clearComplaints() {
     complaints = [];
     loggedInName = "";

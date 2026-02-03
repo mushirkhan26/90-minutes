@@ -13,10 +13,12 @@ class MyComplaintsScreen extends StatefulWidget {
 }
 
 class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchText = "";
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ComplaintProvider>().fetchComplaints();
     });
   }
@@ -46,8 +48,8 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              icon: const Icon(Icons.add, size: 18),
-              label: const Text("Create"),
+              icon: const Icon(Icons.add, size: 18, color: Colors.white),
+              label: const Text("Create", style: TextStyle(color: Colors.white)),
               onPressed: () async {
                 await Navigator.push(
                   context,
@@ -70,17 +72,22 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+              setState(() {
+              _searchText = value.toLowerCase().trim();
+              });
+              },
               decoration: InputDecoration(
-                hintText: "Search by ID, Title, or Description",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding:
-                    const EdgeInsets.symmetric(vertical: 14),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
+               hintText: "Search by ID, Title, or Description",
+             prefixIcon: const Icon(Icons.search),
+               filled: true,
+              fillColor: Colors.white,
+    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(12),
+    ),
+  ),
             ),
           ),
 
@@ -114,13 +121,20 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
                     ],
                   );
                 }
+                final filteredComplaints = provider.complaints.where((c) {
+                if (_searchText.isEmpty) return true;
+
+                return c.title.toLowerCase().contains(_searchText) ||
+               c.description.toLowerCase().contains(_searchText) ||
+               c.id.toLowerCase().contains(_searchText);
+                }).toList();
 
                 return ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  itemCount: provider.complaints.length,
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                  itemCount: filteredComplaints.length,
                   itemBuilder: (context, index) {
                     return ComplaintCard(
-                      complaint: provider.complaints[index],
+                      complaint: filteredComplaints[index],
                     );
                   },
                 );
