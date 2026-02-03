@@ -192,15 +192,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
         .map((p) => File(p!))
         .toList();
 
-    // ✅ HARD LIMIT CHECK (most important)
-    if (_attachments.length + pickedFiles.length > 5) {
-      AlertHelper.snackBarWarning(
-        context,
-        "You can upload maximum 5 files only",
-      );
-      return;
-    }
-
     setState(() {
       _attachments.addAll(pickedFiles);
     });
@@ -224,15 +215,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
 
     if (_recurrence == 'One-time meeting') {
       if (_selectedDate != null) {
-        dates.add(
-          DateTime(
-            _selectedDate!.year,
-            _selectedDate!.month,
-            _selectedDate!.day,
-            _selectedTime!.hour,
-            _selectedTime!.minute,
-          ),
-        );
         dates.add(
           DateTime(
             _selectedDate!.year,
@@ -418,14 +400,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
               "Schedule and organize your meeting",
               style: TextStyle(color: Colors.white70, fontSize: 10),
             ),
-            Text(
-              "Create New Meeting",
-              style: TextStyle(color: Colors.white, fontSize: 16),
-            ),
-            Text(
-              "Schedule and organize your meeting",
-              style: TextStyle(color: Colors.white70, fontSize: 10),
-            ),
           ],
         ),
         leading: IconButton(
@@ -433,10 +407,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
           IconButton(
             icon: const Icon(Icons.close, color: Colors.white),
             onPressed: () => Navigator.pop(context),
@@ -461,23 +431,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
               //   hintText: "Enter meeting title",
               // ),
               _buildLabel("Meeting Title *", Icons.description_outlined),
-              CustomTextField(
-                controller: _titleController,
-                hintText: "Enter meeting title",
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Meeting title is required";
-                  }
-                  if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value.trim())) {
-                    return "Only letters are allowed";
-                  }
-                  return null;
-                },
-              ),
-
               CustomTextField(
                 controller: _titleController,
                 hintText: "Enter meeting title",
@@ -583,19 +536,8 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                             size: 18,
                             color: Colors.blue.shade700,
                           ),
-                          Icon(
-                            Icons.calendar_month,
-                            size: 18,
-                            color: Colors.blue.shade700,
-                          ),
+
                           const SizedBox(width: 8),
-                          Text(
-                            "Recurrence Period",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
-                            ),
-                          ),
                           Text(
                             "Recurrence Period",
                             style: TextStyle(
@@ -612,13 +554,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "Start Date *",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
                                 const Text(
                                   "Start Date *",
                                   style: TextStyle(
@@ -645,13 +580,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(
-                                  "End Date *",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
                                 const Text(
                                   "End Date *",
                                   style: TextStyle(
@@ -697,11 +625,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                 hintText: "30",
                 keyboardType: TextInputType.number,
               ),
-              CustomTextField(
-                controller: _durationController,
-                hintText: "30",
-                keyboardType: TextInputType.number,
-              ),
               const SizedBox(height: 15),
 
               if (_calculateRecurrenceDates().length > 1) ...[
@@ -709,10 +632,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                   "Scheduled Instances Preview:",
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
-                const Text(
-                  "Scheduled Instances Preview:",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
+
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 60,
@@ -737,21 +657,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              DateFormat('MMM dd').format(date),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            Text(
-                              DateFormat('EEE').format(date),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
-                              ),
-                            ),
                             Text(
                               DateFormat('MMM dd').format(date),
                               style: const TextStyle(
@@ -797,15 +702,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                             fontSize: 13,
                           ),
                         ),
-                        Text(
-                          _selectedParticipants.isEmpty
-                              ? "No participants selected"
-                              : "${_selectedParticipants.length} selected",
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
+
                         ElevatedButton(
                           onPressed: () => setState(
                             () => _showParticipantList = !_showParticipantList,
@@ -879,19 +776,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                   return null;
                 },
               ),
-              CustomTextField(
-                controller: _linkController,
-                hintText: "https://meet.google.com/...",
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Meeting link is required";
-                  }
-                  if (!_isValidUrl(value.trim())) {
-                    return "Please enter a valid meeting URL";
-                  }
-                  return null;
-                },
-              ),
               const SizedBox(height: 15),
 
               _buildLabel("Agenda / Summary *", Icons.notes),
@@ -900,18 +784,9 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                 hintText: "Enter meeting agenda or summary...",
                 maxLines: 3,
               ),
-              CustomTextField(
-                controller: _agendaController,
-                hintText: "Enter meeting agenda or summary...",
-                maxLines: 3,
-              ),
               const SizedBox(height: 15),
 
               _buildLabel("Attachments", Icons.upload_file),
-              const Text(
-                "Allowed: PDF, DOC, PPT, XLS, TXT, Images (Max 8MB, 5 files)",
-                style: TextStyle(fontSize: 10, color: Colors.grey),
-              ),
               const Text(
                 "Allowed: PDF, DOC, PPT, XLS, TXT, Images (Max 8MB, 5 files)",
                 style: TextStyle(fontSize: 10, color: Colors.grey),
@@ -933,34 +808,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.cloud_upload_outlined,
-                        color: Colors.grey,
-                      ),
-                      const Text(
-                        "Click to upload files",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Text(
-                        "Files will be uploaded immediately",
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                      if (_attachments.isNotEmpty)
-                        Text(
-                          "${_attachments.length} files selected",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.primary,
-                          ),
-                        ),
-                      if (_attachments.length >= 5)
-                        const Text(
-                          "Maximum file limit reached",
-                          style: TextStyle(fontSize: 10, color: Colors.red),
-                        ),
                       const Icon(
                         Icons.cloud_upload_outlined,
                         color: Colors.grey,
@@ -1018,10 +865,6 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
         children: [
           Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
           Text(
             text,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),

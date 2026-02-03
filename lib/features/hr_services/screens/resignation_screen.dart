@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/features/hr_services/widgets/resignation_my_details.card.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/resignation_provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/resignation_details_card.dart';
-import 'package:hrtz_hrms/features/hr_services/widgets/resignation_my_details.card.dart ';
 
 class ResignationScreen extends StatefulWidget {
   const ResignationScreen({super.key});
