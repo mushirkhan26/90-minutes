@@ -354,6 +354,7 @@ class AuthProvider extends ChangeNotifier {
     required String alterMobile,
     required String gender,
     required String address,
+    String? profileImage,
   }) async {
     try {
       _state = AuthState.loading;
@@ -367,6 +368,7 @@ class AuthProvider extends ChangeNotifier {
         alterMobile: alterMobile,
         gender: gender,
         address: address,
+        profileImage: profileImage,
       );
 
       if (response.success) {
@@ -379,7 +381,7 @@ class AuthProvider extends ChangeNotifier {
           alterMobile: alterMobile,
           gender: gender,
           address: address,
-          profileImage: _profileData?.profileImage,
+          profileImage: profileImage ?? _profileData?.profileImage,
         );
 
         // Save updated profile data to secure storage

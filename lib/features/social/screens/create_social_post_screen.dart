@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/social_post_model.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
@@ -19,7 +20,10 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   String _selectedType = 'Post';
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
-  final TextEditingController _employeeNameController = TextEditingController();
+  
+  // Birthday Selection
+  EmployeeModel? _selectedEmployee;
+  final TextEditingController _employeeSearchController = TextEditingController();
   
   // Poll Controllers
   final TextEditingController _questionController = TextEditingController();
@@ -40,10 +44,18 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   final List<String> _postTypes = ['Birthday', 'Post', 'Poll', 'Event', 'Well Being'];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<AuthProvider>().fetchAndCacheEmployeeList();
+    });
+  }
+
+  @override
   void dispose() {
     _titleController.dispose();
     _messageController.dispose();
-    _employeeNameController.dispose();
+    _employeeSearchController.dispose();
     _questionController.dispose();
     for (var controller in _optionControllers) {
       controller.dispose();
@@ -68,6 +80,90 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         }
       }
     }
+  }
+
+  void _showEmployeeSelection() {
+    final authProvider = context.read<AuthProvider>();
+    final employees = authProvider.employeeList ?? [];
+    List<EmployeeModel> filteredEmployees = List.from(employees);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.5,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) {
+                return Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Row(
+                        children: [
+                          const Text('Select Employee', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const Spacer(),
+                          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: TextField(
+                        decoration: InputDecoration(
+                          hintText: 'Search by name or ID',
+                          prefixIcon: const Icon(Icons.search),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onChanged: (query) {
+                          setModalState(() {
+                            filteredEmployees = employees.where((e) =>
+                              e.name.toLowerCase().contains(query.toLowerCase()) ||
+                              e.employeeID.toLowerCase().contains(query.toLowerCase())
+                            ).toList();
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: filteredEmployees.isEmpty
+                          ? const Center(child: Text('No employees found'))
+                          : ListView.builder(
+                              controller: scrollController,
+                              itemCount: filteredEmployees.length,
+                              itemBuilder: (context, index) {
+                                final employee = filteredEmployees[index];
+                                return ListTile(
+                                  leading: CircleAvatar(
+                                    backgroundImage: employee.profileImage != null ? NetworkImage(employee.profileImage!) : null,
+                                    child: employee.profileImage == null ? const Icon(Icons.person) : null,
+                                  ),
+                                  title: Text(employee.name),
+                                  subtitle: Text(employee.employeeID),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedEmployee = employee;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -102,7 +198,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                 const Text('Post Type', style: TextStyle(fontWeight: FontWeight.w500)),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  initialValue: _selectedType,
+                  value: _selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
@@ -238,16 +334,42 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
 
                 if (_selectedType == 'Birthday') ...[
                   const SizedBox(height: 16),
-                  const Text('Employee Name', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text('Select Employee', style: TextStyle(fontWeight: FontWeight.w500)),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _employeeNameController,
-                    decoration: InputDecoration(
-                      hintText: 'Enter employee name',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  InkWell(
+                    onTap: _showEmployeeSelection,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.person_search, color: Colors.grey.shade600, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _selectedEmployee == null ? 'Search and select employee' : _selectedEmployee!.name,
+                              style: TextStyle(
+                                color: _selectedEmployee == null ? Colors.grey.shade600 : Colors.black,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down, color: Colors.grey),
+                        ],
+                      ),
                     ),
-                    validator: (value) => value!.isEmpty ? 'Employee name is required' : null,
                   ),
+                  if (_selectedEmployee != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text(
+                        'ID: ${_selectedEmployee!.employeeID}',
+                        style: const TextStyle(fontSize: 12, color: Color(0xFF26A69A), fontWeight: FontWeight.bold),
+                      ),
+                    ),
                 ],
                 const SizedBox(height: 16),
                 const Text('Message', style: TextStyle(fontWeight: FontWeight.w500)),
@@ -337,6 +459,11 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         return;
       }
 
+      if (_selectedType == 'Birthday' && _selectedEmployee == null) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an employee')));
+        return;
+      }
+
       setState(() => _isPosting = true);
       
       final authProvider = context.read<AuthProvider>();
@@ -348,7 +475,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         title: _titleController.text,
         userName: authProvider.userData?['username'],
         userId: authProvider.userData?['employeeId'],
-        employeeName: _selectedType == 'Birthday' ? _employeeNameController.text : null,
+        employeeName: _selectedType == 'Birthday' ? _selectedEmployee!.name : null,
         message: _messageController.text,
         imageUrl: _uploadedImageUrl,
         createdBy: authProvider.userData?['employeeId'] ?? 'Unknown',

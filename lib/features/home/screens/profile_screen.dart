@@ -1,6 +1,11 @@
 // ignore_for_file: use_build_context_s, use_build_context_synchronously
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
@@ -22,6 +27,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _addressController;
   bool _isLoading = false;
   bool _isEditing = false;
+  String? _profileImageUrl;
+
+  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
+  final FileUploadService _fileUploadService = FileUploadService();
 
   @override
   void initState() {
@@ -69,6 +78,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _alterMobileController.text = profileData?.alterMobile ?? '';
       _genderController.text = profileData?.gender ?? '';
       _addressController.text = profileData?.address ?? '';
+      _profileImageUrl = profileData?.profileImage;
     });
   }
 
@@ -76,6 +86,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() {
       _isEditing = !_isEditing;
     });
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 70,
+    );
+
+    if (image == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final String? uploadedUrl = await _fileUploadService.uploadFile(File(image.path));
+      if (uploadedUrl != null) {
+        setState(() {
+          _profileImageUrl = uploadedUrl;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Photo uploaded successfully! Save to confirm.'), backgroundColor: Colors.green),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to upload photo'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error uploading photo'), backgroundColor: Colors.red),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -98,6 +146,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         alterMobile: _alterMobileController.text,
         gender: _genderController.text,
         address: _addressController.text,
+        profileImage: _profileImageUrl,
       );
 
       if (success) {
@@ -136,15 +185,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-    final profileData = authProvider.profileData;
-
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
           if (!_isEditing)
             IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),
@@ -165,19 +211,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   children: [
                     // Profile Image
                     Center(
-                      child: CircleAvatar(
-                        radius: 50,
-                        backgroundColor: Colors.grey[300],
-                        backgroundImage: profileData?.profileImage != null
-                            ? NetworkImage(profileData!.profileImage!)
-                            : null,
-                        child: profileData?.profileImage == null
-                            ? const Icon(
-                                Icons.person,
-                                size: 50,
-                                color: Colors.white,
-                              )
-                            : null,
+                      child: Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 50,
+                            backgroundColor: Colors.grey[300],
+                            backgroundImage: _profileImageUrl != null
+                                ? NetworkImage(_profileImageUrl!)
+                                : null,
+                            child: _profileImageUrl == null
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Colors.white,
+                                  )
+                                : null,
+                          ),
+                          if (_isEditing)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: InkWell(
+                                onTap: _pickAndUploadImage,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF26A69A),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    size: 20,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -186,7 +256,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _nameController,
                       labelText: 'Full Name',
-                      prefixIcon: Icon(Icons.person),
+                      prefixIcon: const Icon(Icons.person),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+                      ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your name';
@@ -201,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _emailController,
                       labelText: 'Email',
-                      prefixIcon: Icon(Icons.email),
+                      prefixIcon: const Icon(Icons.email),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email';
@@ -222,7 +295,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       controller: _mobileController,
                       labelText: 'Mobile Number',
 
-                      prefixIcon: Icon(Icons.phone),
+                      prefixIcon: const Icon(Icons.phone),
                       maxLength: 10,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -242,7 +315,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     CustomTextField(
                       controller: _alterMobileController,
                       labelText: 'Alternate Mobile Number',
-                      prefixIcon: Icon(Icons.phone_android),
+                      prefixIcon: const Icon(Icons.phone_android),
                       maxLength: 10,
                       validator: (value) {
                         if (value != null && value.isNotEmpty && value.length != 10) {
@@ -256,19 +329,60 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
 
                     // Gender Field
-                    CustomTextField(
-                      controller: _genderController,
-                      labelText: 'Gender',
-                      prefixIcon: Icon(Icons.transgender),
-                      readOnly: !_isEditing,
-                    ),
+                    _isEditing
+                        ? DropdownButtonFormField<String>(
+                            value: _genderOptions.contains(_genderController.text)
+                                ? _genderController.text
+                                : null,
+                            decoration: InputDecoration(
+                              labelText: 'Gender',
+                              prefixIcon: const Icon(Icons.transgender),
+                              filled: true,
+                              fillColor: Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: Colors.grey.shade400),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: BorderSide(color: Colors.grey.shade400),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                              ),
+                            ),
+                            items: _genderOptions
+                                .map((gender) => DropdownMenuItem(
+                                      value: gender,
+                                      child: Text(gender),
+                                    ))
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _genderController.text = value ?? '';
+                              });
+                            },
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please select your gender';
+                              }
+                              return null;
+                            },
+                          )
+                        : CustomTextField(
+                            controller: _genderController,
+                            labelText: 'Gender',
+                            prefixIcon: const Icon(Icons.transgender),
+                            readOnly: true,
+                          ),
                     const SizedBox(height: 16),
 
                     // Address Field
                     CustomTextField(
                       controller: _addressController,
                       labelText: 'Address',
-                      prefixIcon: Icon(Icons.home),
+                      prefixIcon: const Icon(Icons.home),
                       maxLines: 5,
                       readOnly: !_isEditing,
                     ),
@@ -288,7 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return CustomTextField(
                           controller: employeeIdController,
                           labelText: 'Employee ID',
-                          prefixIcon: Icon(Icons.badge),
+                          prefixIcon: const Icon(Icons.badge),
                           readOnly: true,
                         );
                       },
