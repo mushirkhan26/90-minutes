@@ -49,7 +49,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   List<EmployeeModel> _filteredEmployees = [];
   final List<EmployeeModel> _selectedParticipants = [];
   bool _showParticipantList = false;
-  List<File> _attachments = [];
+  final List<File> _attachments = [];
 
   @override
   void initState() {
@@ -499,7 +499,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
 
               _buildLabel("Recurrence", Icons.bookmark_border),
               DropdownButtonFormField<String>(
-                value: _recurrence,
+                initialValue: _recurrence,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   border: OutlineInputBorder(
@@ -714,7 +714,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 8),
-                Container(
+                SizedBox(
                   height: 60,
                   child: ListView.builder(
                     scrollDirection: Axis.horizontal,

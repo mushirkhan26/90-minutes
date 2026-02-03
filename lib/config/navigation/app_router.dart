@@ -32,7 +32,6 @@ import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/resignation_provider.dart';
 import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 
-
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -57,8 +56,8 @@ String? authGuard(BuildContext context, GoRouterState state) {
 }
 
 final GoRouter appRouter = GoRouter(
-    // navigatorKey: rootNavigatorKey,
-    // initialLocation: AppRoutes.ndaRoute,
+  // navigatorKey: rootNavigatorKey,
+  // initialLocation: AppRoutes.ndaRoute,
   navigatorKey: rootNavigatorKey,
   initialLocation: AppRoutes.splashRoute,
   errorBuilder: (context, state) =>
@@ -69,7 +68,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const SplashScreen()),
       builder: (context, state) => const MeetScreen(),
       // MeetWidget(),
     ),
@@ -85,7 +85,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.forgotPasswordScreen,
       name: 'forgot-password',
-      pageBuilder: (context, state) => buildTransitionPage(const ForgotPasswordScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const ForgotPasswordScreen()),
     ),
 
     GoRoute(
@@ -117,7 +118,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.onboardingRoute,
       name: 'onboarding',
-      pageBuilder: (context, state) => buildTransitionPage(const OnboardingFormScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const OnboardingFormScreen()),
     ),
 
     /// Navigation Shell for main app after login
@@ -130,32 +132,37 @@ final GoRouter appRouter = GoRouter(
           path: AppRoutes.homeRoute,
           name: 'home',
           //  redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const HomeScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const HomeScreen()),
         ),
         GoRoute(
           path: AppRoutes.chatRoute,
           name: 'chat',
           //  redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const ChatListScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const ChatListScreen()),
         ),
         GoRoute(
           path: AppRoutes.meetRoute,
           name: 'meet',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MeetScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MeetScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailRoute,
           name: 'mail',
           //   redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MailScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailDetail,
           name: '/mail_detail',
           //   redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) =>
-              buildTransitionPage(MailDetailsScreen(mail: state.extra as MailModel)),
+          pageBuilder: (context, state) => buildTransitionPage(
+            MailDetailsScreen(mail: state.extra as MailModel),
+          ),
         ),
       ],
 
@@ -170,7 +177,8 @@ final GoRouter appRouter = GoRouter(
         final otherUserId = state.pathParameters['otherUserId']!;
         final extra = state.extra as Map<String, dynamic>?;
         final otherUserName = extra?['otherUserName'] ?? 'User';
-        final currentUserData = extra?['currentUserData'] as Map<String, dynamic>?;
+        final currentUserData =
+            extra?['currentUserData'] as Map<String, dynamic>?;
 
         return ChatScreen(
           currentUserId: currentUserData?['employeeId'] ?? '',
@@ -227,12 +235,14 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.permissionsRoute,
       name: '/permissions',
       //  redirect: (context, state) => authGuard(context, state),
-      pageBuilder: (context, state) => buildTransitionPage(const PermissionsScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const PermissionsScreen()),
     ),
     GoRoute(
       path: AppRoutes.faceverification,
       name: '/face-verification',
-      builder: (context, state) => FaceVerification(isClockIn: true, onVerified: () {}),
+      builder: (context, state) =>
+          FaceVerification(isClockIn: true, onVerified: () {}),
     ),
     GoRoute(
       path: AppRoutes.userProfile,
@@ -260,25 +270,27 @@ final GoRouter appRouter = GoRouter(
       builder: (context, state) => const SocialHubScreen(),
     ),
     GoRoute(
-  path: AppRoutes.resignation,
-  name: '/resignation',
-  builder: (context, state) {
-    return ChangeNotifierProvider(
-      create: (_) => ResignationProvider(),
-      child: const ResignationScreen(),
-    );
-  },
-),
+      path: AppRoutes.resignation,
+      name: '/resignation',
+      builder: (context, state) {
+        return Material(
+          child: ChangeNotifierProvider(
+            create: (_) => ResignationProvider(),
+            child: const ResignationScreen(),
+          ),
+        );
+      },
+    ),
     GoRoute(
-  path: AppRoutes.complaint,
-  name: '/complaint',
-  builder: (context, state) {
-    return ChangeNotifierProvider(
-      create: (_) => ComplaintProvider()..fetchComplaints(),
-      child: MyComplaintsScreen(),
-    );
-  },
-),
+      path: AppRoutes.complaint,
+      name: '/complaint',
+      builder: (context, state) {
+        return ChangeNotifierProvider(
+          create: (_) => ComplaintProvider()..fetchComplaints(),
+          child: MyComplaintsScreen(),
+        );
+      },
+    ),
   ],
 );
 
@@ -312,7 +324,10 @@ extension AuthNavigation on BuildContext {
 
     push(
       '${AppRoutes.chatRoute}/$otherUserId',
-      extra: {'otherUserName': otherUserName, 'currentUserData': currentUserData},
+      extra: {
+        'otherUserName': otherUserName,
+        'currentUserData': currentUserData,
+      },
     );
   }
 
@@ -360,7 +375,7 @@ extension AuthNavigation on BuildContext {
   void holidayCalendar() => push(AppRoutes.holidayCalendar);
 
   void goToTasks() => push(AppRoutes.tasksRoute);
-  
+
   void goToSocialHub() => push(AppRoutes.socialHub);
 }
 

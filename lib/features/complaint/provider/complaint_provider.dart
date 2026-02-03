@@ -8,27 +8,15 @@ class ComplaintProvider extends ChangeNotifier {
   final ComplaintService _complaintService = ComplaintService();
   final LocalStorageService _localStorage = LocalStorageService();
 
-  // ---------------------------------------------------------------------------
-  // 🔹 LOGGED-IN USER DATA
-  // ---------------------------------------------------------------------------
   String loggedInName = "";
   String loggedInEmployeeId = "";
 
-  // ---------------------------------------------------------------------------
-  // 🔹 DROPDOWN DATA (STATIC – AS PER REQUIREMENT)
-  // ---------------------------------------------------------------------------
   final List<String> categories = ["IT", "HR", "Facilities"];
   final List<String> mentionPeople = ["Team Lead", "Manager", "CEO"];
 
-  // ---------------------------------------------------------------------------
-  // 🔹 COMPLAINT STATE
-  // ---------------------------------------------------------------------------
   List<ComplaintModel> complaints = [];
   bool isLoading = false;
 
-  // ---------------------------------------------------------------------------
-  // 🔹 LOAD LOGIN USER (FROM LocalStorageService)
-  // ---------------------------------------------------------------------------
   Future<void> loadLoginUser() async {
     loggedInName = await _localStorage.getEmployeeName() ?? "";
     loggedInEmployeeId = await _localStorage.getEmployeeId() ?? "";
@@ -40,52 +28,45 @@ class ComplaintProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 FETCH COMPLAINT HISTORY
-  // ---------------------------------------------------------------------------
   Future<void> fetchComplaints() async {
-  isLoading = true;
-  notifyListeners();
+    isLoading = true;
+    notifyListeners();
 
-  try {
-    if (loggedInEmployeeId.isEmpty) {
-      await loadLoginUser();
-    }
+    try {
+      if (loggedInEmployeeId.isEmpty) {
+        await loadLoginUser();
+      }
 
-    if (loggedInEmployeeId.isEmpty) {
+      if (loggedInEmployeeId.isEmpty) {
+        complaints = [];
+        isLoading = false;
+        notifyListeners();
+        return;
+      }
+
+      final ApiResponse response = await _complaintService.getComplaints(
+        loggedInEmployeeId,
+      );
+
+      if (response.success && response.data != null) {
+        final body = response.data as Map<String, dynamic>;
+        final List list = body['message'] ?? [];
+
+        complaints = list.map((e) => ComplaintModel.fromJson(e)).toList();
+
+        debugPrint("✅ Complaints loaded: ${complaints.length}");
+      } else {
+        complaints = [];
+      }
+    } catch (e) {
       complaints = [];
-      isLoading = false;
-      notifyListeners();
-      return;
+      debugPrint("❌ Fetch complaints error: $e");
     }
 
-    final ApiResponse response =
-        await _complaintService.getComplaints(loggedInEmployeeId);
-
-    if (response.success && response.data != null) {
-      final body = response.data as Map<String, dynamic>;
-      final List list = body['message'] ?? [];
-
-      complaints = list
-          .map((e) => ComplaintModel.fromJson(e))
-          .toList();
-
-      debugPrint("✅ Complaints loaded: ${complaints.length}");
-    } else {
-      complaints = [];
-    }
-  } catch (e) {
-    complaints = [];
-    debugPrint("❌ Fetch complaints error: $e");
+    isLoading = false;
+    notifyListeners();
   }
 
-  isLoading = false;
-  notifyListeners();
-}
-
-  // ---------------------------------------------------------------------------
-  // 🔹 ADD COMPLAINT
-  // ---------------------------------------------------------------------------
   Future<bool> addComplaint({
     required String category,
     required String title,
@@ -109,8 +90,7 @@ class ComplaintProvider extends ChangeNotifier {
         return false;
       }
 
-      final ApiResponse response =
-          await _complaintService.addComplaint(
+      final ApiResponse response = await _complaintService.addComplaint(
         name: loggedInName,
         employeeId: loggedInEmployeeId,
         category: category,
@@ -135,9 +115,6 @@ class ComplaintProvider extends ChangeNotifier {
     return false;
   }
 
-  // ---------------------------------------------------------------------------
-  // 🔹 CLEAR DATA (ON LOGOUT)
-  // ---------------------------------------------------------------------------
   void clearComplaints() {
     complaints = [];
     loggedInName = "";

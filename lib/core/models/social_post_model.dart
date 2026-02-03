@@ -1,3 +1,5 @@
+//import 'dart:convert';
+
 class SocialPostModel {
   final String id;
   final String type; // birthday, post, poll, event, wellbeing

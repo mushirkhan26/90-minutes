@@ -104,9 +104,13 @@ class MailTile extends StatelessWidget {
               if (!isSelectionMode)
                 PopupMenuButton<String>(
                   onSelected: (val) {
-                    if (val == 'trash') onMoveToTrash();
-                    else if (val == 'restore') onRestore();
-                    else if (val == 'delete') onDelete();
+                    if (val == 'trash') {
+                    onMoveToTrash();
+                   } else if (val == 'restore') {
+                    onRestore();
+                   } else if (val == 'delete') {
+                    onDelete();
+                  }
                   },
                   itemBuilder: (ctx) => isTrash
                       ? [const PopupMenuItem(value: 'restore', child: Text('Restore')), const PopupMenuItem(value: 'delete', child: Text('Delete Permanently'))]

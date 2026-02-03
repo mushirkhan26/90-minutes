@@ -13,8 +13,9 @@ class ComplaintCard extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F7F6),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -39,10 +40,10 @@ class ComplaintCard extends StatelessWidget {
                 const SizedBox(height: 6),
 
                 /// ✅ CREATED DATE (NULL SAFE)
-                  Text(
-                    complaint.createdAtFormatted,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+                Text(
+                  complaint.createdAtFormatted,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
               ],
             ),
           ),
@@ -66,17 +67,34 @@ class ComplaintCard extends StatelessWidget {
 
   /// 🔹 STATUS CHIP
   Widget _statusChip(String status) {
+    final s = status.toLowerCase().trim();
+
+    Color bgColor;
+    Color textColor;
+
+    if (s == 'resolved') {
+      bgColor = const Color(0xFFDFF9E6); // 🟢 light green
+      textColor = const Color(0xFF22C55E); // 🟢 green text
+    } else if (s == 'pending') {
+      bgColor = const Color(0xFFFFF4D6); // 🟡 light orange
+      textColor = const Color(0xFFF59E0B); // 🟠 orange text
+    } else {
+      bgColor = Colors.grey.shade200;
+      textColor = Colors.grey;
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.orange.shade100,
+        color: bgColor,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
         status,
-        style: const TextStyle(
-          color: Colors.orange,
+        style: TextStyle(
+          color: textColor,
           fontSize: 12,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
@@ -126,9 +144,8 @@ class ComplaintCard extends StatelessWidget {
                   _sectionTitle("Complaint Information", Colors.green),
                   _infoBox(
                     leftLabel: "Complaint ID",
-                    leftValue:
-                        complaint.id.isNotEmpty ? complaint.id : "-",
-                        
+                    leftValue: complaint.id.isNotEmpty ? complaint.id : "-",
+
                     rightLabel: "Category",
                     rightValue: complaint.category,
                   ),
@@ -173,10 +190,7 @@ class ComplaintCard extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ],
     );
@@ -246,8 +260,7 @@ class ComplaintCard extends StatelessWidget {
           Text(desc),
           if (addInfo.isNotEmpty) ...[
             const SizedBox(height: 8),
-            const Text("Additional Info",
-                style: TextStyle(color: Colors.grey)),
+            const Text("Additional Info", style: TextStyle(color: Colors.grey)),
             Text(addInfo),
           ],
         ],
@@ -256,56 +269,54 @@ class ComplaintCard extends StatelessWidget {
   }
 
   /// ✅ ATTACHMENT BOX WITH URL LAUNCHER
- Widget _attachmentBox() {
-  if (complaint.attachments.isEmpty) {
-    return const Padding(
-      padding: EdgeInsets.only(top: 8),
-      child: Text("No attachment"),
+  Widget _attachmentBox() {
+    if (complaint.attachments.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Text("No attachment"),
+      );
+    }
+
+    return Column(
+      children: complaint.attachments.map((path) {
+        final fileName = _getFileName(path);
+
+        return InkWell(
+          onTap: () async {
+            final uri = Uri.parse(path);
+
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.attach_file, color: Colors.grey),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  return Column(
-    children: complaint.attachments.map((path) {
-      final fileName = _getFileName(path);
-
-      return InkWell(
-        onTap: () async {
-          final uri = Uri.parse(path);
-
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(
-              uri,
-              mode: LaunchMode.externalApplication,
-            );
-          }
-        },
-        child: Container(
-          margin: const EdgeInsets.only(top: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.attach_file, color: Colors.grey),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  fileName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }).toList(),
-  );
-}
   String _getFileName(String url) {
     try {
       return Uri.parse(url).pathSegments.last;

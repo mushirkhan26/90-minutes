@@ -118,7 +118,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedType,
+                  initialValue: _selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -274,6 +274,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                             context: context,
                             initialTime: TimeOfDay.now(),
                           );
+                          if (!mounted) return;
                           if (time != null) {
                             setState(() {
                               _eventDate = DateTime(

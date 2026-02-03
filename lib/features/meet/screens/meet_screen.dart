@@ -360,9 +360,13 @@ class _MeetScreenState extends State<MeetScreen> {
         int hour = 9 + index;
         String timeStr;
         
-        if (hour < 12) timeStr = '$hour AM';
-        else if (hour == 12) timeStr = '12 PM';
+        if (hour < 12) {
+          timeStr = '$hour AM';
+        // ignore: curly_braces_in_flow_control_structures
+        } else if (hour == 12) timeStr = '12 PM';
+        // ignore: curly_braces_in_flow_control_structures
         else if (hour < 24) timeStr = '${hour - 12} PM';
+        // ignore: curly_braces_in_flow_control_structures
         else timeStr = '12 AM'; 
 
         final hourMeets = dailyMeets.where((m) => DateTime.parse(m.time).toLocal().hour == hour).toList();

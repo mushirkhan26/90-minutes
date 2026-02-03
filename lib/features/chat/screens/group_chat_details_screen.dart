@@ -228,7 +228,9 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       newMemberIds,
                       _currentUserId!,
                     );
+
                     if (mounted) {
+                      // ignore: use_build_context_synchronously
                       AlertHelper.snackBarSuccess(context, 'Members added!');
                     }
                     _selectedMembers.clear();
@@ -242,6 +244,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                             )
                             .toList();
                       });
+                      // ignore: use_build_context_synchronously
                       AlertHelper.snackBarError(
                         context,
                         'Failed to add members: $e',
