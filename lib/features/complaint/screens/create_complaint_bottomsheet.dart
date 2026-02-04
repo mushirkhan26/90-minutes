@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
@@ -81,7 +82,7 @@ class _CreateComplaintBottomSheetState
                       vertical: 16,
                     ),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF66B7AE),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
@@ -166,7 +167,7 @@ class _CreateComplaintBottomSheetState
                           Text('Drop files here'),
                           Text(
                             'OR Browse Files',
-                            style: TextStyle(color: Color(0xFF66B7AE)),
+                            style: TextStyle(color: AppColors.primary),
                           ),
                         ],
                       ),
@@ -243,7 +244,7 @@ class _CreateComplaintBottomSheetState
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF66B7AE),
+                            backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),

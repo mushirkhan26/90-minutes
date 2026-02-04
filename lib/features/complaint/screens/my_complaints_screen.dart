@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
 import '../widgets/complaint_card.dart';
@@ -29,7 +30,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen> {
 
       // 🔹 APP BAR
       appBar: AppBar(
-        backgroundColor: const Color(0xFF4FA3A5), // teal
+        backgroundColor: AppColors.primary,
         elevation: 0,
         leading: const BackButton(color: Colors.white),
         title: const Text(
