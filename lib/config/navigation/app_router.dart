@@ -16,6 +16,7 @@ import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
+import 'package:hrtz_hrms/features/hr_services/screens/new_registrations_screen.dart';
 import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; 
 import 'package:hrtz_hrms/features/leave/screens/admin_leave_approval_screen.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
@@ -289,6 +290,11 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    GoRoute(
+      path: AppRoutes.newRegistrations,
+      name: '/new-registrations',
+      builder: (context, state) => const NewRegistrationsScreen(),
+    ),
   ],
 );
 
@@ -360,6 +366,7 @@ extension AuthNavigation on BuildContext {
   void goToTasks() => push(AppRoutes.tasksRoute);
   void goToGeneralHrTasks() => push(AppRoutes.generalHrTasks);
   void goToSocialHub() => push(AppRoutes.socialHub);
+  void goToNewRegistrations() => push(AppRoutes.newRegistrations);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {

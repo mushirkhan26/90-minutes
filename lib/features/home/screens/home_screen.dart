@@ -179,6 +179,16 @@ class HomeScreen extends StatelessWidget {
                           context.goToTasks();
                         },
                       ),
+                      if (authProvider.userData?['role']?.toString().toLowerCase() == 'manager' || 
+                          authProvider.userData?['role']?.toString().toLowerCase() == 'admin')
+                        ListTile(
+                          leading: const Icon(Icons.person_add_alt_1),
+                          title: const Text('New Registrations'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push(AppRoutes.newRegistrations);
+                          },
+                        ),
                       Theme(
                         data: Theme.of(context).copyWith(
                         dividerColor: Colors.transparent,
