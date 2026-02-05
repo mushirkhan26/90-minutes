@@ -35,6 +35,7 @@ import 'package:hrtz_hrms/features/hr_services/provider/resignation_provider.dar
 import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
+import 'package:hrtz_hrms/features/employee_directory/screens/employee_directory_screen.dart';
 
 
 
@@ -301,6 +302,11 @@ final GoRouter appRouter = GoRouter(
       name: '/new-registrations',
       builder: (context, state) => const NewRegistrationsScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.employeeDirectory,
+      name: '/employee-directory',
+      builder: (context, state) => const EmployeeDirectoryScreen(),
+    ),
   ],
 );
 
@@ -373,6 +379,7 @@ extension AuthNavigation on BuildContext {
   void goToGeneralHrTasks() => push(AppRoutes.generalHrTasks);
   void goToSocialHub() => push(AppRoutes.socialHub);
   void goToNewRegistrations() => push(AppRoutes.newRegistrations);
+  void goToEmployeeDirectory() => push(AppRoutes.employeeDirectory);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {

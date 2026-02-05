@@ -7,6 +7,9 @@ class EmployeeModel {
   final String? alterMobile;
   final String? gender;
   final String? address;
+  final String? role;
+  final String? teamLead;
+  final String? teamMembers;
 
   EmployeeModel({
     required this.name,
@@ -17,23 +20,29 @@ class EmployeeModel {
     this.alterMobile,
     this.gender,
     this.address,
+    this.role,
+    this.teamLead,
+    this.teamMembers,
   });
 
-  /// Creates an `EmployeeModel` from a JSON map.
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
     return EmployeeModel(
-      name: json['name'] ?? '',
-      employeeID: json['employeeID'] ?? '',
-      profileImage: json['profileImage'],
-      email: json['email'],
-      mobile: json['mobile']?.toString(),
+      name: json['name']?.toString() ?? json['username']?.toString() ?? '',
+      employeeID: json['employeeID']?.toString() ?? json['employeeId']?.toString() ?? '',
+      profileImage: json['profileImage']?.toString(),
+      email: json['email']?.toString(),
+      mobile: json['mobile']?.toString() ?? json['phone']?.toString(),
       alterMobile: json['alterMobile']?.toString(),
-      gender: json['gender'],
-      address: json['address'],
+      gender: json['gender']?.toString(),
+      address: json['address']?.toString(),
+      role: json['role']?.toString(),
+      teamLead: json['teamLead']?.toString(),
+      teamMembers: json['teamMembers'] is List
+          ? (json['teamMembers'] as List).join(', ')
+          : json['teamMembers']?.toString(),
     );
   }
 
-  /// Converts the `EmployeeModel` to a JSON map.
   Map<String, dynamic> toJson() {
     return {
       'name': name,
@@ -44,22 +53,9 @@ class EmployeeModel {
       'alterMobile': alterMobile,
       'gender': gender,
       'address': address,
+      'role': role,
+      'teamLead': teamLead,
+      'teamMembers': teamMembers,
     };
-  }
-
-  @override
-  String toString() {
-    return '''
-EmployeeModel(
-  name: $name,
-  employeeID: $employeeID,
-  profileImage: $profileImage,
-  email: $email,
-  mobile: $mobile,
-  alterMobile: $alterMobile,
-  gender: $gender,
-  address: $address
-)
-''';
   }
 }

@@ -35,5 +35,6 @@ class AppRoutes {
   static const String complaint = '/complaint';
   static const String learningStudio = '/learning-studio';
   static const String newRegistrations = '/new-registrations';
+  static const String employeeDirectory = '/employee-directory';
 
 }
