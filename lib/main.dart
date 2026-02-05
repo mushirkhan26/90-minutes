@@ -24,6 +24,7 @@ import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
 import 'package:hrtz_hrms/features/social/provider/social_provider.dart';
 import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
+import 'package:hrtz_hrms/features/learning_studio/provider/learning_studio_provider.dart'; 
 import 'package:hrtz_hrms/firebase_options.dart';
 import 'package:hrtz_hrms/splash_screen.dart';
 import 'package:provider/provider.dart';
@@ -73,6 +74,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => TasksProvider()),
         ChangeNotifierProvider(create: (_) => SocialProvider()),
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
+        ChangeNotifierProvider(create:  (_) => LearningStudioProvider()),
         ChangeNotifierProvider(create: (_) => RegistrationProvider()),
         ChangeNotifierProvider<MailProvider>(
           create: (_) => MailProvider()..fetchInbox(),

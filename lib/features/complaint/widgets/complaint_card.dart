@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/models/complaint_model.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,7 +6,16 @@ import 'package:url_launcher/url_launcher.dart';
 class ComplaintCard extends StatelessWidget {
   final ComplaintModel complaint;
 
-  const ComplaintCard({super.key, required this.complaint});
+  // manager side
+  final bool isManagerView;
+  final Future<void> Function(String status)? onUpdateStatus;
+
+  const ComplaintCard({
+    super.key,
+    required this.complaint,
+    this.isManagerView = false,
+    this.onUpdateStatus,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -15,14 +25,12 @@ class ComplaintCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey.shade300,
-        width: 1
-        ),
+        border: Border.all(color: Colors.grey.shade300),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          /// LEFT CONTENT
+          /// LEFT
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -40,23 +48,24 @@ class ComplaintCard extends StatelessWidget {
                   style: const TextStyle(color: Colors.grey),
                 ),
                 const SizedBox(height: 6),
-
-                /// ✅ CREATED DATE (NULL SAFE)
-                  Text(
-                    complaint.createdAtFormatted,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                Text(
+                  complaint.createdAtFormatted,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
                   ),
+                ),
               ],
             ),
           ),
 
-          /// RIGHT CONTENT
+          /// RIGHT
           Column(
             children: [
               IconButton(
                 icon: const Icon(Icons.remove_red_eye_outlined),
                 onPressed: () {
-                  _showComplaintDetails(context);
+                  _openComplaintBottomSheet(context);
                 },
               ),
               _statusChip(complaint.status),
@@ -67,40 +76,241 @@ class ComplaintCard extends StatelessWidget {
     );
   }
 
-  /// 🔹 STATUS CHIP
+  // ================= STATUS CHIP =================
   Widget _statusChip(String status) {
-  final s = status.toLowerCase().trim();
+    final s = status.toLowerCase();
+    Color bg;
+    Color text;
 
-  Color bgColor;
-  Color textColor;
+    if (s == 'resolved') {
+      bg = const Color(0xFFDFF9E6);
+      text = const Color(0xFF22C55E);
+    } else if (s == 'pending') {
+      bg = const Color(0xFFFFF4D6);
+      text = const Color(0xFFF59E0B);
+    } else {
+      bg = Colors.grey.shade200;
+      text = Colors.grey;
+    }
 
-  if (s == 'resolved') {
-    bgColor = const Color(0xFFDFF9E6); // 🟢 light green
-    textColor = const Color(0xFF22C55E); // 🟢 green text
-  } else if (s == 'pending') {
-    bgColor = const Color(0xFFFFF4D6); // 🟡 light orange
-    textColor = const Color(0xFFF59E0B); // 🟠 orange text
-  } else {
-    bgColor = Colors.grey.shade200;
-    textColor = Colors.grey;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: text,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+  void _openComplaintBottomSheet(BuildContext context) {
+    if (isManagerView) {
+      _showManagerBottomSheet(context);
+    } else {
+      _showComplaintDetails(context);
+    }
   }
 
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-    decoration: BoxDecoration(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      status,
-      style: TextStyle(
-        color: textColor,
-        fontSize: 12,
-        fontWeight: FontWeight.w500,
-      ),
-    ),
-  );
-}
+  // ================= MANAGER CENTERED BOTTOM SHEET =================
+  void _showManagerBottomSheet(BuildContext context) {
+    String selectedStatus = complaint.status;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) {
+        return Center(
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return Container(
+                width: MediaQuery.of(context).size.width * 0.92,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      /// HEADER
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF4FA3A5),
+                          borderRadius: BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          complaint.title,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      Text("Description: ${complaint.description}"),
+                      Text("Name: ${complaint.employeeName}"),
+                      Text("Status: ${complaint.status}"),
+                      Text("Created On: ${complaint.createdAtFormatted}"),
+                      Text("Employee ID: ${complaint.employeeId}"),
+                      Text("Complaint ID: ${complaint.id}"),
+
+                      const SizedBox(height: 12),
+
+                      /// ATTACHMENT
+if (complaint.attachments.isNotEmpty)
+  Builder(
+    builder: (_) {
+      final attachment = complaint.attachments.first;
+      final isImage =  _isNetworkUrl(attachment) && _isImage(attachment);
+
+      return GestureDetector(
+        onTap: isImage
+            ? () {
+                showDialog(
+                  context: context,
+                  builder: (_) => Dialog(
+                    backgroundColor: Colors.black,
+                    insetPadding: EdgeInsets.zero,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: InteractiveViewer(
+                        child: Image.network(
+                          attachment,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+            : null,
+        child: Container(
+          height: 140,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            image: isImage
+                ? DecorationImage(
+                    image: NetworkImage(attachment),
+                    fit: BoxFit.cover,
+                  )
+                : null,
+            color: isImage ? null : Colors.grey.shade100,
+          ),
+          alignment: Alignment.bottomRight,
+          padding: const EdgeInsets.all(8),
+          child: isImage
+              ? Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF4FA3A5),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    "View",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                )
+              : null,
+        ),
+      );
+    },
+  ),
+                      
+                      const SizedBox(height: 16),
+
+                      /// UPDATE STATUS
+                      const Text(
+                        "Update Status",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+
+                      DropdownButtonFormField<String>(
+                        value: selectedStatus,
+                        items: const [
+                          DropdownMenuItem(
+                              value: 'Pending',
+                              child: Text('Pending')),
+                          DropdownMenuItem(
+                              value: 'Investigating',
+                              child: Text('Investigating')),
+                          DropdownMenuItem(
+                              value: 'Resolved',
+                              child: Text('Resolved')),
+                        ],
+                        onChanged: complaint.status == 'Resolved'
+                            ? null
+                            : (v) =>
+                                setState(() => selectedStatus = v!),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          TextButton(
+                            onPressed: () =>
+                                Navigator.pop(context),
+                            child: const Text("Close"),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton(
+                            onPressed:
+                                (onUpdateStatus == null ||
+                                        selectedStatus ==
+                                            complaint.status)
+                                    ? null
+                                    : () async {
+                                        await onUpdateStatus!(
+                                            selectedStatus);
+                                        if (context.mounted) {
+                                          Navigator.pop(context);
+                                        }
+                                      },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  const Color(0xFF4FA3A5),
+                            ),
+                            child: const Text(
+                              "Update",
+                              style:
+                                  TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  // ================= USER SIDE DETAILS =================
   /// 🔹 BOTTOM SHEET
   void _showComplaintDetails(BuildContext context) {
     showModalBottomSheet(
@@ -143,17 +353,38 @@ class ComplaintCard extends StatelessWidget {
 
                   /// ✅ COMPLAINT INFO
                   _sectionTitle("Complaint Information", Colors.green),
-                  _infoBox(
-                    leftLabel: "Complaint ID",
-                    leftValue:
-                        complaint.id.isNotEmpty ? complaint.id : "-",
-                        
-                    rightLabel: "Category",
-                    rightValue: complaint.category,
-                  ),
-                  const SizedBox(height: 8),
-                  _singleInfo("Title", complaint.title),
 
+Container(
+  padding: const EdgeInsets.all(12),
+  margin: const EdgeInsets.only(top: 8),
+  decoration: BoxDecoration(
+    color: const Color(0xFFF7F9FA),
+    borderRadius: BorderRadius.circular(12),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const Text("Complaint ID",
+          style: TextStyle(color: Colors.grey)),
+      const SizedBox(height: 4),
+      Text(complaint.id),
+
+      const SizedBox(height: 12),
+
+      const Text("Category",
+          style: TextStyle(color: Colors.grey)),
+      const SizedBox(height: 4),
+      Text(complaint.category),
+
+      const SizedBox(height: 12),
+
+      const Text("Title",
+          style: TextStyle(color: Colors.grey)),
+      const SizedBox(height: 4),
+      Text(complaint.title),
+    ],
+  ),
+),
                   const SizedBox(height: 16),
 
                   /// DESCRIPTION
@@ -201,55 +432,11 @@ class ComplaintCard extends StatelessWidget {
     );
   }
 
-  /// INFO BOX
-  Widget _infoBox({
-    required String leftLabel,
-    required String leftValue,
-    required String rightLabel,
-    required String rightValue,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(top: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF7F9FA),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(child: _infoColumn(leftLabel, leftValue)),
-          const SizedBox(width: 50),
-          Expanded(child: _infoColumn(rightLabel, rightValue)),
-        ],
-      ),
-    );
-  }
+  
 
-  Widget _infoColumn(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(color: Colors.grey)),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
-      ],
-    );
-  }
+ 
 
-  Widget _singleInfo(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 4),
-          Text(value),
-        ],
-      ),
-    );
-  }
-
+  
   /// DESCRIPTION BOX
   Widget _descriptionBox(String desc, String addInfo) {
     return Container(
@@ -332,4 +519,18 @@ class ComplaintCard extends StatelessWidget {
       return 'Complaint Attachment';
     }
   }
+
+  bool _isImage(String url){
+    final lower =url.toLowerCase();
+    return lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.gif') ||
+        lower.endsWith('.bmp') ||
+        lower.endsWith('.webp');
+  }
+  bool _isNetworkUrl(String url) {
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+ 
 }

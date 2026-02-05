@@ -23,6 +23,9 @@ class _CreateComplaintScreenState
   String? selectedCategory;
   String? selectedPerson;
 
+  // 🔥 ADDITION
+  List<String> attachments = [];
+
   @override
   void initState() {
     super.initState();
@@ -34,12 +37,22 @@ class _CreateComplaintScreenState
     });
   }
 
+  // 🔥 ADDITION
+  Future<void> _pickFile() async {
+    // TEMP TEST URL – later S3 upload replace cheyyachu
+    setState(() {
+      attachments.add(
+        "https://task-m.s3.us-east-1.amazonaws.com/sample-test.jpg",
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ComplaintProvider>();
 
     return Scaffold(
-      backgroundColor: Colors.black.withValues(alpha:  0.4),
+      backgroundColor: Colors.black.withValues(alpha: 0.4),
       body: Center(
         child: Container(
           margin: const EdgeInsets.all(12),
@@ -54,7 +67,7 @@ class _CreateComplaintScreenState
                 height: 56,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: const BoxDecoration(
-                  color: Color(0xFF55B6A9),
+                  color: Color(0xFF26A69A),
                   borderRadius:
                       BorderRadius.vertical(top: Radius.circular(16)),
                 ),
@@ -127,30 +140,45 @@ class _CreateComplaintScreenState
 
                         const SizedBox(height: 16),
 
+                        /// 🔥 ATTACHMENT (ONLY SMALL CHANGE)
                         _label("Attach Here"),
-                        Container(
-                          height: 140,
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.cloud_upload_outlined,
+                        GestureDetector(
+                          onTap: _pickFile,
+                          child: Container(
+                            height: 140,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Center(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.cloud_upload_outlined,
                                     size: 36,
-                                    color: Color(0xFF55B6A9)),
-                                SizedBox(height: 8),
-                                Text("Drop files here"),
-                                Text("OR"),
-                                Text(
-                                  "Browse Files",
-                                  style: TextStyle(
+                                    color: Color(0xFF55B6A9),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  const Text("Drop files here"),
+                                  const Text("OR"),
+                                  const Text(
+                                    "Browse Files",
+                                    style: TextStyle(
                                       color: Color(0xFF55B6A9),
-                                      fontWeight: FontWeight.w600),
-                                ),
-                              ],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (attachments.isNotEmpty) ...[
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      "${attachments.length} file selected",
+                                      style: const TextStyle(
+                                          color: Colors.grey),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -194,8 +222,6 @@ class _CreateComplaintScreenState
                                 if (!_formKey.currentState!.validate()) {
                                   return;
                                 }
-                            
-                                
 
                                 final ok =
                                     await provider.addComplaint(
@@ -204,11 +230,12 @@ class _CreateComplaintScreenState
                                   description: descCtrl.text.trim(),
                                   additionalInfo:
                                       addInfoCtrl.text.trim(),
-                                  attachment: [],
+                                  attachment: attachments, // 🔥 IMPORTANT
                                 );
-                                if(!mounted) return;
 
-                                if (ok && mounted) {
+                                if (!mounted) return;
+
+                                if (ok) {
                                   Navigator.pop(context);
                                 }
                               },

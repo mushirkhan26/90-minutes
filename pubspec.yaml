@@ -44,7 +44,9 @@ dependencies:
   url_launcher: ^6.3.2
   uuid: ^4.5.1
   video_player: ^2.10.0
+  chewie: ^1.8.5
   syncfusion_flutter_charts: ^31.2.4
+  
 
 flutter_native_splash:
   color: "#FFFFFF"
