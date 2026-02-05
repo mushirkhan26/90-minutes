@@ -180,52 +180,76 @@ class HomeScreen extends StatelessWidget {
                         },
                       ),
                       Theme(
-                        data: Theme.of(context).copyWith(
-                        dividerColor: Colors.transparent,
-                        ),
-                        child: ExpansionTile(
-                        leading: const Icon(Icons.work_outline),
-                          title: const Text(
-                        'HR Services',
+  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+  child: ExpansionTile(
+    leading: const Icon(Icons.work_outline),
+    title: const Text('HR Services'),
+    childrenPadding: const EdgeInsets.only(left: 16),
+    children: [
 
-                        ),
-                        childrenPadding: const EdgeInsets.only(left: 16),
-                        children: [
-                        ListTile(
-                        leading: const Icon(
-                          Icons.person_remove_alt_1,
-                          color: Color(0xFF2F9E9E),
-                        ),
-                        title: const Text('Resignation'),
-                          onTap: () {
-                          Navigator.pop(context);
+      /// 🔹 Resignation
+      ListTile(
+        leading: const Icon(Icons.person_remove_alt_1, color: Color(0xFF2F9E9E)),
+        title: const Text('Resignation'),
+        onTap: () {
+          Navigator.pop(context);
 
-                          final role =
-                            context.read<AuthProvider>().userData?['role']?.toString().toLowerCase();
+          final role = context
+              .read<AuthProvider>()
+              .userData?['role']
+              ?.toString()
+              .toLowerCase();
 
-                            context.push(
-                            AppRoutes.resignation,
-                            extra: {
-                             'openManagement': role == 'manager',
-                            },
-                          );
-                        },
+          context.push(
+            AppRoutes.resignation,
+            extra: {
+              'openManagement': role == 'manager',
+            },
+          );
+        },
+      ),
 
-                    ),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.report_problem_outlined,
-                        color: Color(0xFF2F9E9E),
-                      ),
-                      title: const Text('Complaint'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push(AppRoutes.complaint);
-                      },
-                    )
-                   ],
-                 ),
-                 ),
+      /// 🔹 Complaint
+      ListTile(
+        leading: const Icon(Icons.report_problem_outlined,
+            color: Color(0xFF2F9E9E)),
+        title: const Text('Complaint'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.complaint);
+        },
+      ),
+    ],
+  ),
+),
+
+      /// 🔹 Learning & Growth (NEW)
+      Theme(
+  data: Theme.of(context).copyWith(
+    dividerColor: Colors.transparent, // 🔥 THIS REMOVES LINE
+  ),
+  child: ExpansionTile(
+    leading: const Icon(Icons.school, color: Color(0xFF2F9E9E)),
+    title: const Text('Learning & Growth'),
+    childrenPadding: const EdgeInsets.only(left: 16),
+    children: [
+      ListTile(
+        leading: const Icon(
+          Icons.menu_book,
+          color: Color(0xFF2F9E9E),
+        ),
+        title: const Text('Learning Studio'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.learningStudio);
+        },
+      ),
+    ],
+  ),
+),
+    
+
+
                       ListTile(
                         leading: const Icon(Icons.settings),
                         title: const Text('Settings'),

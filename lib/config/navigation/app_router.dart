@@ -33,6 +33,7 @@ import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/resignation_provider.dart';
 import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
+import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
 
 
 
@@ -288,6 +289,11 @@ final GoRouter appRouter = GoRouter(
           child: MyComplaintsScreen(),
         );
       },
+    ),
+     GoRoute(
+      path: AppRoutes.learningStudio,
+      name: 'learning-studio',
+      pageBuilder: (context, state) => buildTransitionPage(const LearningStudioScreen()),
     ),
   ],
 );
