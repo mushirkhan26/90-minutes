@@ -128,9 +128,11 @@ class GroupSocketProvider extends ChangeNotifier {
         final currentUserId = currentUserData?['employeeId'] ?? "";
 
         if (message.sender != currentUserId) {
-          if (message.groupId != _activeGroupId) {
+          // ✅ Increment unread ONLY if group is NOT active
+          if (_activeGroupId != message.groupId) {
             _groupUnreadCounts[message.groupId] =
                 (_groupUnreadCounts[message.groupId] ?? 0) + 1;
+            notifyListeners();
 
             final group = _groupChats.firstWhere(
               (g) => g.groupId == message.groupId,
@@ -151,6 +153,7 @@ class GroupSocketProvider extends ChangeNotifier {
             );
           }
         }
+
         // ✅ THIS FIXES YOUR BUG
         _moveGroupToTop(message);
         notifyListeners();
@@ -301,7 +304,7 @@ class GroupSocketProvider extends ChangeNotifier {
   void resetGroupUnreadCount(String groupId, {bool notify = true}) {
     if (_groupUnreadCounts.containsKey(groupId)) {
       _groupUnreadCounts.remove(groupId);
-      if (notify) notifyListeners();
+      notifyListeners();
     }
   }
 
