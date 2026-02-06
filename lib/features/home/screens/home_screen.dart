@@ -109,6 +109,8 @@ class HomeScreen extends StatelessWidget {
           future: secureStorage.getUserData(),
           builder: (context, snapshot) {
             final userData = snapshot.data;
+            final userRole = authProvider.userData?['role']?.toString().toLowerCase();
+
             return Column(
               // Changed ListView to Column to use Spacer
               children: [
@@ -179,6 +181,24 @@ class HomeScreen extends StatelessWidget {
                           context.goToTasks();
                         },
                       ),
+                      if (userRole == 'manager' || userRole == 'admin')
+                        ListTile(
+                          leading: const Icon(Icons.people_alt_outlined),
+                          title: const Text('Employee Directory'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.goToEmployeeDirectory();
+                          },
+                        ),
+                      if (userRole == 'manager' || userRole == 'admin')
+                        ListTile(
+                          leading: const Icon(Icons.person_add_alt_1),
+                          title: const Text('New Registrations'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push(AppRoutes.newRegistrations);
+                          },
+                        ),
                       Theme(
   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
   child: ExpansionTile(

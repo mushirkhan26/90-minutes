@@ -16,6 +16,7 @@ import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
+import 'package:hrtz_hrms/features/hr_services/screens/new_registrations_screen.dart';
 import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; 
 import 'package:hrtz_hrms/features/leave/screens/admin_leave_approval_screen.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
@@ -34,6 +35,7 @@ import 'package:hrtz_hrms/features/hr_services/provider/resignation_provider.dar
 import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
+import 'package:hrtz_hrms/features/employee_directory/screens/employee_directory_screen.dart';
 
 
 
@@ -295,6 +297,16 @@ final GoRouter appRouter = GoRouter(
       name: 'learning-studio',
       pageBuilder: (context, state) => buildTransitionPage(const LearningStudioScreen()),
     ),
+    GoRoute(
+      path: AppRoutes.newRegistrations,
+      name: '/new-registrations',
+      builder: (context, state) => const NewRegistrationsScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.employeeDirectory,
+      name: '/employee-directory',
+      builder: (context, state) => const EmployeeDirectoryScreen(),
+    ),
   ],
 );
 
@@ -366,6 +378,8 @@ extension AuthNavigation on BuildContext {
   void goToTasks() => push(AppRoutes.tasksRoute);
   void goToGeneralHrTasks() => push(AppRoutes.generalHrTasks);
   void goToSocialHub() => push(AppRoutes.socialHub);
+  void goToNewRegistrations() => push(AppRoutes.newRegistrations);
+  void goToEmployeeDirectory() => push(AppRoutes.employeeDirectory);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {
