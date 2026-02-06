@@ -427,31 +427,32 @@ class HomeScreen extends StatelessWidget {
                       //     showFaceVerificationDialog(isClockIn: true);
                       //   },
                       : () async {
-                    // showFaceVerificationDialog(isClockIn: true);
-                    // comment face recognizaton
-                    //
-                    await clockProvider.clockIn(
-                      department: authProvider.userData?['department'] ??
-                          'Department',
-                      imageUrl: '', // Face recognition is off
-                    );
-                    if (context.mounted) {
-                      if (clockProvider.state == ClockState.error) {
-                        AlertHelper.snackBarError(
-                          context,
-                          clockProvider.errorMessage ??
-                              'An error occurred',
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Clock in successful!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    }
-                  },
+                          // showFaceVerificationDialog(isClockIn: true);
+                          // comment face recognizaton
+                          //
+                          await clockProvider.clockIn(
+                            department:
+                                authProvider.userData?['department'] ??
+                                'Department',
+                            imageUrl: '', // Face recognition is off
+                          );
+                          if (context.mounted) {
+                            if (clockProvider.state == ClockState.error) {
+                              AlertHelper.snackBarError(
+                                context,
+                                clockProvider.errorMessage ??
+                                    'An error occurred',
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Clock in successful!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          }
+                        },
                   //
                   child: const Text(
                     'Clock In',

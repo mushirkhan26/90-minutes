@@ -423,10 +423,7 @@ Container(
         const SizedBox(width: 8),
         Text(
           title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
       ],
     );
@@ -452,8 +449,7 @@ Container(
           Text(desc),
           if (addInfo.isNotEmpty) ...[
             const SizedBox(height: 8),
-            const Text("Additional Info",
-                style: TextStyle(color: Colors.grey)),
+            const Text("Additional Info", style: TextStyle(color: Colors.grey)),
             Text(addInfo),
           ],
         ],
@@ -462,56 +458,54 @@ Container(
   }
 
   /// ✅ ATTACHMENT BOX WITH URL LAUNCHER
- Widget _attachmentBox() {
-  if (complaint.attachments.isEmpty) {
-    return const Padding(
-      padding: EdgeInsets.only(top: 8),
-      child: Text("No attachment"),
+  Widget _attachmentBox() {
+    if (complaint.attachments.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.only(top: 8),
+        child: Text("No attachment"),
+      );
+    }
+
+    return Column(
+      children: complaint.attachments.map((path) {
+        final fileName = _getFileName(path);
+
+        return InkWell(
+          onTap: () async {
+            final uri = Uri.parse(path);
+
+            if (await canLaunchUrl(uri)) {
+              await launchUrl(uri, mode: LaunchMode.externalApplication);
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.attach_file, color: Colors.grey),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    fileName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  return Column(
-    children: complaint.attachments.map((path) {
-      final fileName = _getFileName(path);
-
-      return InkWell(
-        onTap: () async {
-          final uri = Uri.parse(path);
-
-          if (await canLaunchUrl(uri)) {
-            await launchUrl(
-              uri,
-              mode: LaunchMode.externalApplication,
-            );
-          }
-        },
-        child: Container(
-          margin: const EdgeInsets.only(top: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.attach_file, color: Colors.grey),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  fileName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }).toList(),
-  );
-}
   String _getFileName(String url) {
     try {
       return Uri.parse(url).pathSegments.last;

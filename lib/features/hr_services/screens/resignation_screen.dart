@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/features/hr_services/widgets/resignation_my_details.card.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../provider/resignation_provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/resignation_details_card.dart';
-import 'package:hrtz_hrms/features/hr_services/widgets/resignation_my_details.card.dart ';
 
 class ResignationScreen extends StatefulWidget {
   const ResignationScreen({super.key});
@@ -32,8 +32,7 @@ class _ResignationScreenState extends State<ResignationScreen>
     super.initState();
 
     final auth = context.read<AuthProvider>();
-    final String role =
-        auth.userData?['role']?.toString().toLowerCase() ?? '';
+    final String role = auth.userData?['role']?.toString().toLowerCase() ?? '';
     final bool isManager = role == 'manager';
 
     debugPrint('INIT → role=$role isManager=$isManager');
@@ -205,10 +204,7 @@ class _ResignationScreenState extends State<ResignationScreen>
       itemBuilder: (_, index) {
         final data = provider.allResignations[index];
 
-        return ResignationDetailsCard(
-          data: data,
-          
-        );
+        return ResignationDetailsCard(data: data);
       },
     );
   }
@@ -216,134 +212,129 @@ class _ResignationScreenState extends State<ResignationScreen>
   // ---------------- USER RESIGNATION UI ----------------
 
   Widget _userResignationUI(
-    ResignationProvider provider, AuthProvider authProvider) {
+    ResignationProvider provider,
+    AuthProvider authProvider,
+  ) {
+    // 1️⃣ Loading
+    if (provider.isLoadingMyResignation) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-  // 1️⃣ Loading
-  if (provider.isLoadingMyResignation) {
-    return const Center(child: CircularProgressIndicator());
-  }
+    // 2️⃣ Already submitted → show details
+    if (provider.myResignation != null) {
+      return Padding(
+        padding: const EdgeInsets.all(16),
+        child: ResignationMyDetailsCard(data: provider.myResignation!),
+      );
+    }
 
-  // 2️⃣ Already submitted → show details
-  if (provider.myResignation != null) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: ResignationMyDetailsCard(
-        data: provider.myResignation!,
+    // 3️⃣ Not submitted → show apply form
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Apply Resignation',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+
+              _readOnlyField(
+                'Employee ID',
+                authProvider.userData?['employeeId'] ?? '-',
+              ),
+              _readOnlyField('Name', authProvider.userData?['username'] ?? '-'),
+
+              const Text('Resignation Date *'),
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: _pickResignationDate,
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    resignationDate == null
+                        ? 'Select date'
+                        : uiDateFormat.format(resignationDate!),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const Text('Last Working Date *'),
+              const SizedBox(height: 6),
+              TextFormField(
+                readOnly: true,
+                decoration: InputDecoration(
+                  filled: true,
+                  border: const OutlineInputBorder(),
+                  hintText: lastWorkingDate == null
+                      ? ''
+                      : apiDateFormat.format(lastWorkingDate!),
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              const Text('Reason *'),
+              const SizedBox(height: 6),
+              TextFormField(
+                controller: reasonController,
+                maxLines: 4,
+                validator: (v) => v == null || v.trim().length < 5
+                    ? 'Minimum 5 characters required'
+                    : null,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+              ),
+
+              const SizedBox(height: 20),
+
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: provider.isSubmitting ? null : _submit,
+                  child: provider.isSubmitting
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Submit Resignation'),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade100),
+                ),
+                child: const Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.description_outlined, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Your experience letter will be available for download on your last working day after your resignation is accepted.',
+                        style: TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  // 3️⃣ Not submitted → show apply form
-  return SafeArea(
-    child: SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Apply Resignation',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            _readOnlyField(
-              'Employee ID',
-              authProvider.userData?['employeeId'] ?? '-',
-            ),
-            _readOnlyField(
-              'Name',
-              authProvider.userData?['username'] ?? '-',
-            ),
-
-            const Text('Resignation Date *'),
-            const SizedBox(height: 6),
-            InkWell(
-              onTap: _pickResignationDate,
-              child: InputDecorator(
-                decoration:
-                    const InputDecoration(border: OutlineInputBorder()),
-                child: Text(
-                  resignationDate == null
-                      ? 'Select date'
-                      : uiDateFormat.format(resignationDate!),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            const Text('Last Working Date *'),
-            const SizedBox(height: 6),
-            TextFormField(
-              readOnly: true,
-              decoration: InputDecoration(
-                filled: true,
-                border: const OutlineInputBorder(),
-                hintText: lastWorkingDate == null
-                    ? ''
-                    : apiDateFormat.format(lastWorkingDate!),
-              ),
-            ),
-
-            const SizedBox(height: 16),
-
-            const Text('Reason *'),
-            const SizedBox(height: 6),
-            TextFormField(
-              controller: reasonController,
-              maxLines: 4,
-              validator: (v) =>
-                  v == null || v.trim().length < 5
-                      ? 'Minimum 5 characters required'
-                      : null,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: provider.isSubmitting ? null : _submit,
-                child: provider.isSubmitting
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Submit Resignation'),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade100),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.description_outlined, color: Colors.blue),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Your experience letter will be available for download on your last working day after your resignation is accepted.',
-                      style: TextStyle(fontSize: 13),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
   @override
   void dispose() {
     _tabController.dispose();

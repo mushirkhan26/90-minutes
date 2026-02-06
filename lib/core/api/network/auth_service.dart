@@ -2,6 +2,7 @@ import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'dart:io';
 
 class AuthService {
   final ApiHelper _apiHelper = ApiHelper();
@@ -64,7 +65,9 @@ class AuthService {
           .toList();
       return ApiResponse.success(employees);
     }
-    return ApiResponse.error(response.message ?? 'Failed to fetch employee list');
+    return ApiResponse.error(
+      response.message ?? 'Failed to fetch employee list',
+    );
   }
 
   /// 📄 Get Employee Info API
@@ -144,9 +147,10 @@ class AuthService {
       "reason": reason,
       "duration": duration,
       "type": type,
-      if (medicalCertificate != null) "medicalCertificate": [medicalCertificate],
+      if (medicalCertificate != null)
+        "medicalCertificate": [medicalCertificate],
     };
-    
+
     _logger.logAuth('Adding leave request to leave/add');
     return await _apiHelper.post<Map<String, dynamic>>('leave/add', body);
   }
@@ -172,12 +176,11 @@ class AuthService {
     required String status,
     required String updatedBy,
   }) async {
-    _logger.logAuth('Updating leave status for $leaveId to $status by $updatedBy');
+    _logger.logAuth(
+      'Updating leave status for $leaveId to $status by $updatedBy',
+    );
     final endpoint = 'leave/update/$leaveId';
-    final body = {
-      "status": status,
-      "updatedBy": updatedBy,
-    };
+    final body = {"status": status, "updatedBy": updatedBy};
     return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
 
@@ -197,10 +200,7 @@ class AuthService {
   }) async {
     _logger.logAuth('Cancelling leave request: $leaveId');
     final endpoint = 'leave/update/$leaveId';
-    final body = {
-      "status": "Cancelled",
-      "updatedBy": updatedBy
-    };
+    final body = {"status": "Cancelled", "updatedBy": updatedBy};
     return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
   }
 

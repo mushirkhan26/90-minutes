@@ -20,6 +20,10 @@ class ScheduleMeet extends StatefulWidget {
 }
 
 class _ScheduleMeetState extends State<ScheduleMeet> {
+  bool _isSunday(DateTime date) {
+    return date.weekday == DateTime.sunday;
+  }
+
   bool _isValidUrl(String url) {
     final uri = Uri.tryParse(url);
     return uri != null &&
@@ -98,6 +102,14 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
+      if (_isSunday(picked)) {
+        AlertHelper.snackBarWarning(
+          context,
+          "Meetings cannot be scheduled on Sundays",
+        );
+        return;
+      }
+
       setState(() {
         _selectedDate = picked;
         _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
@@ -113,6 +125,13 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
+      if (_isSunday(picked)) {
+        AlertHelper.snackBarWarning(
+          context,
+          "Meetings cannot start on Sundays",
+        );
+        return;
+      }
       setState(() {
         _startDate = picked;
         _startDateController.text = DateFormat('dd-MM-yyyy').format(picked);
@@ -136,6 +155,10 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
       lastDate: DateTime(2100),
     );
     if (picked != null) {
+      if (_isSunday(picked)) {
+        AlertHelper.snackBarWarning(context, "Meetings cannot end on Sundays");
+        return;
+      }
       setState(() {
         _endDate = picked;
         _endDateController.text = DateFormat('dd-MM-yyyy').format(picked);
@@ -165,6 +188,15 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   //   }
   // }
 
+  // Future<void> _pickFiles() async {
+  //   FilePickerResult? result = await FilePicker.platform.pickFiles(allowMultiple: true);
+  //   if (result != null) {
+  //     setState(() {
+  //       _attachments.addAll(result.paths.map((path) => File(path!)).toList());
+  //     });
+  //   }
+  // }
+
   Future<void> _pickFiles() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -177,6 +209,9 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
         .map((p) => File(p!))
         .toList();
 
+    setState(() {
+      _attachments.addAll(pickedFiles);
+    });
     // ✅ HARD LIMIT CHECK (most important)
     if (_attachments.length + pickedFiles.length > 5) {
       AlertHelper.snackBarWarning(
@@ -196,7 +231,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     if (_selectedTime == null) return dates;
 
     if (_recurrence == 'One-time meeting') {
-      if (_selectedDate != null) {
+      if (_selectedDate != null && !_isSunday(_selectedDate!)) {
         dates.add(
           DateTime(
             _selectedDate!.year,
@@ -212,21 +247,23 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
         DateTime current = _startDate!;
         while (current.isBefore(_endDate!) ||
             current.isAtSameMomentAs(_endDate!)) {
-          dates.add(
-            DateTime(
-              current.year,
-              current.month,
-              current.day,
-              _selectedTime!.hour,
-              _selectedTime!.minute,
-            ),
-          );
-          if (_recurrence == 'Daily') {
-            current = current.add(const Duration(days: 1));
-          } else if (_recurrence == 'Weekly') {
-            current = current.add(const Duration(days: 7));
-          } else {
-            break;
+          if (!_isSunday(current)) {
+            dates.add(
+              DateTime(
+                current.year,
+                current.month,
+                current.day,
+                _selectedTime!.hour,
+                _selectedTime!.minute,
+              ),
+            );
+            if (_recurrence == 'Daily') {
+              current = current.add(const Duration(days: 1));
+            } else if (_recurrence == 'Weekly') {
+              current = current.add(const Duration(days: 7));
+            } else {
+              break;
+            }
           }
         }
       }
@@ -323,6 +360,17 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   //   }
   // }
 
+  //   if (allSuccess && mounted) {
+  //     AlertHelper.snackBarSuccess(
+  //       context,
+  //       "Meeting(s) scheduled successfully!",
+  //     );
+  //     Navigator.pop(context);
+  //   } else if (mounted) {
+  //     AlertHelper.snackBarError(context, "Some meetings failed to schedule.");
+  //   }
+  // }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -360,6 +408,11 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // _buildLabel("Meeting Title *", Icons.description_outlined),
+              // CustomTextField(
+              //   controller: _titleController,
+              //   hintText: "Enter meeting title",
+              // ),
               // _buildLabel("Meeting Title *", Icons.description_outlined),
               // CustomTextField(
               //   controller: _titleController,
@@ -455,9 +508,11 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha:  0.05),
+                    color: Colors.blue.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.withValues(alpha:  0.2)),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.2),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -469,6 +524,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                             size: 18,
                             color: Colors.blue.shade700,
                           ),
+
                           const SizedBox(width: 8),
                           Text(
                             "Recurrence Period",
@@ -564,6 +620,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                   "Scheduled Instances Preview:",
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                 ),
+
                 const SizedBox(height: 8),
                 SizedBox(
                   height: 60,
@@ -579,9 +636,11 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                           vertical: 8,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha:  0.1),
+                          color: AppColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.primary.withValues(alpha:  0.3)),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -631,6 +690,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                             fontSize: 13,
                           ),
                         ),
+
                         ElevatedButton(
                           onPressed: () => setState(
                             () => _showParticipantList = !_showParticipantList,
@@ -682,6 +742,10 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
               ),
               const SizedBox(height: 15),
 
+              // _buildLabel("Meeting Link *", Icons.link),
+              // CustomTextField(
+              //   controller: _linkController,
+              //   hintText: "https://meet.google.com/...",
               // _buildLabel("Meeting Link *", Icons.link),
               // CustomTextField(
               //   controller: _linkController,

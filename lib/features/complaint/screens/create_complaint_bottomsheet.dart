@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
@@ -88,14 +89,15 @@ Future<void> _pickFile() async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   /// 🔹 HEADER (First pic style)
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 16),
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF66B7AE),
+                      color: AppColors.primary,
                       borderRadius: BorderRadius.only(
                         topLeft: Radius.circular(20),
                         topRight: Radius.circular(20),
@@ -114,8 +116,7 @@ Future<void> _pickFile() async {
                         ),
                         InkWell(
                           onTap: () => Navigator.pop(context),
-                          child:
-                              const Icon(Icons.close, color: Colors.white),
+                          child: const Icon(Icons.close, color: Colors.white),
                         ),
                       ],
                     ),
@@ -140,8 +141,7 @@ Future<void> _pickFile() async {
                           hintText: 'Select Category',
                           value: _category,
                           items: categories,
-                          onChanged: (v) =>
-                              setState(() => _category = v),
+                          onChanged: (v) => setState(() => _category = v),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -151,8 +151,7 @@ Future<void> _pickFile() async {
                           hintText: 'Select Person',
                           value: _complainPerson,
                           items: people,
-                          onChanged: (v) =>
-                              setState(() => _complainPerson = v),
+                          onChanged: (v) => setState(() => _complainPerson = v),
                         ),
                       ),
                     ],
@@ -161,11 +160,7 @@ Future<void> _pickFile() async {
                   const SizedBox(height: 12),
 
                   /// 🔹 ADDITIONAL INFO
-                  _textField(
-                    'Additional Info',
-                    _addInfoCtrl,
-                    maxLines: 4,
-                  ),
+                  _textField('Additional Info', _addInfoCtrl, maxLines: 4),
 
                   const SizedBox(height: 12),
 
@@ -187,7 +182,7 @@ Future<void> _pickFile() async {
                           Text('Drop files here'),
                           Text(
                             'OR Browse Files',
-                            style: TextStyle(color: Color(0xFF66B7AE)),
+                            style: TextStyle(color: AppColors.primary),
                           ),
                         ],
                       ),
@@ -235,8 +230,7 @@ Future<void> _pickFile() async {
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: const Text(
                             'Cancel',
@@ -250,11 +244,9 @@ Future<void> _pickFile() async {
                           onPressed: () async {
                             if (!_formKey.currentState!.validate()) return;
 
-                            final provider =
-                                context.read<ComplaintProvider>();
+                            final provider = context.read<ComplaintProvider>();
 
-                            final success =
-                                await provider.addComplaint(
+                            final success = await provider.addComplaint(
                               category: _category!,
                               title: _titleCtrl.text,
                               description: _descCtrl.text,
@@ -267,13 +259,11 @@ Future<void> _pickFile() async {
                             }
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                const Color(0xFF66B7AE),
+                            backgroundColor: AppColors.primary,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(30),
                             ),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
                           child: const Text(
                             'Submit',
@@ -293,8 +283,7 @@ Future<void> _pickFile() async {
   }
 
   /// 🔹 READ-ONLY FIELD
-  Widget _readOnlyField(
-      String label, TextEditingController controller) {
+  Widget _readOnlyField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -329,9 +318,7 @@ Future<void> _pickFile() async {
           controller: ctrl,
           maxLines: maxLines,
           validator: validator,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-          ),
+          decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
       ],
     );
@@ -342,7 +329,8 @@ Future<void> _pickFile() async {
     required String label,
     required String? value,
     required List<String> items,
-    required void Function(String?) onChanged, required String hintText,
+    required void Function(String?) onChanged,
+    required String hintText,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -354,20 +342,13 @@ Future<void> _pickFile() async {
           hint: Text(hintText),
           style: const TextStyle(color: Colors.black, fontSize: 14),
           items: items
-              .map(
-                (e) => DropdownMenuItem(
-                  value: e,
-                  child: Text(e),
-                ),
-              )
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
               .toList(),
           onChanged: onChanged,
           validator: label.contains('*')
               ? (v) => v == null ? 'Required' : null
               : null,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-          ),
+          decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
       ],
     );

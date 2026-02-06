@@ -6,12 +6,10 @@ class CreateComplaintScreen extends StatefulWidget {
   const CreateComplaintScreen({super.key});
 
   @override
-  State<CreateComplaintScreen> createState() =>
-      _CreateComplaintScreenState();
+  State<CreateComplaintScreen> createState() => _CreateComplaintScreenState();
 }
 
-class _CreateComplaintScreenState
-    extends State<CreateComplaintScreen> {
+class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   final _formKey = GlobalKey<FormState>();
 
   final nameCtrl = TextEditingController();
@@ -76,14 +74,14 @@ class _CreateComplaintScreenState
                     const Text(
                       "New Complaint",
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600),
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     const Spacer(),
                     IconButton(
-                      icon:
-                          const Icon(Icons.close, color: Colors.white),
+                      icon: const Icon(Icons.close, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
                   ],
@@ -200,8 +198,10 @@ class _CreateComplaintScreenState
 
               /// FOOTER BUTTONS
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 child: Row(
                   children: [
                     Expanded(
@@ -223,8 +223,7 @@ class _CreateComplaintScreenState
                                   return;
                                 }
 
-                                final ok =
-                                    await provider.addComplaint(
+                                final ok = await provider.addComplaint(
                                   category: selectedCategory!,
                                   title: titleCtrl.text.trim(),
                                   description: descCtrl.text.trim(),
@@ -266,51 +265,46 @@ class _CreateComplaintScreenState
       Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(t));
 
   Widget _readonly(TextEditingController c) => TextFormField(
-        controller: c,
-        enabled: false,
-        decoration: const InputDecoration(border: OutlineInputBorder()),
-      );
+    controller: c,
+    enabled: false,
+    decoration: const InputDecoration(border: OutlineInputBorder()),
+  );
 
   Widget _textfield(TextEditingController c) => TextFormField(
-        controller: c,
-        validator: (v) => v == null || v.isEmpty ? "Required" : null,
-        decoration: const InputDecoration(border: OutlineInputBorder()),
-      );
+    controller: c,
+    validator: (v) => v == null || v.isEmpty ? "Required" : null,
+    decoration: const InputDecoration(border: OutlineInputBorder()),
+  );
 
-  Widget _multiline(TextEditingController c, int lines) =>
-      TextFormField(
-        controller: c,
-        maxLines: lines,
-        validator: lines > 4
-            ? (v) => v == null || v.isEmpty ? "Required" : null
-            : null,
-        decoration: const InputDecoration(border: OutlineInputBorder()),
-      );
+  Widget _multiline(TextEditingController c, int lines) => TextFormField(
+    controller: c,
+    maxLines: lines,
+    validator: lines > 4
+        ? (v) => v == null || v.isEmpty ? "Required" : null
+        : null,
+    decoration: const InputDecoration(border: OutlineInputBorder()),
+  );
 
   Widget _dropdown({
     required String label,
     required String? value,
     required List<String> items,
     required ValueChanged<String?> onChanged,
-  }) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _label(label),
-          DropdownButtonFormField<String>(
-            initialValue: value,
-            items: items
-                .map((e) =>
-                    DropdownMenuItem(value: e, child: Text(e)))
-                .toList(),
-            onChanged: onChanged,
-            validator: label.contains("*")
-                ? (v) => v == null ? "Required" : null
-                : null,
-            decoration: const InputDecoration(
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
-      );
+  }) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      _label(label),
+      DropdownButtonFormField<String>(
+        initialValue: value,
+        items: items
+            .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+            .toList(),
+        onChanged: onChanged,
+        validator: label.contains("*")
+            ? (v) => v == null ? "Required" : null
+            : null,
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+      ),
+    ],
+  );
 }

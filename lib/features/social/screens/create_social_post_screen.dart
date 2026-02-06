@@ -20,11 +20,12 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   String _selectedType = 'Post';
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
-  
+
   // Birthday Selection
   EmployeeModel? _selectedEmployee;
-  final TextEditingController _employeeSearchController = TextEditingController();
-  
+  final TextEditingController _employeeSearchController =
+      TextEditingController();
+
   // Poll Controllers
   final TextEditingController _questionController = TextEditingController();
   final List<TextEditingController> _optionControllers = [
@@ -41,7 +42,13 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   bool _isUploading = false;
   bool _isPosting = false;
 
-  final List<String> _postTypes = ['Birthday', 'Post', 'Poll', 'Event', 'Well Being'];
+  final List<String> _postTypes = [
+    'Birthday',
+    'Post',
+    'Poll',
+    'Event',
+    'Well Being',
+  ];
 
   @override
   void initState() {
@@ -68,7 +75,9 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
     if (result != null && result.files.single.path != null) {
       setState(() => _isUploading = true);
       try {
-        final url = await _fileUploadService.uploadFile(File(result.files.single.path!));
+        final url = await _fileUploadService.uploadFile(
+          File(result.files.single.path!),
+        );
         setState(() {
           _uploadedImageUrl = url;
           _isUploading = false;
@@ -76,7 +85,9 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
       } catch (e) {
         setState(() => _isUploading = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to upload image')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to upload image')),
+          );
         }
       }
     }
@@ -90,7 +101,9 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
@@ -106,9 +119,18 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                       padding: const EdgeInsets.all(16.0),
                       child: Row(
                         children: [
-                          const Text('Select Employee', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          const Text(
+                            'Select Employee',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                           const Spacer(),
-                          IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                          IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () => Navigator.pop(context),
+                          ),
                         ],
                       ),
                     ),
@@ -118,14 +140,23 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                         decoration: InputDecoration(
                           hintText: 'Search by name or ID',
                           prefixIcon: const Icon(Icons.search),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                         onChanged: (query) {
                           setModalState(() {
-                            filteredEmployees = employees.where((e) =>
-                              e.name.toLowerCase().contains(query.toLowerCase()) ||
-                              e.employeeID.toLowerCase().contains(query.toLowerCase())
-                            ).toList();
+                            filteredEmployees = employees
+                                .where(
+                                  (e) =>
+                                      e.name.toLowerCase().contains(
+                                        query.toLowerCase(),
+                                      ) ||
+                                      e.employeeID.toLowerCase().contains(
+                                        query.toLowerCase(),
+                                      ),
+                                )
+                                .toList();
                           });
                         },
                       ),
@@ -141,8 +172,13 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                                 final employee = filteredEmployees[index];
                                 return ListTile(
                                   leading: CircleAvatar(
-                                    backgroundImage: employee.profileImage != null ? NetworkImage(employee.profileImage!) : null,
-                                    child: employee.profileImage == null ? const Icon(Icons.person) : null,
+                                    backgroundImage:
+                                        employee.profileImage != null
+                                        ? NetworkImage(employee.profileImage!)
+                                        : null,
+                                    child: employee.profileImage == null
+                                        ? const Icon(Icons.person)
+                                        : null,
                                   ),
                                   title: Text(employee.name),
                                   subtitle: Text(employee.employeeID),
@@ -186,7 +222,10 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                   children: [
                     const Text(
                       'Create Social Post',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
@@ -195,12 +234,17 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                   ],
                 ),
                 const Divider(),
-                const Text('Post Type', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Post Type',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
                   value: _selectedType,
                   decoration: InputDecoration(
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                   ),
                   items: _postTypes.map((type) {
@@ -213,31 +257,48 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                const Text('Title', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Title',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _titleController,
                   decoration: InputDecoration(
                     hintText: 'Enter the post title',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Title is required' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Title is required' : null,
                 ),
 
                 if (_selectedType == 'Poll') ...[
                   const SizedBox(height: 16),
-                  const Text('Question', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Question',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _questionController,
                     decoration: InputDecoration(
                       hintText: 'Enter poll question',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    validator: (value) => _selectedType == 'Poll' && value!.isEmpty ? 'Question is required' : null,
+                    validator: (value) =>
+                        _selectedType == 'Poll' && value!.isEmpty
+                        ? 'Question is required'
+                        : null,
                   ),
                   const SizedBox(height: 16),
-                  const Text('Options', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Options',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   ..._optionControllers.asMap().entries.map((entry) {
                     int idx = entry.key;
                     return Padding(
@@ -249,33 +310,50 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                               controller: entry.value,
                               decoration: InputDecoration(
                                 hintText: 'Option ${idx + 1}',
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
-                              validator: (value) => _selectedType == 'Poll' && value!.isEmpty ? 'Option required' : null,
+                              validator: (value) =>
+                                  _selectedType == 'Poll' && value!.isEmpty
+                                  ? 'Option required'
+                                  : null,
                             ),
                           ),
                           if (_optionControllers.length > 2)
                             IconButton(
-                              icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                              onPressed: () => setState(() => _optionControllers.removeAt(idx)),
+                              icon: const Icon(
+                                Icons.remove_circle_outline,
+                                color: Colors.red,
+                              ),
+                              onPressed: () => setState(
+                                () => _optionControllers.removeAt(idx),
+                              ),
                             ),
                         ],
                       ),
                     );
                   }),
                   TextButton.icon(
-                    onPressed: () => setState(() => _optionControllers.add(TextEditingController())),
+                    onPressed: () => setState(
+                      () => _optionControllers.add(TextEditingController()),
+                    ),
                     icon: const Icon(Icons.add),
                     label: const Text('Add Option'),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Expiry Date', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Expiry Date',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
                       final date = await showDatePicker(
                         context: context,
-                        initialDate: DateTime.now().add(const Duration(days: 1)),
+                        initialDate: DateTime.now().add(
+                          const Duration(days: 1),
+                        ),
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 30)),
                       );
@@ -288,14 +366,21 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(_pollExpiry == null ? 'Select Expiry Date' : _pollExpiry.toString().split(' ')[0]),
+                      child: Text(
+                        _pollExpiry == null
+                            ? 'Select Expiry Date'
+                            : _pollExpiry.toString().split(' ')[0],
+                      ),
                     ),
                   ),
                 ],
 
                 if (_selectedType == 'Event') ...[
                   const SizedBox(height: 16),
-                  const Text('Event Date', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Event Date',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
@@ -311,10 +396,16 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                             context: context,
                             initialTime: TimeOfDay.now(),
                           );
-                          if(!mounted) return;
+                          if (!mounted) return;
                           if (time != null) {
                             setState(() {
-                              _eventDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+                              _eventDate = DateTime(
+                                date.year,
+                                date.month,
+                                date.day,
+                                time.hour,
+                                time.minute,
+                              );
                             });
                           }
                         }
@@ -327,32 +418,50 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(_eventDate == null ? 'Select Event Date & Time' : _eventDate.toString().substring(0, 16)),
+                      child: Text(
+                        _eventDate == null
+                            ? 'Select Event Date & Time'
+                            : _eventDate.toString().substring(0, 16),
+                      ),
                     ),
                   ),
                 ],
 
                 if (_selectedType == 'Birthday') ...[
                   const SizedBox(height: 16),
-                  const Text('Select Employee', style: TextStyle(fontWeight: FontWeight.w500)),
+                  const Text(
+                    'Select Employee',
+                    style: TextStyle(fontWeight: FontWeight.w500),
+                  ),
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: _showEmployeeSelection,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.person_search, color: Colors.grey.shade600, size: 20),
+                          Icon(
+                            Icons.person_search,
+                            color: Colors.grey.shade600,
+                            size: 20,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              _selectedEmployee == null ? 'Search and select employee' : _selectedEmployee!.name,
+                              _selectedEmployee == null
+                                  ? 'Search and select employee'
+                                  : _selectedEmployee!.name,
                               style: TextStyle(
-                                color: _selectedEmployee == null ? Colors.grey.shade600 : Colors.black,
+                                color: _selectedEmployee == null
+                                    ? Colors.grey.shade600
+                                    : Colors.black,
                                 fontSize: 14,
                               ),
                             ),
@@ -367,24 +476,37 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                       padding: const EdgeInsets.only(top: 8.0),
                       child: Text(
                         'ID: ${_selectedEmployee!.employeeID}',
-                        style: const TextStyle(fontSize: 12, color: Color(0xFF26A69A), fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF26A69A),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                 ],
                 const SizedBox(height: 16),
-                const Text('Message', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Message',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _messageController,
                   maxLines: 4,
                   decoration: InputDecoration(
                     hintText: 'Share your news or announcement...',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  validator: (value) => value!.isEmpty ? 'Message is required' : null,
+                  validator: (value) =>
+                      value!.isEmpty ? 'Message is required' : null,
                 ),
                 const SizedBox(height: 16),
-                const Text('Image (Optional)', style: TextStyle(fontWeight: FontWeight.w500)),
+                const Text(
+                  'Image (Optional)',
+                  style: TextStyle(fontWeight: FontWeight.w500),
+                ),
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: _isUploading ? null : _pickAndUploadImage,
@@ -393,15 +515,22 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       color: Colors.teal.withValues(alpha: 0.05),
-                      border: Border.all(color: Colors.teal.withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: Colors.teal.withValues(alpha: 0.2),
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: _isUploading 
-                      ? const Center(child: CircularProgressIndicator())
-                      : _uploadedImageUrl != null 
+                    child: _isUploading
+                        ? const Center(child: CircularProgressIndicator())
+                        : _uploadedImageUrl != null
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            child: Image.network(_uploadedImageUrl!, height: 100, width: double.infinity, fit: BoxFit.cover),
+                            child: Image.network(
+                              _uploadedImageUrl!,
+                              height: 100,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
                           )
                         : Column(
                             children: [
@@ -410,32 +539,58 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                                 child: Icon(Icons.upload, color: Colors.white),
                               ),
                               const SizedBox(height: 8),
-                              const Text('Tap to select image', style: TextStyle(color: Colors.grey)),
+                              const Text(
+                                'Tap to select image',
+                                style: TextStyle(color: Colors.grey),
+                              ),
                             ],
                           ),
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text('• Allowed: JPG, JPEG, PNG, GIF (Max: 3 MB)', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                const Text(
+                  '• Allowed: JPG, JPEG, PNG, GIF (Max: 3 MB)',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
                 const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: _isPosting || _isUploading ? null : _handlePost,
+                      onPressed: _isPosting || _isUploading
+                          ? null
+                          : _handlePost,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF26A69A),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                       ),
                       child: _isPosting
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : const Text('Post', style: TextStyle(color: Colors.white)),
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Post',
+                              style: TextStyle(color: Colors.white),
+                            ),
                     ),
                   ],
                 ),
@@ -450,55 +605,64 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   Future<void> _handlePost() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedType == 'Poll' && _pollExpiry == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select poll expiry date')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select poll expiry date')),
+        );
         return;
       }
-      
+
       if (_selectedType == 'Event' && _eventDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select event date')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select event date')),
+        );
         return;
       }
 
       if (_selectedType == 'Birthday' && _selectedEmployee == null) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an employee')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select an employee')),
+        );
         return;
       }
 
       setState(() => _isPosting = true);
-      
+
       final authProvider = context.read<AuthProvider>();
       final socialProvider = context.read<SocialProvider>();
-      
+
       final newPost = SocialPostModel(
         id: '',
         type: _selectedType.toLowerCase().replaceAll(' ', ''),
         title: _titleController.text,
         userName: authProvider.userData?['username'],
         userId: authProvider.userData?['employeeId'],
-        employeeName: _selectedType == 'Birthday' ? _selectedEmployee!.name : null,
+        employeeName: _selectedType == 'Birthday'
+            ? _selectedEmployee!.name
+            : null,
         message: _messageController.text,
         imageUrl: _uploadedImageUrl,
         createdBy: authProvider.userData?['employeeId'] ?? 'Unknown',
-        createdAt: DateTime.now(),
+        createdAt: DateTime.now().toUtc(),
+
         likes: [],
         comments: [],
         question: _selectedType == 'Poll' ? _questionController.text : null,
         expiry: _selectedType == 'Poll' ? _pollExpiry : null,
-        options: _selectedType == 'Poll' 
-            ? _optionControllers.map((c) => PollOption(label: c.text)).toList() 
+        options: _selectedType == 'Poll'
+            ? _optionControllers.map((c) => PollOption(label: c.text)).toList()
             : null,
         eventDate: _selectedType == 'Event' ? _eventDate : null,
       );
-      
+
       final success = await socialProvider.createPost(newPost);
-      
+
       setState(() => _isPosting = false);
-      
+
       if (success) {
         if (mounted) Navigator.pop(context);
       } else {
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Failed to create post')),
           );
         }

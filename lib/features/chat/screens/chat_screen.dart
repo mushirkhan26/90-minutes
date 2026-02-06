@@ -237,7 +237,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                     userId: widget.currentUserId,
                   );
                 } catch (e) {
-                  _logger.error('CHAT_SCREEN', '❌ Failed to clear chat', error: e);
+                  _logger.error(
+                    'CHAT_SCREEN',
+                    '❌ Failed to clear chat',
+                    error: e,
+                  );
                 }
               },
             ),
@@ -260,31 +264,11 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
 
     final conversationId = _generateConversationId();
     final messageId = _uuid.v4();
-    final timestamp = DateTime.now();
-
-    // ✅ 1️⃣ Local message create cheyyadam
-    final localMessage = ChatMessageModel(
-      messageId: messageId,
-      message: text,
-      sender: widget.currentUserId,
-      senderName: widget.currentUserName,
-      timestamp: timestamp,
-      messageType: type,
-      fileUrl: fileUrl,
-      fileName: fileName,
-      conversationId: conversationId,
-      delivered: false,
-      read: true,
-    );
-
-    // ✅ 2️⃣ UI lo immediate ga add cheyyadam
-    _socketProvider.addLocalMessage(localMessage);
-
-    _messageController.clear();
-    _scrollToBottom();
-
     // ✅ 3️⃣ Socket ki send try cheyyadam
     try {
+      _messageController.clear();
+      _scrollToBottom();
+
       await _socketProvider.sendMessage(
         sender: widget.currentUserId,
         senderName: widget.currentUserName,

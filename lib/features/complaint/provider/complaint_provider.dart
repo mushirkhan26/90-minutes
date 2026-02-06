@@ -96,8 +96,7 @@ class ComplaintProvider extends ChangeNotifier {
         return false;
       }
 
-      final ApiResponse response =
-          await _complaintService.addComplaint(
+      final ApiResponse response = await _complaintService.addComplaint(
         name: loggedInName,
         employeeId: loggedInEmployeeId,
         category: category,

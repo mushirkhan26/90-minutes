@@ -59,7 +59,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
       (g) => g.groupId == _group.groupId,
       orElse: () => _group,
     );
-    
+
     if (updatedGroup != _group) {
       setState(() {
         _group = updatedGroup;
@@ -203,19 +203,24 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
 
                   // 🚀 Optimistic UI Update
                   final previousMembers = List<String>.from(_group.members);
-                  final newMemberIds = _selectedMembers.map((e) => e.employeeID).toList();
-                  
+                  final newMemberIds = _selectedMembers
+                      .map((e) => e.employeeID)
+                      .toList();
+
                   setState(() {
-                    _isLoading = true; // Set loading first to block stale socket updates
+                    _isLoading =
+                        true; // Set loading first to block stale socket updates
                     _group = _group.copyWith(
                       members: [..._group.members, ...newMemberIds],
                     );
                     _filteredEmployees = _employees
-                        .where((emp) => !_group.members.contains(emp.employeeID))
+                        .where(
+                          (emp) => !_group.members.contains(emp.employeeID),
+                        )
                         .toList();
                   });
 
-                  Navigator.pop(context); 
+                  Navigator.pop(context);
 
                   try {
                     await _groupSocketProvider.addGroupMembers(
@@ -223,9 +228,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       newMemberIds,
                       _currentUserId!,
                     );
-                    
+
                     if (mounted) {
-                       
                       // ignore: use_build_context_synchronously
                       AlertHelper.snackBarSuccess(context, 'Members added!');
                     }
@@ -235,11 +239,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       setState(() {
                         _group = _group.copyWith(members: previousMembers);
                         _filteredEmployees = _employees
-                            .where((emp) => !_group.members.contains(emp.employeeID))
+                            .where(
+                              (emp) => !_group.members.contains(emp.employeeID),
+                            )
                             .toList();
                       });
                       // ignore: use_build_context_synchronously
-                      AlertHelper.snackBarError(context, 'Failed to add members: $e');
+                      AlertHelper.snackBarError(
+                        context,
+                        'Failed to add members: $e',
+                      );
                     }
                   } finally {
                     if (mounted) setState(() => _isLoading = false);
@@ -394,8 +403,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           userId: _currentUserId ?? '',
         );
         if (mounted) {
-           Navigator.popUntil(context, (route) => route.isFirst);
-           AlertHelper.snackBarSuccess(context, 'Left group successfully');
+          Navigator.popUntil(context, (route) => route.isFirst);
+          AlertHelper.snackBarSuccess(context, 'Left group successfully');
         }
       } catch (e) {
         if (mounted) {

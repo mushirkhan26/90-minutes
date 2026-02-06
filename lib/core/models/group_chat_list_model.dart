@@ -6,6 +6,8 @@ class GroupChatModel {
   final List<String> members;
   final String createdBy;
   final DateTime createdAt;
+  final String? lastMessage;
+  final DateTime? lastMessageTime;
 
   GroupChatModel({
     required this.groupId,
@@ -15,6 +17,8 @@ class GroupChatModel {
     required this.members,
     required this.createdBy,
     required this.createdAt,
+    this.lastMessage,
+    this.lastMessageTime,
   });
 
   // 🏗️ Create from backend/server map
@@ -29,6 +33,12 @@ class GroupChatModel {
       createdAt: map['createdAt'] is String
           ? DateTime.parse(map['createdAt'])
           : DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
+      lastMessage: map['lastMessage'], // ✅ ADD
+      lastMessageTime:
+          map['lastMessageTime'] !=
+              null // ✅ ADD
+          ? DateTime.parse(map['lastMessageTime'])
+          : null,
     );
   }
 
@@ -42,6 +52,8 @@ class GroupChatModel {
       'members': members,
       'createdBy': createdBy,
       'createdAt': createdAt.toIso8601String(),
+      'lastMessage': lastMessage,
+      'lastMessageTime': lastMessageTime?.toIso8601String(),
     };
   }
 
@@ -55,6 +67,10 @@ class GroupChatModel {
       members: List<String>.from(map['members'] ?? []),
       createdBy: map['createdBy'],
       createdAt: DateTime.parse(map['createdAt']),
+      lastMessage: map['lastMessage'], // ✅ ADD
+      lastMessageTime: map['lastMessageTime'] != null
+          ? DateTime.parse(map['lastMessageTime'])
+          : null,
     );
   }
   // ✏️ Copy existing model with changes
@@ -66,6 +82,8 @@ class GroupChatModel {
     List<String>? members,
     String? createdBy,
     DateTime? createdAt,
+    String? lastMessage,
+    DateTime? lastMessageTime,
   }) {
     return GroupChatModel(
       groupId: groupId ?? this.groupId,
@@ -75,6 +93,8 @@ class GroupChatModel {
       members: members ?? this.members,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
+      lastMessage: lastMessage ?? this.lastMessage,
+      lastMessageTime: lastMessageTime ?? this.lastMessageTime,
     );
   }
 }

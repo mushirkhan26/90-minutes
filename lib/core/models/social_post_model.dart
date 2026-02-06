@@ -13,7 +13,7 @@ class SocialPostModel {
   final DateTime createdAt;
   final List<String> likes;
   final List<SocialComment> comments;
-  
+
   // New fields for Poll
   final String? question;
   final DateTime? expiry;

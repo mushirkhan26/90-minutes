@@ -37,8 +37,6 @@ import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
 import 'package:hrtz_hrms/features/employee_directory/screens/employee_directory_screen.dart';
 
-
-
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -73,7 +71,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const SplashScreen()),
     ),
 
     /// 🔐 Login
@@ -87,7 +86,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.forgotPasswordScreen,
       name: 'forgot-password',
-      pageBuilder: (context, state) => buildTransitionPage(const ForgotPasswordScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const ForgotPasswordScreen()),
     ),
 
     GoRoute(
@@ -119,7 +119,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.onboardingRoute,
       name: 'onboarding',
-      pageBuilder: (context, state) => buildTransitionPage(const OnboardingFormScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const OnboardingFormScreen()),
     ),
 
     /// Navigation Shell for main app after login
@@ -129,33 +130,38 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.homeRoute,
           name: 'home',
-          pageBuilder: (context, state) => buildTransitionPage(const HomeScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const HomeScreen()),
         ),
         GoRoute(
           path: AppRoutes.chatRoute,
           name: 'chat',
-          pageBuilder: (context, state) => buildTransitionPage(const ChatListScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const ChatListScreen()),
         ),
         GoRoute(
           path: AppRoutes.meetRoute,
           name: 'meet',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) => buildTransitionPage(const MeetScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MeetScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailRoute,
           name: 'mail',
-          pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(const MailScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailDetail,
           name: '/mail_detail',
-          pageBuilder: (context, state) =>
-              buildTransitionPage(MailDetailsScreen(mail: state.extra as MailModel)),
+          pageBuilder: (context, state) => buildTransitionPage(
+            MailDetailsScreen(mail: state.extra as MailModel),
+          ),
         ),
       ],
     ),
-    
+
     // individual chat route
     GoRoute(
       path: '${AppRoutes.chatRoute}/:otherUserId',
@@ -164,7 +170,8 @@ final GoRouter appRouter = GoRouter(
         final otherUserId = state.pathParameters['otherUserId']!;
         final extra = state.extra as Map<String, dynamic>?;
         final otherUserName = extra?['otherUserName'] ?? 'User';
-        final currentUserData = extra?['currentUserData'] as Map<String, dynamic>?;
+        final currentUserData =
+            extra?['currentUserData'] as Map<String, dynamic>?;
 
         return ChatScreen(
           currentUserId: currentUserData?['employeeId'] ?? '',
@@ -174,7 +181,7 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-    
+
     // Group chat route
     GoRoute(
       path: '${AppRoutes.chatRoute}/group/:groupId',
@@ -216,43 +223,45 @@ final GoRouter appRouter = GoRouter(
       name: '/compose-mail',
       builder: (context, state) => const ComposeMailScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.permissionsRoute,
       name: '/permissions',
-      pageBuilder: (context, state) => buildTransitionPage(const PermissionsScreen()),
+      pageBuilder: (context, state) =>
+          buildTransitionPage(const PermissionsScreen()),
     ),
-    
+
     GoRoute(
       path: AppRoutes.faceverification,
       name: '/face-verification',
-      builder: (context, state) => FaceVerification(isClockIn: true, onVerified: () {}),
+      builder: (context, state) =>
+          FaceVerification(isClockIn: true, onVerified: () {}),
     ),
-    
+
     GoRoute(
       path: AppRoutes.userProfile,
       name: '/user-profile',
       builder: (context, state) => const ProfileScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.leaveRequest,
       name: '/leave-request',
       builder: (context, state) => const LeaveRequestScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.adminLeaveApproval,
       name: '/admin-leave-approval',
       builder: (context, state) => const AdminLeaveApprovalScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.holidayCalendar,
       name: '/holiday-calendar',
       builder: (context, state) => const HolidayCalendarScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.tasksRoute,
       name: '/tasks',
@@ -264,13 +273,13 @@ final GoRouter appRouter = GoRouter(
       name: 'general-hr-tasks',
       builder: (context, state) => const GeneralHRTasksScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.socialHub,
       name: '/social-hub',
       builder: (context, state) => const SocialHubScreen(),
     ),
-    
+
     GoRoute(
       path: AppRoutes.resignation,
       name: '/resignation',
@@ -335,7 +344,10 @@ extension AuthNavigation on BuildContext {
 
     push(
       '${AppRoutes.chatRoute}/$otherUserId',
-      extra: {'otherUserName': otherUserName, 'currentUserData': currentUserData},
+      extra: {
+        'otherUserName': otherUserName,
+        'currentUserData': currentUserData,
+      },
     );
   }
 

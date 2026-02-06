@@ -22,6 +22,6 @@ class HolidayProvider extends ChangeNotifier {
     }
 
     isLoading = false;
-    notifyListeners();
+    notifyListeners(); // 🔹 tells UI to stop loader
   }
 }

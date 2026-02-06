@@ -33,14 +33,14 @@ class _MailScreenState extends State<MailScreen> {
 
   Future<void> _handleRefresh(MailProvider provider) async {
     if (_selectedFolder == 'Inbox') {
-    await provider.fetchInbox(forceRefresh: true);
-  } else if (_selectedFolder == 'Sent'){
-   await provider.fetchSent(forceRefresh: true);
-   } else if (_selectedFolder == 'Trash') {
-    await provider.fetchTrash(forceRefresh: true);
-    } else if (_selectedFolder == 'Starred'){
-     await provider.fetchStarredMails(forceRefresh: true);
-  }
+      await provider.fetchInbox(forceRefresh: true);
+    } else if (_selectedFolder == 'Sent') {
+      await provider.fetchSent(forceRefresh: true);
+    } else if (_selectedFolder == 'Trash') {
+      await provider.fetchTrash(forceRefresh: true);
+    } else if (_selectedFolder == 'Starred') {
+      await provider.fetchStarredMails(forceRefresh: true);
+    }
   }
 
   void _onFolderSelected(String folder) {
@@ -56,14 +56,14 @@ class _MailScreenState extends State<MailScreen> {
     provider.setActiveFolder(folder);
 
     if (folder == 'Inbox') {
-    provider.fetchInbox();
-   } else if (folder == 'Sent') {
-    provider.fetchSent();
+      provider.fetchInbox();
+    } else if (folder == 'Sent') {
+      provider.fetchSent();
     } else if (folder == 'Trash') {
-    provider.fetchTrash();
-   } else if (folder == 'Starred') {
-    provider.fetchStarredMails();
-  }
+      provider.fetchTrash();
+    } else if (folder == 'Starred') {
+      provider.fetchStarredMails();
+    }
   }
 
   void _toggleSelection(MailModel mail) {
@@ -105,9 +105,14 @@ class _MailScreenState extends State<MailScreen> {
         child: Scaffold(
           backgroundColor: Colors.grey[100],
           appBar: AppBar(
-            title: _isSelectionMode ? Text('${_selectedMails.length} selected') : Text(_selectedFolder),
+            title: _isSelectionMode
+                ? Text('${_selectedMails.length} selected')
+                : Text(_selectedFolder),
             leading: _isSelectionMode
-                ? IconButton(icon: const Icon(Icons.close), onPressed: _exitSelectionMode)
+                ? IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: _exitSelectionMode,
+                  )
                 : null,
             actions: _isSelectionMode
                 ? _buildSelectionActions(provider, mails)
@@ -118,12 +123,20 @@ class _MailScreenState extends State<MailScreen> {
                     ),
                   ],
           ),
-          drawer: _isSelectionMode ? null : MailDrawer(selectedFolder: _selectedFolder, onFolderSelected: _onFolderSelected),
+          drawer: _isSelectionMode
+              ? null
+              : MailDrawer(
+                  selectedFolder: _selectedFolder,
+                  onFolderSelected: _onFolderSelected,
+                ),
           body: Column(
             children: [
               if (!_isSelectionMode)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   child: CustomSearchBar(
                     enable: true,
                     controller: mailSearchController,
@@ -131,66 +144,83 @@ class _MailScreenState extends State<MailScreen> {
                     onChanged: provider.searchMails,
                   ),
                 ),
-              if (_selectedFolder == 'Trash' && !_isSelectionMode && mails.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      TextButton.icon(
-                        icon: const Icon(Icons.restore_from_trash),
-                        label: const Text('Restore All'),
-                        onPressed: () => provider.restoreMany(mails),
-                      ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.delete_forever),
-                        label: const Text('Empty Trash'),
-                        onPressed: provider.deleteAllTrash,
-                      ),
-                    ],
+              if (_selectedFolder == 'Trash' &&
+                  !_isSelectionMode &&
+                  mails.isNotEmpty)
+                if (_selectedFolder == 'Trash' &&
+                    !_isSelectionMode &&
+                    mails.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton.icon(
+                          icon: const Icon(Icons.restore_from_trash),
+                          label: const Text('Restore All'),
+                          onPressed: () => provider.restoreMany(mails),
+                        ),
+                        TextButton.icon(
+                          icon: const Icon(Icons.delete_forever),
+                          label: const Text('Empty Trash'),
+                          onPressed: provider.deleteAllTrash,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
               Expanded(
                 child: provider.state == MailState.loading
                     ? const Center(child: CircularProgressIndicator())
                     : mails.isEmpty
-                        ? const Center(child: Text('No mails found'))
-                        : RefreshIndicator(
-                            onRefresh: () => _handleRefresh(provider),
-                            child: ListView.builder(
-                              itemCount: mails.length,
-                              itemBuilder: (context, index) {
-                                final mail = mails[index];
-                                final isSelected = _selectedMails.contains(mail);
-                                return GestureDetector(
-                                  onLongPress: () => _enterSelectionMode(mail),
-                                  onTap: _isSelectionMode
-                                      ? () => _toggleSelection(mail)
-                                      : () => context.pushNamed(AppRoutes.mailDetail, extra: mail),
-                                  child: MailTile(
-                                    mail: mail,
-                                    isTrash: _selectedFolder == 'Trash',
-                                    currentUserId: provider.currentUserId, // ✅ Corrected parameter
-                                    isSelected: isSelected,
-                                    isSelectionMode: _isSelectionMode,
-                                    onToggleSelect: () => _toggleSelection(mail),
-                                    onMoveToTrash: () => provider.moveMailToTrash(mail),
-                                    onRestore: () => provider.restoreMail(mail),
-                                    onDelete: () => provider.deleteMail(mail),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                    ? const Center(child: Text('No mails found'))
+                    : RefreshIndicator(
+                        onRefresh: () => _handleRefresh(provider),
+                        child: ListView.builder(
+                          itemCount: mails.length,
+                          itemBuilder: (context, index) {
+                            final mail = mails[index];
+                            final isSelected = _selectedMails.contains(mail);
+                            return GestureDetector(
+                              onLongPress: () => _enterSelectionMode(mail),
+                              onTap: _isSelectionMode
+                                  ? () => _toggleSelection(mail)
+                                  : () => context.pushNamed(
+                                      AppRoutes.mailDetail,
+                                      extra: mail,
+                                    ),
+                              child: MailTile(
+                                mail: mail,
+                                isTrash: _selectedFolder == 'Trash',
+                                currentUserId: provider
+                                    .currentUserId, // ✅ Corrected parameter
+                                isSelected: isSelected,
+                                isSelectionMode: _isSelectionMode,
+                                onToggleSelect: () => _toggleSelection(mail),
+                                onMoveToTrash: () =>
+                                    provider.moveMailToTrash(mail),
+                                onRestore: () => provider.restoreMail(mail),
+                                onDelete: () => provider.deleteMail(mail),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
               ),
             ],
           ),
-          floatingActionButton: (!_isSelectionMode && _selectedFolder != 'Trash')
+          floatingActionButton:
+              (!_isSelectionMode && _selectedFolder != 'Trash')
               ? FloatingActionButton.extended(
                   backgroundColor: AppColors.primary,
                   onPressed: () => context.pushNamed(AppRoutes.composeMail),
                   icon: const Icon(Icons.edit_rounded, color: Colors.white),
-                  label: Text('Compose', style: const TextStyle(color: Colors.white)),
+                  label: Text(
+                    'Compose',
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 )
               : null,
         ),
@@ -198,7 +228,10 @@ class _MailScreenState extends State<MailScreen> {
     );
   }
 
-  List<Widget> _buildSelectionActions(MailProvider provider, List<MailModel> mails) {
+  List<Widget> _buildSelectionActions(
+    MailProvider provider,
+    List<MailModel> mails,
+  ) {
     return [
       IconButton(
         icon: const Icon(Icons.select_all),
