@@ -134,9 +134,10 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
       return GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+          crossAxisCount: 3,
           mainAxisSpacing: 16,
           crossAxisSpacing: 16,
+          childAspectRatio: 1,
         ),
         itemCount: 6,
         itemBuilder: (_, __) => const ShimmerTile(height: 120),
@@ -155,9 +156,10 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
     return GridView.builder(
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 3,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
+        childAspectRatio: 1,
       ),
       itemCount: filteredSubDepartments.length,
       itemBuilder: (context, index) {

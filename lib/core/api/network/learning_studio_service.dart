@@ -136,4 +136,97 @@ Future<ApiResponse<Map<String, dynamic>>> deleteCourse(
     },
   );
 }
+
+// ================== COURSE DETAIL COUNT ==================
+/// GET: courseDetail/getCount
+Future<ApiResponse<Map<String, dynamic>>> getCourseCount() async {
+  final token = await _secureStorage.getToken();
+  if (token == null) {
+    throw Exception('Token not found');
+  }
+
+  _logger.logNetwork('Fetching course count');
+
+  return await _apiHelper.get<Map<String, dynamic>>(
+    'courseDetail/getCount',
+    headers: {
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
+// ================== EMPLOYEE COURSE DETAILS ==================
+/// GET: courseDetail/employee/:employeeId
+Future<ApiResponse<Map<String, dynamic>>> getEmployeeCourses(
+  String employeeId,
+) async {
+  final token = await _secureStorage.getToken();
+  if (token == null) {
+    throw Exception('Token not found');
+  }
+
+  final endpoint = 'courseDetail/employee/$employeeId';
+
+  _logger.logNetwork(
+      'Fetching courses for employee $employeeId');
+
+  return await _apiHelper.get<Map<String, dynamic>>(
+    endpoint,
+    headers: {
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
+// ================== UPDATE COURSE STATUS ==================
+/// PUT: courseDetail/update/:id
+/// body: { courseStatus: "Completed" | "Ongoing" | "NotStarted" }
+Future<ApiResponse<Map<String, dynamic>>> updateCourseStatus({
+  required String courseDetailId,
+  required String courseStatus,
+}) async {
+  final token = await _secureStorage.getToken();
+  if (token == null) {
+    throw Exception('Token not found');
+  }
+
+  final endpoint = 'courseDetail/update/$courseDetailId';
+
+  _logger.logNetwork(
+    'Updating course status for courseDetailId: $courseDetailId → $courseStatus',
+  );
+
+  return await _apiHelper.put<Map<String, dynamic>>(
+    endpoint,
+    {
+      "courseStatus": courseStatus,
+    },
+    headers: {
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
+// ================== GET COURSE BY ID ==================
+/// GET: course/getone/:id
+Future<ApiResponse<Map<String, dynamic>>> getCourseById(
+  String courseId,
+) async {
+  final token = await _secureStorage.getToken();
+  if (token == null) {
+    throw Exception('Token not found');
+  }
+
+  final endpoint = 'course/getone/$courseId';
+
+  _logger.logNetwork('Fetching course details for courseId: $courseId');
+
+  return await _apiHelper.get<Map<String, dynamic>>(
+    endpoint,
+    headers: {
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
 }

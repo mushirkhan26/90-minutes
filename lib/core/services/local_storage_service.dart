@@ -47,6 +47,14 @@ class LocalStorageService {
   static const String keyAvailableLeave = 'available_leave';
   static const String keyAttendanceData = 'attendance_data';
 
+  ///learning studio related keys
+  // Learning Studio cache keys
+static const String keyDepartments = 'ls_departments';
+static const String keySubDepartmentsPrefix = 'ls_sub_departments_';
+static const String keyCoursesPrefix = 'ls_courses_';
+static const String keyEmployeeCourses = 'ls_employee_courses';
+static const String keyCourseCount = 'ls_course_count';
+
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -79,6 +87,24 @@ class LocalStorageService {
     await prefs.remove(key);
     _logger.logStorage('Removed string: $key');
   }
+
+  Future<void> saveJson(String key, dynamic data) async {
+  await prefs.setString(key, jsonEncode(data));
+  await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+  _logger.logStorage('Saved JSON cache: $key');
+}
+
+Future<dynamic> getJson(String key) async {
+  final jsonString = prefs.getString(key);
+  if (jsonString == null) return null;
+  _logger.logStorage('Loaded JSON cache: $key');
+  return jsonDecode(jsonString);
+}
+
+Future<DateTime?> getTimestamp(String key) async {
+  final ts = prefs.getInt('${key}_timestamp');
+  return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+}
 
   /// 🔘 Boolean
   Future<void> setBool(String key, bool value) async {
