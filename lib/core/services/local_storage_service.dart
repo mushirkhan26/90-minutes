@@ -6,6 +6,7 @@ import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
+import 'package:hrtz_hrms/core/models/performance_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,6 +36,10 @@ class LocalStorageService {
   static const String keyInboxMails = 'inbox_mails';
   static const String keySentMails = 'sent_mails';
   static const String keyTrashMails = 'trash_mails';
+
+  // 📈 Performance caching related keys
+  static const String keyMyRatings = 'my_ratings';
+  static const String keyTeamRatings = 'team_ratings';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -263,6 +268,26 @@ Future<DateTime?> getTimestamp(String key) async {
     await prefs.remove(key);
     await prefs.remove('${key}_timestamp');
     _logger.logStorage('Cleared mail cache for $key');
+  }
+
+  // 📈 Performance related save methods
+  Future<void> savePerformanceRatings(String key, List<PerformanceModel> ratings) async {
+    final jsonList = ratings.map((e) => e.toJson()).toList();
+    await prefs.setString(key, jsonEncode(jsonList));
+    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+    _logger.logStorage('Saved ${ratings.length} performance ratings to cache ($key)');
+  }
+
+  Future<List<PerformanceModel>?> getPerformanceRatings(String key) async {
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((json) => PerformanceModel.fromJson(json)).toList();
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse cached performance ratings', error: e);
+      return null;
+    }
   }
 
   //--------------------------------------------------------------------------

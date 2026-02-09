@@ -181,6 +181,14 @@ class HomeScreen extends StatelessWidget {
                           context.goToTasks();
                         },
                       ),
+                      ListTile(
+                        leading: const Icon(Icons.bar_chart),
+                        title: const Text('Performance'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.goToPerformance();
+                        },
+                      ),
                       if (userRole == 'manager' || userRole == 'admin')
                         ListTile(
                           leading: const Icon(Icons.people_alt_outlined),

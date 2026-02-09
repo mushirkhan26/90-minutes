@@ -17,6 +17,7 @@ import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/employee_directory/provider/employee_directory_provider.dart';
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
+import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/registration_provider.dart';
 import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
@@ -77,6 +78,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
         ChangeNotifierProvider(create:  (_) => LearningStudioProvider()),
         ChangeNotifierProvider(create: (_) => RegistrationProvider()),
+        ChangeNotifierProvider(create: (_) => PerformanceProvider()),
         ChangeNotifierProvider(create: (_) => EmployeeDirectoryProvider()),
         ChangeNotifierProvider<MailProvider>(
           create: (_) => MailProvider()..fetchInbox(),
