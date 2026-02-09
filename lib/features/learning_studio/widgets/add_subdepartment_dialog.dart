@@ -1,12 +1,31 @@
 import 'package:flutter/material.dart';
 
-class AddSubDepartmentDialog extends StatelessWidget {
+class AddSubDepartmentDialog extends StatefulWidget {
   final String department;
 
   const AddSubDepartmentDialog({
     super.key,
     required this.department,
   });
+
+  @override
+  State<AddSubDepartmentDialog> createState() =>
+      _AddSubDepartmentDialogState();
+}
+
+class _AddSubDepartmentDialogState
+    extends State<AddSubDepartmentDialog> {
+  final TextEditingController _nameController =
+      TextEditingController();
+  final TextEditingController _descController =
+      TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _descController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,7 +40,7 @@ class AddSubDepartmentDialog extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// 🔹 Header
+            /// Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -42,23 +61,24 @@ class AddSubDepartmentDialog extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            /// 🔹 Subdepartment Name
             _label('Subdepartment Name *'),
-            _input('e.g. Backend Development'),
+            _input(
+              'e.g. Backend Development',
+              controller: _nameController,
+            ),
 
-            /// 🔹 Description
             _label('Description (Optional)'),
             _input(
               'Brief description of this subdepartment',
               maxLines: 3,
+              controller: _descController,
             ),
 
-            /// 🔹 Department (readonly)
             _label('Department'),
             TextField(
               readOnly: true,
               decoration: InputDecoration(
-                hintText: department,
+                hintText: widget.department,
                 filled: true,
                 fillColor: Colors.grey.shade100,
                 border: OutlineInputBorder(
@@ -70,7 +90,6 @@ class AddSubDepartmentDialog extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            /// 🔹 Buttons
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -81,7 +100,11 @@ class AddSubDepartmentDialog extends StatelessWidget {
                 const SizedBox(width: 12),
                 ElevatedButton(
                   onPressed: () {
-                    // ❌ API later
+                    if (_nameController.text.trim().isEmpty) {
+                      return;
+                    }
+
+                
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
@@ -97,7 +120,6 @@ class AddSubDepartmentDialog extends StatelessWidget {
     );
   }
 
-  /// 🔹 Label
   Widget _label(String text) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6, top: 14),
@@ -108,9 +130,13 @@ class AddSubDepartmentDialog extends StatelessWidget {
     );
   }
 
-  /// 🔹 Input
-  Widget _input(String hint, {int maxLines = 1}) {
+  Widget _input(
+    String hint, {
+    int maxLines = 1,
+    required TextEditingController controller,
+  }) {
     return TextField(
+      controller: controller,
       maxLines: maxLines,
       decoration: InputDecoration(
         hintText: hint,

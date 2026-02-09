@@ -21,7 +21,7 @@ class CourseDetailsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              /// 🔙 BACK BUTTON
+              /// BACK BUTTON
               GestureDetector(
                 onTap: () => Navigator.pop(context),
                 child: Container(
