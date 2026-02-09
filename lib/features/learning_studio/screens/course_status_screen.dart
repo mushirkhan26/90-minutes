@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
 import 'package:hrtz_hrms/features/learning_studio/widgets/course_video_player.dart';
 import '../provider/learning_studio_provider.dart';
 
@@ -32,8 +33,20 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<LearningStudioProvider>();
+    final provider = context.watch<LearningStudioProvider>();
+
+    if (provider.state == LearningStudioState.loading) {
+      return const Scaffold(
+        body: Padding(
+          padding: EdgeInsets.all(16),
+          child: ShimmerTile(height: 180),
+        ),
+      );
+    }
+
     final courseData = widget.course;
+    
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -74,10 +87,10 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
   // ================= TOP CARD =================
 
   Widget _topCard(
-    String name,
-    String details,
-    String duration,
-    String status,
+    String? name,
+    String? details,
+    String? duration,
+    String? status,
   ) {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -86,17 +99,17 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name, style: _title()),
+          Text(name ?? '', style: _title()),
           const SizedBox(height: 6),
-          Text(details , style: _grey()),
+          Text(details ?? '', style: _grey()),
           const SizedBox(height: 12),
           Row(
             children: [
               const Icon(Icons.access_time, size: 18),
               const SizedBox(width: 6),
-              Text(duration ),
+              Text(duration ?? 'N/A'),
               const SizedBox(width: 12),
-              _statusChipWithPercent(status),
+              _statusChipWithPercent(status ?? 'NotStarted'),
             ],
           ),
         ],
