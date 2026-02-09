@@ -36,5 +36,8 @@ class AppRoutes {
   static const String learningStudio = '/learning-studio';
   static const String newRegistrations = '/new-registrations';
   static const String employeeDirectory = '/employee-directory';
+  static const String performance = '/performance';
+  static const String previousReviews = '/previous-reviews';
+  static const String reviewDetails = '/review-details';
 
 }

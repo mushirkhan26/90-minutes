@@ -17,6 +17,8 @@ import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/new_registrations_screen.dart';
+import 'package:hrtz_hrms/features/hr_services/screens/performance_screen.dart';
+import 'package:hrtz_hrms/features/hr_services/screens/previous_reviews_screen.dart';
 import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; 
 import 'package:hrtz_hrms/features/leave/screens/admin_leave_approval_screen.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
@@ -316,6 +318,22 @@ final GoRouter appRouter = GoRouter(
       name: '/employee-directory',
       builder: (context, state) => const EmployeeDirectoryScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.performance,
+      name: '/performance',
+      builder: (context, state) => const PerformanceScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.previousReviews,
+      name: '/previous-reviews',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return PreviousReviewsScreen(
+          employeeName: extra['employeeName'],
+          employeeId: extra['employeeId'],
+        );
+      },
+    ),
   ],
 );
 
@@ -392,6 +410,8 @@ extension AuthNavigation on BuildContext {
   void goToSocialHub() => push(AppRoutes.socialHub);
   void goToNewRegistrations() => push(AppRoutes.newRegistrations);
   void goToEmployeeDirectory() => push(AppRoutes.employeeDirectory);
+  void goToPerformance() => push(AppRoutes.performance);
+  void goToPreviousReviews(String name, String id) => push(AppRoutes.previousReviews, extra: {'employeeName': name, 'employeeId': id});
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {
