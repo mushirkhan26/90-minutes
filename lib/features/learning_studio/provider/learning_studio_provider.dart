@@ -23,9 +23,13 @@ class LearningStudioProvider extends ChangeNotifier {
   List<String> _departments = [];
   final Map<String, List<String>> _subDepartmentsCache = {};
   final Map<String, List<Map<String, dynamic>>> _coursesCache = {};
+  final Set<String> _requestedCourses = {};
 
   Map<String, dynamic>? _courseCount;
   List<Map<String, dynamic>>? _employeeCourses;
+
+  List<Map<String, dynamic>>? _progressHistory;
+  List<Map<String, dynamic>>? get progressHistory => _progressHistory;
 
   List<String> get departments => _departments;
   Map<String, dynamic>? get courseCount => _courseCount;
@@ -33,56 +37,55 @@ class LearningStudioProvider extends ChangeNotifier {
 
   // ================== CONSTRUCTOR ==================
   LearningStudioProvider() {
-    _initialize();
-  }
+   _bootstrap();
 
-  Future<void> _initialize() async {
-    await _loadDepartments();
+  }
+  Future<void> _bootstrap() async {
+    await loadDepartments();
     await loadCourseCount();
   }
 
+  
   // ================== LOAD DEPARTMENTS ==================
-  Future<void> _loadDepartments() async {
-    if (_departments.isNotEmpty) return;
-
-    _state = LearningStudioState.loading;
-    notifyListeners();
-
-    try {
-      //  load from local
-      final cached =
-          await _local.getJson(LocalStorageService.keyDepartments);
-      if (cached != null) {
-        _departments = List<String>.from(cached);
-        _state = LearningStudioState.loaded;
-        notifyListeners();
-        return;
-      }
-
-      //  API call
-      final ApiResponse response = await _service.getDepartments();
-      if (response.success && response.data != null) {
-        final body = response.data as Map<String, dynamic>;
-        _departments =
-            List<String>.from(body['departments'] ?? []);
-
-        //  save locally
-        await _local.saveJson(
-            LocalStorageService.keyDepartments, _departments);
-
-        _state = LearningStudioState.loaded;
-      } else {
-        _errorMessage = response.message;
-        _state = LearningStudioState.error;
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
-      _state = LearningStudioState.error;
-    }
-
-    notifyListeners();
+ Future<void> loadDepartments({bool force = false}) async {
+  if (force) {
+    _departments.clear();
+    await _local.removeString(LocalStorageService.keyDepartments);
   }
 
+  if (_departments.isNotEmpty) return;
+
+  _state = LearningStudioState.loading;
+  notifyListeners();
+
+  try {
+    final cached =
+        await _local.getJson(LocalStorageService.keyDepartments);
+    if (cached != null) {
+      _departments = List<String>.from(cached);
+      _state = LearningStudioState.loaded;
+      notifyListeners();
+      return;
+    }
+
+    final ApiResponse response = await _service.getDepartments();
+    if (response.success && response.data != null) {
+      final body = response.data as Map<String, dynamic>;
+      _departments =
+          List<String>.from(body['departments'] ?? []);
+
+      await _local.saveJson(
+          LocalStorageService.keyDepartments, _departments);
+
+      _state = LearningStudioState.loaded;
+    }
+  } catch (e) {
+    _errorMessage = e.toString();
+    _state = LearningStudioState.error;
+  }
+
+  notifyListeners();
+}
   // ================== LOAD SUB DEPARTMENTS ==================
   Future<void> loadSubDepartments(String department) async {
     if (_subDepartmentsCache.containsKey(department)) return;
@@ -134,58 +137,55 @@ class LearningStudioProvider extends ChangeNotifier {
 
   // ================== LOAD COURSES ==================
   Future<void> loadCourses(String subDepartment) async {
-    if (_coursesCache.containsKey(subDepartment)) return;
+  if (_requestedCourses.contains(subDepartment)) return;
+  _requestedCourses.add(subDepartment);
 
-    _state = LearningStudioState.loading;
-    notifyListeners();
+  _state = LearningStudioState.loading;
+  notifyListeners();
 
-    try {
-      final cacheKey =
-          '${LocalStorageService.keyCoursesPrefix}$subDepartment';
+  try {
+    final cacheKey =
+        '${LocalStorageService.keyCoursesPrefix}$subDepartment';
 
-      //  local
-      final cached = await _local.getJson(cacheKey);
-      if (cached != null) {
-        _coursesCache[subDepartment] =
-            List<Map<String, dynamic>>.from(cached);
-        _state = LearningStudioState.loaded;
-        notifyListeners();
-        return;
-      }
-
-      //  API
-      final ApiResponse response =
-          await _service.getCoursesBySubDepartment(subDepartment);
-
-      if (response.success && response.data != null) {
-        final body = response.data as Map<String, dynamic>;
-        final list =
-            List<Map<String, dynamic>>.from(body['message'] ?? []);
-
-        _coursesCache[subDepartment] = list;
-
-        //  save local
-        await _local.saveJson(cacheKey, list);
-
-        _state = LearningStudioState.loaded;
-      } else {
-        _errorMessage = response.message;
-        _state = LearningStudioState.error;
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
-      _state = LearningStudioState.error;
+    final cached = await _local.getJson(cacheKey);
+    if (cached != null) {
+      _coursesCache[subDepartment] =
+          List<Map<String, dynamic>>.from(cached);
+      _state = LearningStudioState.loaded;
+      notifyListeners();
+      return;
     }
 
-    notifyListeners();
+    final ApiResponse response =
+        await _service.getCoursesBySubDepartment(subDepartment);
+
+    if (response.success && response.data != null) {
+      final body = response.data as Map<String, dynamic>;
+      final list =
+          List<Map<String, dynamic>>.from(body['message'] ?? []);
+
+      _coursesCache[subDepartment] = list;
+      await _local.saveJson(cacheKey, list);
+
+      _state = LearningStudioState.loaded;
+    } else {
+      _errorMessage = response.message;
+      _state = LearningStudioState.error;
+    }
+  } catch (e) {
+    _errorMessage = e.toString();
+    _state = LearningStudioState.error;
   }
 
+  notifyListeners();
+}
   // ================== GETTERS ==================
   List<String> getSubDepartments(String department) {
     return _subDepartmentsCache[department] ?? [];
   }
 
   List<Map<String, dynamic>> getCourses(String subDepartment) {
+    
     return _coursesCache[subDepartment] ?? [];
   }
 
@@ -231,113 +231,139 @@ class LearningStudioProvider extends ChangeNotifier {
 
   // ================== ADD COURSE ==================
   Future<bool> addCourse({
-    required String content,
-    required String courseName,
-    required String createdOn,
-    required String department,
-    required String details,
-    required String duration,
-    required String subDepartment,
-    required List<String> tags,
-    required String videoUrl,
-  }) async {
-    _state = LearningStudioState.loading;
-    notifyListeners();
+  required String content,
+  required String courseName,
+  required String createdOn,
+  required String department,
+  required String details,
+  required String duration,
+  required String subDepartment,
+  required List<String> tags,
+  required String videoUrl,
+}) async {
+  _state = LearningStudioState.loading;
+  notifyListeners();
 
-    try {
-      final response = await _service.addCourse(
-        content: content,
-        courseName: courseName,
-        createdOn: createdOn,
-        department: department,
-        details: details,
-        duration: duration,
-        subDepartment: subDepartment,
-        tags: tags,
-        videoUrl: videoUrl,
-      );
+  try {
+    final response = await _service.addCourse(
+      content: content,
+      courseName: courseName,
+      createdOn: createdOn,
+      department: department,
+      details: details,
+      duration: duration,
+      subDepartment: subDepartment,
+      tags: tags,
+      videoUrl: videoUrl,
+    );
 
-      if (response.success) {
-        _coursesCache.remove(subDepartment);
-        await _local.removeString(
-            '${LocalStorageService.keyCoursesPrefix}$subDepartment');
+    if (response.success) {
+      // clear cache
+      _coursesCache.remove(subDepartment);
+      _requestedCourses.remove(subDepartment);
+      await _local.removeString(
+          '${LocalStorageService.keyCoursesPrefix}$subDepartment');
 
-        await loadCourses(subDepartment);
+      // reload fresh
+      await loadCourses(subDepartment);
+      await loadDepartments(force: true);
 
-        _state = LearningStudioState.loaded;
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = response.message;
-        _state = LearningStudioState.error;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
+      _state = LearningStudioState.loaded;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = response.message;
       _state = LearningStudioState.error;
       notifyListeners();
       return false;
     }
+  } catch (e) {
+    _errorMessage = e.toString();
+    _state = LearningStudioState.error;
+    notifyListeners();
+    return false;
   }
-
+}
   // ================== DELETE COURSE ==================
   Future<bool> deleteCourse({
-    required String courseId,
-    required String subDepartment,
-  }) async {
-    _state = LearningStudioState.loading;
-    notifyListeners();
+  required String courseId,
+  required String subDepartment,
+}) async {
+  _state = LearningStudioState.loading;
+  notifyListeners();
 
-    try {
-      final ApiResponse response =
-          await _service.deleteCourse(courseId);
+  try {
+    final ApiResponse response =
+        await _service.deleteCourse(courseId);
 
-      if (response.success) {
-        _coursesCache.remove(subDepartment);
-        await _local.removeString(
-            '${LocalStorageService.keyCoursesPrefix}$subDepartment');
+    if (response.success) {
+      _coursesCache.remove(subDepartment);
+      _requestedCourses.remove(subDepartment);
+      await _local.removeString(
+          '${LocalStorageService.keyCoursesPrefix}$subDepartment');
 
-        await loadCourses(subDepartment);
+      await loadCourses(subDepartment);
 
-        _state = LearningStudioState.loaded;
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = response.message;
-        _state = LearningStudioState.error;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
+      _state = LearningStudioState.loaded;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = response.message;
       _state = LearningStudioState.error;
       notifyListeners();
       return false;
     }
+  } catch (e) {
+    _errorMessage = e.toString();
+    _state = LearningStudioState.error;
+    notifyListeners();
+    return false;
   }
+}
+    // ================== COURSE COUNT ==================
+  Future<void> loadCourseCount({bool force = false}) async {
+  try {
+    if (force) {
+      await _local.removeString(LocalStorageService.keyCourseCount);
+    }
 
-  // ================== COURSE COUNT ==================
-  Future<void> loadCourseCount() async {
-    try {
-      final cached =
-          await _local.getJson(LocalStorageService.keyCourseCount);
-      if (cached != null) {
-        _courseCount = Map<String, dynamic>.from(cached);
-        notifyListeners();
-        return;
+    final response = await _service.getCourseCount();
+
+    if (response.success && response.data != null) {
+      final body = response.data as Map<String, dynamic>;
+      final message = body['message'] ?? {};
+      final List list = message['latestCourses'] ?? [];
+
+      int completed = 0;
+      int ongoing = 0;
+      int notStarted = 0;
+
+      for (final item in list) {
+        final status = item['courseStatus'];
+        if (status == 'Completed') {
+          completed++;
+        } else if (status == 'Ongoing') {
+          ongoing++;
+        } else {
+          notStarted++;
+        }
       }
 
-      final response = await _service.getCourseCount();
-      if (response.success && response.data != null) {
-        _courseCount = response.data as Map<String, dynamic>;
-        await _local.saveJson(
-            LocalStorageService.keyCourseCount, _courseCount!);
-        notifyListeners();
-      }
-    } catch (_) {}
-  }
+      _courseCount = {
+        'completed': completed,
+        'ongoing': ongoing,
+        'notStarted': notStarted,
+        'history': list, 
+      };
 
+      _progressHistory = List<Map<String, dynamic>>.from(list);
+
+      notifyListeners();
+    }
+  } catch (e) {
+    debugPrint('CourseCount error: $e');
+  }
+}
   // ================== EMPLOYEE COURSES ==================
   Future<void> loadEmployeeCourses(String employeeId) async {
     _state = LearningStudioState.loading;
@@ -443,11 +469,60 @@ Future<void> loadCourseById(String courseId) async {
 
   notifyListeners();
 }
+
+// ================== ASSIGN COURSE TO EMPLOYEE ==================
+Future<bool> assignCourseToEmployee({
+  required String name,
+  required String courseName,
+  required String courseId,
+  required String employeeId,
+  DateTime? startDate,
+}) async {
+  _state = LearningStudioState.loading;
+  notifyListeners();
+
+  try {
+    final response = await _service.assignCourseToEmployee(
+      name: name,
+      courseName: courseName,
+      courseId: courseId,
+      employeeId: employeeId,
+      courseStatus: 'NotStarted',
+      startDate: (startDate ?? DateTime.now()).toIso8601String(),
+    );
+
+    if (response.success) {
+      final cacheKey =
+          '${LocalStorageService.keyEmployeeCourses}_$employeeId';
+      await _local.removeString(cacheKey);
+      await loadEmployeeCourses(employeeId);
+
+       await loadCourseCount(force: true);
+      _state = LearningStudioState.loaded;
+
+      
+
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = response.message;
+      _state = LearningStudioState.error;
+      notifyListeners();
+      return false;
+    }
+  } catch (e) {
+    _errorMessage = e.toString();
+    _state = LearningStudioState.error;
+    notifyListeners();
+    return false;
+  }
+}
   // ================== RESET ==================
   void clearCache() {
     _departments.clear();
     _subDepartmentsCache.clear();
     _coursesCache.clear();
+    _requestedCourses.clear();
     _courseCount = null;
     _selectedCourse = null;
     _employeeCourses = null;

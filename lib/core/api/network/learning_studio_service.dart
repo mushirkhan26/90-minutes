@@ -229,4 +229,39 @@ Future<ApiResponse<Map<String, dynamic>>> getCourseById(
   );
 }
 
+// ================== ASSIGN COURSE TO EMPLOYEE ==================
+/// PUT: courseDetail/add
+Future<ApiResponse<Map<String, dynamic>>> assignCourseToEmployee({
+  required String name,
+  required String courseName,
+  required String courseId,
+  required String employeeId,
+  required String courseStatus,
+  required String startDate,
+}) async {
+  final token = await _secureStorage.getToken();
+  if (token == null) {
+    throw Exception('Token not found');
+  }
+
+  final body = {
+    "name": name,
+    "courseName": courseName,
+    "courseId": courseId,
+    "employeeId": employeeId,
+    "courseStatus": courseStatus,
+    "startDate": startDate,
+  };
+
+  _logger.logNetwork('Assigning course $courseName to employee $employeeId');
+
+  return await _apiHelper.post<Map<String, dynamic>>(
+    'courseDetail/add',
+    body,
+    headers: {
+      'Authorization': 'Bearer $token',
+    },
+  );
+}
+
 }

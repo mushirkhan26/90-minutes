@@ -21,11 +21,12 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_){
       context
-          .read<LearningStudioProvider>()
-          .loadSubDepartments(widget.department);
+        .read<LearningStudioProvider>()
+        .loadSubDepartments(widget.department);
     });
+    
   }
 
   @override
@@ -192,7 +193,7 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF26A69A).withOpacity(0.15),
+                    color: const Color(0xFF26A69A).withValues(alpha:  0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(

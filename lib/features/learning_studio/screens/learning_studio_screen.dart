@@ -1,9 +1,15 @@
+
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../provider/learning_studio_provider.dart';
 import 'sub_department_screen.dart';
 import 'course_status_screen.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/learning_studio/widgets/add_course_bottom_sheet.dart';
+import 'package:fl_chart/fl_chart.dart';
+import 'package:hrtz_hrms/features/learning_studio/screens/progress_history_screen.dart';
+import 'package:hrtz_hrms/features/learning_studio/widgets/progress_history_card.dart';
 
 class LearningStudioScreen extends StatefulWidget {
   const LearningStudioScreen({super.key});
@@ -16,6 +22,8 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<String> _filteredDepartments = [];
 
+  bool isManager = false; //  role flag
+
   @override
   void initState() {
     super.initState();
@@ -24,10 +32,20 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
       final auth = context.read<AuthProvider>();
       final provider = context.read<LearningStudioProvider>();
 
+      final role = auth.userData?['role']?.toString().toLowerCase() ?? '';
+      final bool isManager = role == 'manager';
+      setState(() {
+        this.isManager = isManager;
+      });
+
       final employeeId = auth.userData?['employeeId'];
-      if (employeeId != null) {
+      if (isManager ) {
+        provider.loadCourseCount(force: true); // 
+      } else if(employeeId != null) {
         provider.loadEmployeeCourses(employeeId.toString());
       }
+          _applySearch(provider.departments);
+
     });
   }
 
@@ -44,6 +62,21 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
     _filteredDepartments =
         q.isEmpty ? source : source.where((e) => e.toLowerCase().contains(q)).toList();
   }
+
+  // ================= OPEN ADD COURSE BOTTOM SHEET =================
+  void _openAddCourseBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) {
+        return  AddCourseBottomSheet();
+
+      },
+    );
+  }
+
+  
 
   /// ---------------- MY PROGRESS CARD ----------------
   Widget _myProgressItem(
@@ -140,11 +173,135 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
                 ),
               ),
             ),
-          ],
+          ]
         ),
       ),
     );
+
+    
   }
+
+  Widget _summaryCard(String title, int count, Color color) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: Colors.grey.shade300),
+    ),
+    child: Row(
+      children: [
+        Container(
+          width: 6,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(color: Colors.grey),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '$count Courses',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _teamProgressChart(
+  int completed,
+  int ongoing,
+  int notStarted,
+) {
+  final total = completed + ongoing + notStarted;
+
+  if (total == 0) {
+    return Center(
+      child: Column(
+        children: const [
+          SizedBox(height: 40),
+          Text(
+            '0',
+            style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+          ),
+          Text('Courses', style: TextStyle(color: Colors.grey)),
+        ],
+      ),
+    );
+  }
+
+  return Stack(
+    alignment: Alignment.center,
+    children: [
+      SizedBox(
+        height: 220,
+        child: PieChart(
+          PieChartData(
+            centerSpaceRadius: 60, // 🔥 donut hole
+            sectionsSpace: 2,
+            sections: [
+              PieChartSectionData(
+                value: completed.toDouble(),
+                color: const Color(0xFF5BC4B8),
+                title: '$completed',
+                radius: 45,
+                titleStyle: const TextStyle(color: Colors.white),
+              ),
+              PieChartSectionData(
+                value: ongoing.toDouble(),
+                color: const Color(0xFFF4A261),
+                title: '$ongoing',
+                radius: 45,
+                titleStyle: const TextStyle(color: Colors.white),
+              ),
+              PieChartSectionData(
+                value: notStarted.toDouble(),
+                color: const Color(0xFFE45745),
+                title: '$notStarted',
+                radius: 45,
+                titleStyle: const TextStyle(color: Colors.white),
+              ),
+            ],
+          ),
+        ),
+      ),
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$total',
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Text(
+            'Courses',
+            style: TextStyle(color: Colors.grey),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -152,7 +309,13 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
     final auth = context.read<AuthProvider>();
     final employeeId = auth.userData?['employeeId']?.toString();
 
-    _applySearch(provider.departments);
+    final progressHistory = provider.progressHistory ?? [];
+    final previewHistory = progressHistory.take(4).toList();
+    if(_filteredDepartments.isEmpty && provider.departments.isNotEmpty) {
+      _filteredDepartments = provider.departments;
+    }
+
+
 
     return Scaffold(
       appBar: AppBar(
@@ -161,16 +324,44 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
           style: TextStyle(color: Colors.white),
         ),
         backgroundColor: const Color(0xFF26A69A),
+
+        // CREATE BUTTON ONLY FOR MANAGER
+        actions: isManager
+            ? [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF6FBFC0),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                    ),
+                    icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                    label: const Text(
+                      'Create',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: () {
+                      _openAddCourseBottomSheet(context);
+                    },
+                  ),
+                ),
+              ]
+            : [],
       ),
       body: Column(
         children: [
-          // 🔍 Search
+          // Search
           Container(
             padding: const EdgeInsets.all(16),
             color: const Color(0xFF26A69A),
             child: TextField(
               controller: _searchController,
-              onChanged: (_) => setState(() {}),
+              onChanged: (_) => setState(() {
+                _applySearch(context.read<LearningStudioProvider>().departments);
+              }),
               decoration: InputDecoration(
                 hintText: 'Search...',
                 filled: true,
@@ -250,8 +441,139 @@ class _LearningStudioScreenState extends State<LearningStudioScreen> {
                           ),
                         ),
 
+                        /// ================= MANAGER : TEAM PROGRESS =================
+if (isManager) ...[
+  const Padding(
+    padding: EdgeInsets.fromLTRB(16, 8, 16, 8),
+    child: Text(
+      'Team Progress',
+      style: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  ),
+
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+        color: Colors.white,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ===== Progress Summary =====
+          const Text(
+            'Progress Summary',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 12),
+
+          _summaryCard(
+            'Completed',
+            provider.courseCount?['completed'] ?? 0,
+            const Color(0xFF5BC4B8),
+          ),
+          _summaryCard(
+            'Ongoing',
+            provider.courseCount?['ongoing'] ?? 0,
+            const Color(0xFFF4A261),
+          ),
+          _summaryCard(
+            'Not Started',
+            provider.courseCount?['notStarted'] ?? 0,
+            const Color(0xFFE45745),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ===== Donut =====
+          
+          provider.courseCount == null
+              ? const Center(child: CircularProgressIndicator())
+              :
+          _teamProgressChart(
+            provider.courseCount?['completed'] ?? 0,
+            provider.courseCount?['ongoing'] ?? 0,
+            provider.courseCount?['notStarted'] ?? 0,
+          ),
+
+          const SizedBox(height: 20),
+
+          
+          
+        ],
+      ),
+    ),
+  ),
+
+  const SizedBox(height: 16),
+
+  /// ================= PROGRESS HISTORY =================
+if (previewHistory.isNotEmpty) ...[
+  Padding(
+    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        const Text(
+          'Progress History',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        InkWell(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const ProgressHistoryScreen(),
+              ),
+            );
+          },
+          child: const Text(
+            'See All',
+            style: TextStyle(
+              color: Color(0xFF26A69A),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+
+  ProgressHistoryCard(
+  items: previewHistory,   
+  onSeeAll: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProgressHistoryScreen(),
+      ),
+    );
+  },
+  onItemTap: (item) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const ProgressHistoryScreen(),
+      ),
+    );
+  },
+),
+  const SizedBox(height: 16),
+],
+],
+
                         /// ================= MY PROGRESS =================
-                        if (provider.employeeCourses != null &&
+                        if (!isManager &&
+                          provider.employeeCourses != null &&
                             provider.employeeCourses!.isNotEmpty &&
                             employeeId != null) ...[
                           const Padding(

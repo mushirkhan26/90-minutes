@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 
@@ -27,6 +28,7 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
     );
 
     _videoController.initialize().then((_) {
+      if(!mounted) return;
       _chewieController = ChewieController(
         videoPlayerController: _videoController,
         autoPlay: false,
@@ -47,6 +49,41 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
   }
 
   @override
+void didUpdateWidget(covariant CourseVideoPlayer oldWidget) {
+  super.didUpdateWidget(oldWidget);
+
+  if (oldWidget.videoUrl != widget.videoUrl) {
+    _chewieController?.dispose();
+    _videoController.dispose();
+
+    _videoController = VideoPlayerController.networkUrl(
+      Uri.parse(widget.videoUrl),
+    );
+
+    _videoController.initialize().then((_) {
+      if (!mounted) return;
+
+      _chewieController = ChewieController(
+        videoPlayerController: _videoController,
+        autoPlay: false,
+        looping: false,
+        allowFullScreen: true,
+        allowMuting: true,
+        showControls: true,
+        materialProgressColors: ChewieProgressColors(
+          playedColor: Colors.red,
+          bufferedColor: Colors.grey,
+          handleColor: Colors.white,
+          backgroundColor: Colors.white24,
+        )
+      );
+
+      setState(() {});
+    });
+  }
+}
+
+  @override
   void dispose() {
     _chewieController?.dispose();
     _videoController.dispose();
@@ -63,7 +100,7 @@ class _CourseVideoPlayerState extends State<CourseVideoPlayer> {
           height: 180,
           color: Colors.black,
           alignment: Alignment.center,
-          child: const CircularProgressIndicator(color: Colors.white),
+          child: const ShimmerTile(height: 180),
         ),
       );
     }

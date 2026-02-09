@@ -8,8 +8,10 @@ class CourseContentBottomSheet extends StatefulWidget {
   final String details;
   final String videoUrl;
   final List<String> tags;
-  final String department;
-  final String subDepartment;
+
+  // 🔥 ONLY CHANGE: nullable
+  final String? department;
+  final String? subDepartment;
 
   const CourseContentBottomSheet({
     super.key,
@@ -18,8 +20,8 @@ class CourseContentBottomSheet extends StatefulWidget {
     required this.details,
     required this.videoUrl,
     required this.tags,
-    required this.department,
-    required this.subDepartment,
+    this.department,
+    this.subDepartment,
   });
 
   @override
@@ -29,7 +31,8 @@ class CourseContentBottomSheet extends StatefulWidget {
 
 class _CourseContentBottomSheetState
     extends State<CourseContentBottomSheet> {
-  final TextEditingController _contentController = TextEditingController();
+  final TextEditingController _contentController =
+      TextEditingController();
   bool _saving = false;
 
   @override
@@ -47,7 +50,8 @@ class _CourseContentBottomSheetState
       padding: const EdgeInsets.all(20),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -78,7 +82,8 @@ class _CourseContentBottomSheetState
             onTap: () => Navigator.pop(context),
             child: const Row(
               children: [
-                Icon(Icons.arrow_back, color: Color(0xFF26A69A)),
+                Icon(Icons.arrow_back,
+                    color: Color(0xFF26A69A)),
                 SizedBox(width: 6),
                 Text(
                   'Course Content',
@@ -106,7 +111,6 @@ class _CourseContentBottomSheetState
               controller: _contentController,
               maxLines: 12,
               textAlignVertical: TextAlignVertical.top,
-              
               decoration: InputDecoration(
                 hintText: 'Write course content here...',
                 border: OutlineInputBorder(
@@ -123,21 +127,24 @@ class _CourseContentBottomSheetState
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed: _saving ? null : () => Navigator.pop(context),
+                onPressed:
+                    _saving ? null : () => Navigator.pop(context),
                 child: const Text('Cancel'),
               ),
               const SizedBox(width: 12),
 
-              // ✅ SAVE BUTTON (SECOND PIC STYLE)
               ElevatedButton(
                 onPressed: _saving
                     ? null
                     : () async {
-                        if (_contentController.text.trim().isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
+                        if (_contentController.text
+                            .trim()
+                            .isEmpty) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(
                             const SnackBar(
-                              content:
-                                  Text('Course content is required'),
+                              content: Text(
+                                  'Course content is required'),
                             ),
                           );
                           return;
@@ -145,40 +152,51 @@ class _CourseContentBottomSheetState
 
                         setState(() => _saving = true);
 
-                        final success = await provider.addCourse(
+                        final success =
+                            await provider.addCourse(
                           courseName: widget.courseName,
                           duration: widget.duration,
                           details: widget.details,
-                          content: _contentController.text.trim(),
+                          content:
+                              _contentController.text.trim(),
                           videoUrl: widget.videoUrl,
                           tags: widget.tags,
-                          department: widget.department,
-                          subDepartment: widget.subDepartment,
+
+                          // 🔥 NULL SAFE PASS
+                          department:
+                              widget.department ?? '',
+                          subDepartment:
+                              widget.subDepartment ?? '',
+
                           createdOn:
                               DateTime.now().toIso8601String(),
                         );
+                        if(!mounted) return;
 
                         setState(() => _saving = false);
 
-                        if (success && mounted) {
-                         
-                          Navigator.pop(context); // add course sheet
+                        if (success ) {
+                          
 
-                          ScaffoldMessenger.of(context).showSnackBar(
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(
                             const SnackBar(
-                              content:
-                                  Text('Course added successfully'),
+                              content: Text(
+                                  'Course added successfully'),
                             ),
                           );
+                          Navigator.pop(context);
                         }
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5DBBB3),
+                  backgroundColor:
+                      const Color(0xFF5DBBB3),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(22),
+                    borderRadius:
+                        BorderRadius.circular(22),
                   ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 22),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 22),
                 ),
                 child: _saving
                     ? const SizedBox(
@@ -192,7 +210,7 @@ class _CourseContentBottomSheetState
                     : const Text(
                         'Save',
                         style: TextStyle(
-                          color: Colors.white, // ✅ WHITE TEXT
+                          color: Colors.white,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
