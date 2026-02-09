@@ -405,7 +405,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                                 date.day,
                                 time.hour,
                                 time.minute,
-                              );
+                              ).toUtc();
                             });
                           }
                         }
@@ -647,7 +647,17 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         likes: [],
         comments: [],
         question: _selectedType == 'Poll' ? _questionController.text : null,
-        expiry: _selectedType == 'Poll' ? _pollExpiry : null,
+        expiry: _selectedType == 'Poll' && _pollExpiry != null
+            ? DateTime(
+                _pollExpiry!.year,
+                _pollExpiry!.month,
+                _pollExpiry!.day,
+                23,
+                59,
+                59,
+              ).toUtc()
+            : null,
+
         options: _selectedType == 'Poll'
             ? _optionControllers.map((c) => PollOption(label: c.text)).toList()
             : null,
