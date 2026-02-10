@@ -39,5 +39,6 @@ class AppRoutes {
   static const String performance = '/performance';
   static const String previousReviews = '/previous-reviews';
   static const String reviewDetails = '/review-details';
+  static const String serviceRequest = '/service-request';
 
 }

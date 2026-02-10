@@ -60,6 +60,12 @@ static const String keyCoursesPrefix = 'ls_courses_';
 static const String keyEmployeeCourses = 'ls_employee_courses';
 static const String keyCourseCount = 'ls_course_count';
 
+///service request cache keys
+
+static const String keyServiceRequests = 'service_requests';
+static const String keyServiceRequestCounts = 'service_request_counts';
+static const String keyDepartmentsConfig = 'config_departments';
+
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -224,6 +230,8 @@ Future<DateTime?> getTimestamp(String key) async {
         : null;
   }
 
+
+  
   /// Clear employee list cache
   Future<void> clearEmployeeList() async {
     await prefs.remove(_keyEmployeeList);
@@ -594,5 +602,89 @@ Future<String?> getEmployeeId() async {
 /// 🔹 Get logged-in employee name
 Future<String?> getEmployeeName() async {
   return prefs.getString(_keyEmployeeName);
+}
+
+
+// ================= SERVICE REQUEST STORAGE =================
+
+// Save service request list
+Future<void> saveServiceRequests(List<Map<String, dynamic>> requests) async {
+  await prefs.setString(keyServiceRequests, jsonEncode(requests));
+  await prefs.setInt(
+    '${keyServiceRequests}_timestamp',
+    DateTime.now().millisecondsSinceEpoch,
+  );
+  _logger.logStorage('Saved service requests (${requests.length})');
+}
+
+// Get cached service request list
+Future<List<Map<String, dynamic>>?> getServiceRequests() async {
+  final jsonString = prefs.getString(keyServiceRequests);
+  if (jsonString == null) return null;
+
+  try {
+    final List list = jsonDecode(jsonString);
+    return List<Map<String, dynamic>>.from(list);
+  } catch (e) {
+    _logger.error(
+      'LOCAL_STORAGE',
+      'Failed to parse service requests',
+      error: e,
+    );
+    return null;
+  }
+}
+
+Future<DateTime?> getServiceRequestTimestamp() async {
+  final ts = prefs.getInt('${keyServiceRequests}_timestamp');
+  return ts != null
+      ? DateTime.fromMillisecondsSinceEpoch(ts)
+      : null;
+}
+
+Future<void> saveServiceRequestCounts(Map<String, dynamic> counts) async {
+  await prefs.setString(
+    keyServiceRequestCounts,
+    jsonEncode(counts),
+  );
+  await prefs.setInt(
+    '${keyServiceRequestCounts}_timestamp',
+    DateTime.now().millisecondsSinceEpoch,
+  );
+  _logger.logStorage('Saved service request counts');
+}
+
+Future<Map<String, dynamic>?> getServiceRequestCounts() async {
+  final jsonString = prefs.getString(keyServiceRequestCounts);
+  if (jsonString == null) return null;
+
+  try {
+    return Map<String, dynamic>.from(jsonDecode(jsonString));
+  } catch (e) {
+    _logger.error(
+      'LOCAL_STORAGE',
+      'Failed to parse service request counts',
+      error: e,
+    );
+    return null;
+  }
+}
+
+Future<void> clearServiceRequestCache() async {
+  await prefs.remove(keyServiceRequests);
+  await prefs.remove('${keyServiceRequests}_timestamp');
+  await prefs.remove(keyServiceRequestCounts);
+  await prefs.remove('${keyServiceRequestCounts}_timestamp');
+
+  _logger.logStorage('Cleared service request cache');
+}
+
+Future<void> saveDepartments(List<String>departments) async{
+  await saveJson(keyDepartmentsConfig, departments);
+}
+Future<List<String>?> getDepartments() async {
+  final data = await getJson(keyDepartmentsConfig);
+  if (data == null) return null;
+  return List<String>.from(data);
 }
 }
