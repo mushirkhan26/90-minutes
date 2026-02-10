@@ -28,11 +28,7 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
     _currentStatus =
         widget.course['courseStatus'] ?? 'NotStarted';
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context
-          .read<LearningStudioProvider>()
-          .loadCourseById(widget.course['courseId']);
-    });
+    
   }
 
   @override
@@ -48,12 +44,8 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
       );
     }
 
-    final courseData = provider.selectedCourse;
-    if (courseData == null) {
-      return const Scaffold(
-        body: Center(child: Text('Course not found')),
-      );
-    }
+    final courseData = widget.course;
+    
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -95,10 +87,10 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
   // ================= TOP CARD =================
 
   Widget _topCard(
-    String name,
-    String details,
-    String duration,
-    String status,
+    String? name,
+    String? details,
+    String? duration,
+    String? status,
   ) {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -107,7 +99,7 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(name, style: _title()),
+          Text(name ?? '', style: _title()),
           const SizedBox(height: 6),
           Text(details ?? '', style: _grey()),
           const SizedBox(height: 12),
@@ -117,7 +109,7 @@ class _CourseStatusScreenState extends State<CourseStatusScreen> {
               const SizedBox(width: 6),
               Text(duration ?? 'N/A'),
               const SizedBox(width: 12),
-              _statusChipWithPercent(status),
+              _statusChipWithPercent(status ?? 'NotStarted'),
             ],
           ),
         ],

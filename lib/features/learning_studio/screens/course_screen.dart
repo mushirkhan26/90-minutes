@@ -4,6 +4,8 @@ import '../provider/learning_studio_provider.dart';
 import '../widgets/add_course_bottom_sheet.dart';
 import 'course_details_screen.dart';
 import 'package:hrtz_hrms/features/learning_studio/widgets/course_video_player.dart';
+import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/learning_studio/widgets/assign_video_dialog.dart';
 
 class CoursesScreen extends StatefulWidget {
   final String department;
@@ -23,14 +25,19 @@ class _CoursesScreenState extends State<CoursesScreen> {
   final Set<String> selectedTags = {};
 
   final GlobalKey _filterKey = GlobalKey();
+  bool isManager = false;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       context
-          .read<LearningStudioProvider>()
-          .loadCourses(widget.subDepartment);
+        .read<LearningStudioProvider>()
+        .loadCourses(widget.subDepartment);
+      final auth = context.read<AuthProvider>();
+      final role = auth.userData?['role']?.toString().toLowerCase();
+      final isManager = role == 'manager';
+      setState(() => this.isManager = isManager);
     });
   }
 
@@ -73,7 +80,15 @@ class _CoursesScreenState extends State<CoursesScreen> {
     );
   }
 
-  /// ✅ SMALL DROPDOWN UNDER FILTER BUTTON
+  void _openAssignVideoDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AssignVideoDialog(
+        subDepartment: widget.subDepartment,
+      ),
+    );
+  }
+
   void _openTagFilterDropdown(List<String> allTags) async {
     final RenderBox box =
         _filterKey.currentContext!.findRenderObject() as RenderBox;
@@ -170,6 +185,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<LearningStudioProvider>();
+  
     final courses = provider.getCourses(widget.subDepartment);
 
     final List<String> allTags = courses
@@ -198,27 +214,55 @@ class _CoursesScreenState extends State<CoursesScreen> {
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5DBBB3)),
-              onPressed: () {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (_) => AddCourseBottomSheet(
-                    department: widget.department,
-                    subDepartment: widget.subDepartment,
-                  ),
-                );
-              },
-              child: const Text('Add Video',
-                  style: TextStyle(color: Colors.white)),
-            ),
+          Row(
+  children: [
+    // ===== ADD VIDEO =====
+    Expanded(
+      child: SizedBox(
+        height: 48,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5DBBB3)),
+          onPressed: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => AddCourseBottomSheet(
+                department: widget.department,
+                subDepartment: widget.subDepartment,
+              ),
+            );
+          },
+          child: const Text('Add Video',
+              style: TextStyle(color: Colors.white)),
+        ),
+      ),
+    ),
+
+    const SizedBox(width: 12),
+
+    // ===== ASSIGN VIDEO (MANAGER) =====
+    if(isManager) ...[
+    Expanded(
+      child: SizedBox(
+        height: 48,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF26A69A)),
+          onPressed: () {
+            _openAssignVideoDialog(context);
+          },
+          child: const Text(
+            'Assign Video',
+            style: TextStyle(color: Colors.white),
           ),
+        ),
+      ),
+    ),
+  ],
+
+  ]),
           const SizedBox(height: 24),
           Text('${widget.subDepartment} Courses',
               style:
@@ -251,6 +295,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
               ]),
             ),
           ),
+          
 
           if (selectedTags.isNotEmpty)
             Padding(
@@ -298,7 +343,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     color: Colors.white,
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
+                          color: Colors.black.withValues(alpha:  0.08),
                           blurRadius: 12),
                     ],
                   ),
