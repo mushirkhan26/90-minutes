@@ -16,6 +16,7 @@ import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
+import 'package:hrtz_hrms/features/leaderboard/screens/admin_leaderboard_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/new_registrations_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/performance_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/previous_reviews_screen.dart';
@@ -45,6 +46,7 @@ import 'package:provider/provider.dart';
 
 import '../../features/auth/screens/nda_screen_form.dart';
 import '../../features/home/screens/profile_screen.dart';
+import '../../features/leaderboard/screens/leaderboard_screen.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
 import '../../features/meet/screens/schedule_meet.dart';
@@ -346,6 +348,16 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    GoRoute(
+      path: AppRoutes.leaderboard,
+      name: 'leaderboard',
+      builder: (context, state) => const LeaderboardScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.adminLeaderboard,
+      name: 'admin-leaderboard',
+      builder: (context, state) => const AdminLeaderboardScreen(),
+    ),
   ],
 );
 
@@ -424,6 +436,8 @@ extension AuthNavigation on BuildContext {
   void goToEmployeeDirectory() => push(AppRoutes.employeeDirectory);
   void goToPerformance() => push(AppRoutes.performance);
   void goToPreviousReviews(String name, String id) => push(AppRoutes.previousReviews, extra: {'employeeName': name, 'employeeId': id});
+  void goToLeaderboard() => push(AppRoutes.leaderboard);
+  void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {
