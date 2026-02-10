@@ -236,6 +236,15 @@ class HomeScreen extends StatelessWidget {
           );
         },
       ),
+      
+        ListTile(
+          leading: const Icon(Icons.headset_mic),
+          title: const Text('Service Request'),
+          onTap: () {
+            Navigator.pop(context);
+            context.push(AppRoutes.serviceRequest);
+          },
+        ),
 
       /// 🔹 Complaint
       ListTile(

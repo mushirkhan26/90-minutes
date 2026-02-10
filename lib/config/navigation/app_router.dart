@@ -48,6 +48,8 @@ import '../../features/home/screens/profile_screen.dart';
 import '../../features/mail/screens/compose_mail_screen.dart';
 
 import '../../features/meet/screens/schedule_meet.dart';
+import 'package:hrtz_hrms/features/service_request/screens/service_requests_screen.dart';
+import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -303,6 +305,16 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
+    GoRoute(
+  path: AppRoutes.serviceRequest,
+  name: 'service-request',
+  builder: (context, state) {
+    return ChangeNotifierProvider(
+      create: (_) => ServiceRequestProvider(),
+      child: const ServiceRequestsScreen(),
+    );
+  },
+),
      GoRoute(
       path: AppRoutes.learningStudio,
       name: 'learning-studio',
