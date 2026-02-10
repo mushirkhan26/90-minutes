@@ -19,6 +19,7 @@ import 'package:hrtz_hrms/features/employee_directory/provider/employee_director
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/registration_provider.dart';
+import 'package:hrtz_hrms/features/leaderboard/provider/leaderboard_provider.dart';
 import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
@@ -80,6 +81,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => RegistrationProvider()),
         ChangeNotifierProvider(create: (_) => PerformanceProvider()),
         ChangeNotifierProvider(create: (_) => EmployeeDirectoryProvider()),
+        ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
         ChangeNotifierProvider<MailProvider>(
           create: (_) => MailProvider()..fetchInbox(),
         ),

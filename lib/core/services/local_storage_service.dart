@@ -4,6 +4,7 @@ import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
+import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
@@ -40,6 +41,10 @@ class LocalStorageService {
   // 📈 Performance caching related keys
   static const String keyMyRatings = 'my_ratings';
   static const String keyTeamRatings = 'team_ratings';
+
+  // 🏆 Leaderboard caching related keys
+  static const String keyLeaderboardList = 'leaderboard_list';
+  static const String keyUserStats = 'user_stats';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -635,56 +640,59 @@ Future<List<Map<String, dynamic>>?> getServiceRequests() async {
   }
 }
 
-Future<DateTime?> getServiceRequestTimestamp() async {
-  final ts = prefs.getInt('${keyServiceRequests}_timestamp');
-  return ts != null
-      ? DateTime.fromMillisecondsSinceEpoch(ts)
-      : null;
+Future<void> saveUserStats(UserStatsModel stats) async {
+  await prefs.setString(keyUserStats, jsonEncode(stats.toJson()));
+  _logger.logStorage('Saved user stats');
 }
 
-Future<void> saveServiceRequestCounts(Map<String, dynamic> counts) async {
-  await prefs.setString(
-    keyServiceRequestCounts,
-    jsonEncode(counts),
-  );
-  await prefs.setInt(
-    '${keyServiceRequestCounts}_timestamp',
-    DateTime.now().millisecondsSinceEpoch,
-  );
-  _logger.logStorage('Saved service request counts');
-}
-
-Future<Map<String, dynamic>?> getServiceRequestCounts() async {
-  final jsonString = prefs.getString(keyServiceRequestCounts);
+Future<UserStatsModel?> getUserStats() async {
+  final jsonString = prefs.getString(keyUserStats);
   if (jsonString == null) return null;
-
   try {
-    return Map<String, dynamic>.from(jsonDecode(jsonString));
+    return UserStatsModel.fromJson(jsonDecode(jsonString));
   } catch (e) {
-    _logger.error(
-      'LOCAL_STORAGE',
-      'Failed to parse service request counts',
-      error: e,
-    );
     return null;
   }
 }
 
-Future<void> clearServiceRequestCache() async {
-  await prefs.remove(keyServiceRequests);
-  await prefs.remove('${keyServiceRequests}_timestamp');
-  await prefs.remove(keyServiceRequestCounts);
-  await prefs.remove('${keyServiceRequestCounts}_timestamp');
-
-  _logger.logStorage('Cleared service request cache');
+// ================= DEPARTMENTS =================
+Future<void> saveDepartments(List<String> departments) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setStringList('departments', departments);
 }
 
-Future<void> saveDepartments(List<String>departments) async{
-  await saveJson(keyDepartmentsConfig, departments);
-}
 Future<List<String>?> getDepartments() async {
-  final data = await getJson(keyDepartmentsConfig);
-  if (data == null) return null;
-  return List<String>.from(data);
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getStringList('departments');
+}
+
+// ================= REQUEST COUNTS =================
+Future<void> saveServiceRequestCounts(Map<String, int> counts) async {
+  final prefs = await SharedPreferences.getInstance();
+  final map = counts.map((k, v) => MapEntry(k, v.toString()));
+  await prefs.setString('service_request_counts', jsonEncode(map));
+}
+
+Future<Map<String, dynamic>?> getServiceRequestCounts() async {
+  final prefs = await SharedPreferences.getInstance();
+  final json = prefs.getString('service_request_counts');
+  if (json == null) return null;
+  return Map<String, dynamic>.from(jsonDecode(json));
+}
+
+// ================= TIMESTAMP =================
+Future<void> saveServiceRequestTimestamp(DateTime time) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setString(
+    'service_request_timestamp',
+    time.toIso8601String(),
+  );
+}
+
+Future<DateTime?> getServiceRequestTimestamp() async {
+  final prefs = await SharedPreferences.getInstance();
+  final value = prefs.getString('service_request_timestamp');
+  if (value == null) return null;
+  return DateTime.parse(value);
 }
 }
