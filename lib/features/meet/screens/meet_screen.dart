@@ -139,7 +139,13 @@ class _MeetScreenState extends State<MeetScreen> {
                           ),
                         ),
                         Text(
-                          '${provider.meetList.where((m) => m.createdBy['employeeId'] == _currentUserId).length} meetings total',
+                          '${provider.meetList.where((m) {
+                            final isCreator = m.createdBy['employeeId'] == _currentUserId;
+
+                            final isParticipant = m.participants.any((p) => p['employeeId'] == _currentUserId);
+
+                            return isCreator || isParticipant;
+                          }).length} meetings total',
                           // '${provider.meetList.length} meetings total',
                           style: const TextStyle(
                             color: Colors.white70,
@@ -193,9 +199,18 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   void _showMyCreatedMeetings(MeetProvider provider) {
-    final myMeets = provider.meetList
-        .where((m) => m.createdBy['employeeId'] == _currentUserId)
-        .toList();
+    // final myMeets = provider.meetList
+    //     .where((m) => m.createdBy['employeeId'] == _currentUserId)
+    //     .toList();
+    final myMeets = provider.meetList.where((m) {
+      final isCreator = m.createdBy['employeeId'] == _currentUserId;
+
+      final isParticipant = m.participants.any(
+        (p) => p['employeeId'] == _currentUserId,
+      );
+
+      return isCreator || isParticipant;
+    }).toList();
 
     showModalBottomSheet(
       context: context,
@@ -405,9 +420,19 @@ class _MeetScreenState extends State<MeetScreen> {
     }
 
     // Filter meetings to only those created by current user
+    // final userMeets = meets.where((m) {
+    //   return m.createdBy['employeeId'] == _currentUserId;
+    // }).toList();
     final userMeets = meets.where((m) {
-      return m.createdBy['employeeId'] == _currentUserId;
+      final isCreator = m.createdBy['employeeId'] == _currentUserId;
+
+      final isParticipant = m.participants.any(
+        (p) => p['employeeId'] == _currentUserId,
+      );
+
+      return isCreator || isParticipant;
     }).toList();
+
     final dailyMeets = userMeets.where((m) {
       final mDate = DateTime.parse(m.time).toLocal();
       final String recurrence = m.recurrence ?? "One-time meeting";

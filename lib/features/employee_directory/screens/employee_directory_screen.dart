@@ -6,7 +6,6 @@ import '../provider/employee_directory_provider.dart';
 class EmployeeDirectoryScreen extends StatelessWidget {
   const EmployeeDirectoryScreen({super.key});
 
-
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
@@ -18,30 +17,38 @@ class EmployeeDirectoryScreen extends StatelessWidget {
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Employee Directory',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        title: const Text(
+          'Employee Directory',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => context.read<EmployeeDirectoryProvider>().fetchAllEmployees(),
+            onPressed: () =>
+                context.read<EmployeeDirectoryProvider>().fetchAllEmployees(),
           ),
         ],
       ),
       body: Consumer<EmployeeDirectoryProvider>(
         builder: (context, provider, _) {
-          if (provider.state == EmployeeDirectoryState.loading && provider.employees.isEmpty) {
+          if (provider.state == EmployeeDirectoryState.loading &&
+              provider.employees.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (provider.state == EmployeeDirectoryState.error && provider.employees.isEmpty) {
+          if (provider.state == EmployeeDirectoryState.error &&
+              provider.employees.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.error_outline, size: 48, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text("Error: ${provider.errorMessage ?? 'Unknown error'}", textAlign: TextAlign.center),
+                  Text(
+                    "Error: ${provider.errorMessage ?? 'Unknown error'}",
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => provider.fetchAllEmployees(),
@@ -74,7 +81,10 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Current User Role: $currentUserRole", style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(
+                            "Current User Role: $currentUserRole",
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
                           const Text(
                             "Can Update Roles: Intern, Employee, Developer, Software Developer, Software Engineer, TeamLead, Manager, HR",
                             style: TextStyle(fontSize: 12),
@@ -88,14 +98,20 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _buildStatItem(provider.employees.length.toString(), "People"),
+                        _buildStatItem(
+                          provider.employees.length.toString(),
+                          "People",
+                        ),
                         Container(
                           height: 40,
                           width: 1,
                           color: Colors.grey.shade300,
-                          margin: const EdgeInsets.symmetric(horizontal: 20)
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
                         ),
-                        _buildStatItem((provider.availableRoles.length - 1).toString(), "Roles"),
+                        _buildStatItem(
+                          (provider.availableRoles.length - 1).toString(),
+                          "Roles",
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),
@@ -106,14 +122,23 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                       decoration: InputDecoration(
                         hintText: "Search by name,ID,phone,role or team lead",
                         prefixIcon: const Icon(Icons.search),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 15,
+                        ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2F9E9E), width: 1.5),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2F9E9E),
+                            width: 1.5,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: Color(0xFF2F9E9E), width: 2),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF2F9E9E),
+                            width: 2,
+                          ),
                         ),
                       ),
                     ),
@@ -127,17 +152,34 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                             Expanded(
                               flex: 3,
                               child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
                                 decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade400),
+                                  border: Border.all(
+                                    color: Colors.grey.shade400,
+                                  ),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     isExpanded: true,
                                     value: provider.selectedRole,
-                                    items: provider.availableRoles.map((r) => DropdownMenuItem(value: r, child: Text(r, style: const TextStyle(fontSize: 13)))).toList(),
-                                    onChanged: (v) => provider.setSelectedRole(v!),
+                                    items: provider.availableRoles
+                                        .map(
+                                          (r) => DropdownMenuItem(
+                                            value: r,
+                                            child: Text(
+                                              r,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ),
+                                        )
+                                        .toList(),
+                                    onChanged: (v) =>
+                                        provider.setSelectedRole(v!),
                                   ),
                                 ),
                               ),
@@ -147,18 +189,28 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                               flex: 1,
                               child: ElevatedButton(
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: selectedCount > 0 ? const Color(0xFF00C4B4) : Colors.grey.shade300,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  backgroundColor: selectedCount > 0
+                                      ? const Color(0xFF00C4B4)
+                                      : Colors.grey.shade300,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 14,
+                                  ),
                                   minimumSize: Size.zero,
                                 ),
-                                onPressed: selectedCount > 0 ? () => _showTagDialog(context, provider) : null,
+                                onPressed: selectedCount > 0
+                                    ? () => _showTagDialog(context, provider)
+                                    : null,
                                 child: Text(
                                   "Tag ($selectedCount)",
                                   style: TextStyle(
-                                    color: selectedCount > 0 ? Colors.white : Colors.grey.shade600,
+                                    color: selectedCount > 0
+                                        ? Colors.white
+                                        : Colors.grey.shade600,
                                     fontSize: 12,
-                                    fontWeight: FontWeight.bold
+                                    fontWeight: FontWeight.bold,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
@@ -166,7 +218,7 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                             ),
                           ],
                         );
-                      }
+                      },
                     ),
                     const SizedBox(height: 20),
 
@@ -177,7 +229,10 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                           ? const Center(
                               child: Text(
                                 "No employees found matching criteria",
-                                style: TextStyle(color: Colors.grey, fontSize: 16),
+                                style: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
                               ),
                             )
                           : SingleChildScrollView(
@@ -188,7 +243,9 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                   Container(
                                     decoration: const BoxDecoration(
                                       color: Color(0xFF2F9E9E),
-                                      borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
+                                      borderRadius: BorderRadius.vertical(
+                                        top: Radius.circular(8),
+                                      ),
                                     ),
                                     child: Row(
                                       children: [
@@ -198,17 +255,49 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                             value: provider.isAllSelected(),
                                             activeColor: Colors.white,
                                             checkColor: const Color(0xFF2F9E9E),
-                                            onChanged: (v) => provider.toggleSelectAll(v ?? false),
-                                            side: const BorderSide(color: Colors.white, width: 2),
+                                            onChanged: (v) => provider
+                                                .toggleSelectAll(v ?? false),
+                                            side: const BorderSide(
+                                              color: Colors.white,
+                                              width: 2,
+                                            ),
                                           ),
                                         ),
-                                        const _TableCell(width: 150, text: "Username", isHeader: true),
-                                        const _TableCell(width: 120, text: "Employee ID", isHeader: true),
-                                        const _TableCell(width: 120, text: "Phone", isHeader: true),
-                                        const _TableCell(width: 120, text: "Team Lead", isHeader: true),
-                                        const _TableCell(width: 120, text: "Role", isHeader: true),
-                                        const _TableCell(width: 150, text: "Team Members", isHeader: true),
-                                        const _TableCell(width: 110, text: "Action", isHeader: true),
+                                        const _TableCell(
+                                          width: 150,
+                                          text: "Username",
+                                          isHeader: true,
+                                        ),
+                                        const _TableCell(
+                                          width: 120,
+                                          text: "Employee ID",
+                                          isHeader: true,
+                                        ),
+                                        const _TableCell(
+                                          width: 120,
+                                          text: "Phone",
+                                          isHeader: true,
+                                        ),
+                                        const _TableCell(
+                                          width: 120,
+                                          text: "Team Lead",
+                                          isHeader: true,
+                                        ),
+                                        const _TableCell(
+                                          width: 120,
+                                          text: "Role",
+                                          isHeader: true,
+                                        ),
+                                        const _TableCell(
+                                          width: 150,
+                                          text: "Team Members",
+                                          isHeader: true,
+                                        ),
+                                        const _TableCell(
+                                          width: 110,
+                                          text: "Action",
+                                          isHeader: true,
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -216,16 +305,26 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                     child: SizedBox(
                                       width: 940,
                                       child: ListView.builder(
-                                        physics: const AlwaysScrollableScrollPhysics(),
+                                        physics:
+                                            const AlwaysScrollableScrollPhysics(),
                                         itemCount: provider.employees.length,
                                         itemBuilder: (context, index) {
                                           final emp = provider.employees[index];
-                                          final isSelected = provider.selectedEmployeeIds.contains(emp.employeeID);
+                                          final isSelected = provider
+                                              .selectedEmployeeIds
+                                              .contains(emp.employeeID);
 
                                           return Container(
                                             decoration: BoxDecoration(
-                                              color: isSelected ? Colors.blue.shade50.withOpacity(0.3) : Colors.transparent,
-                                              border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+                                              color: isSelected
+                                                  ? Colors.blue.shade50
+                                                        .withOpacity(0.3)
+                                                  : Colors.transparent,
+                                              border: Border(
+                                                bottom: BorderSide(
+                                                  color: Colors.grey.shade200,
+                                                ),
+                                              ),
                                             ),
                                             child: Row(
                                               children: [
@@ -233,36 +332,73 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                                   width: 50,
                                                   child: Checkbox(
                                                     value: isSelected,
-                                                    activeColor: const Color(0xFF2F9E9E),
-                                                    onChanged: (v) => provider.toggleSelection(emp.employeeID),
+                                                    activeColor: const Color(
+                                                      0xFF2F9E9E,
+                                                    ),
+                                                    onChanged: (v) => provider
+                                                        .toggleSelection(
+                                                          emp.employeeID,
+                                                        ),
                                                   ),
                                                 ),
-                                                _TableCell(width: 150, text: emp.name),
-                                                _TableCell(width: 120, text: emp.employeeID),
-                                                _TableCell(width: 120, text: emp.mobile ?? "N/A"),
-                                                _TableCell(width: 120, text: emp.teamLead ?? "N/A"),
-                                                _TableCell(width: 120, text: emp.role ?? "Employee"),
-                                                _TableCell(width: 150, text: emp.teamMembers ?? "Not Available"),
+                                                _TableCell(
+                                                  width: 150,
+                                                  text: emp.name,
+                                                ),
+                                                _TableCell(
+                                                  width: 120,
+                                                  text: emp.employeeID,
+                                                ),
+                                                _TableCell(
+                                                  width: 120,
+                                                  text: emp.mobile ?? "N/A",
+                                                ),
+                                                _TableCell(
+                                                  width: 120,
+                                                  text: emp.teamLead ?? "N/A",
+                                                ),
+                                                _TableCell(
+                                                  width: 120,
+                                                  text: emp.role ?? "Employee",
+                                                ),
+                                                _TableCell(
+                                                  width: 150,
+                                                  text:
+                                                      emp.teamMembers ??
+                                                      "Not Available",
+                                                ),
                                                 _TableCell(
                                                   width: 110,
                                                   child: Row(
-                                                    mainAxisSize: MainAxisSize.min,
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
                                                     children: [
                                                       _ActionButton(
-                                                        icon: Icons.business_center,
-                                                        color: const Color(0xFF2F9E9E),
-                                                        onTap: () => _showUpdateRoleDialog(
-                                                          context,
-                                                          provider,
-                                                          emp,
-                                                          authProvider.userData?['username'] ?? 'Admin',
+                                                        icon: Icons
+                                                            .business_center,
+                                                        color: const Color(
+                                                          0xFF2F9E9E,
                                                         ),
+                                                        onTap: () =>
+                                                            _showUpdateRoleDialog(
+                                                              context,
+                                                              provider,
+                                                              emp,
+                                                              authProvider
+                                                                      .userData?['username'] ??
+                                                                  'Admin',
+                                                            ),
                                                       ),
                                                       const SizedBox(width: 8),
                                                       _ActionButton(
                                                         icon: Icons.sell,
                                                         color: Colors.blue,
-                                                        onTap: () => _showUpdatePositionDialog(context, provider, emp),
+                                                        onTap: () =>
+                                                            _showUpdatePositionDialog(
+                                                              context,
+                                                              provider,
+                                                              emp,
+                                                            ),
                                                       ),
                                                     ],
                                                   ),
@@ -291,13 +427,27 @@ class EmployeeDirectoryScreen extends StatelessWidget {
   Widget _buildStatItem(String value, String label) {
     return Column(
       children: [
-        Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(color: Colors.grey, decoration: TextDecoration.underline)),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.grey,
+            decoration: TextDecoration.underline,
+          ),
+        ),
       ],
     );
   }
 
-  void _showUpdateRoleDialog(BuildContext context, EmployeeDirectoryProvider provider, dynamic employee, String currentUserName) {
+  void _showUpdateRoleDialog(
+    BuildContext context,
+    EmployeeDirectoryProvider provider,
+    dynamic employee,
+    String currentUserName,
+  ) {
     String? selectedRole = employee.role;
     showDialog(
       context: context,
@@ -317,7 +467,11 @@ class EmployeeDirectoryScreen extends StatelessWidget {
               child: const Text(
                 "Update Employee Role",
                 textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             Flexible(
@@ -339,12 +493,22 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text("Employee", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                const Text(
+                                  "Employee",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
                                 const SizedBox(width: 10),
-                                Expanded( // 🔹 Fixed: Prevents long names from pushing the Row out
+                                Expanded(
+                                  // 🔹 Fixed: Prevents long names from pushing the Row out
                                   child: Text(
                                     employee.name,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15,
+                                    ),
                                     textAlign: TextAlign.end,
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -355,19 +519,37 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text("Current Role", style: TextStyle(color: Colors.grey, fontSize: 14)),
+                                const Text(
+                                  "Current Role",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
                                 const SizedBox(width: 10),
-                                Flexible( // 🔹 Fixed: Safe wrapping for Role Chip
+                                Flexible(
+                                  // 🔹 Fixed: Safe wrapping for Role Chip
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFFE0F7F9),
                                       borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(color: const Color(0xFF26A69A).withOpacity(0.3)),
+                                      border: Border.all(
+                                        color: const Color(
+                                          0xFF26A69A,
+                                        ).withOpacity(0.3),
+                                      ),
                                     ),
                                     child: Text(
                                       employee.role ?? 'Intern',
-                                      style: const TextStyle(color: Color(0xFF26A69A), fontSize: 12, fontWeight: FontWeight.bold),
+                                      style: const TextStyle(
+                                        color: Color(0xFF26A69A),
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                       textAlign: TextAlign.end,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -379,18 +561,51 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text("Select New Role", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF455A64))),
+                      const Text(
+                        "Select New Role",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Color(0xFF455A64),
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         hint: const Text("Select a new role..."),
-                        value: provider.availableRoles.contains(selectedRole) ? selectedRole : null,
-                        items: provider.availableRoles.where((r) => r != 'All Roles').map((r) => DropdownMenuItem(value: r, child: Text(r))).toList(),
+                        value: provider.availableRoles.contains(selectedRole)
+                            ? selectedRole
+                            : null,
+                        items: provider.availableRoles
+                            .where((r) => r != 'All Roles')
+                            .map(
+                              (r) => DropdownMenuItem(value: r, child: Text(r)),
+                            )
+                            .toList(),
                         onChanged: (v) => selectedRole = v,
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF26A69A))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF26A69A))),
-                          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: Color(0xFF26A69A), width: 2)),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF26A69A),
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF26A69A),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF26A69A),
+                              width: 2,
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -408,26 +623,73 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                     onPressed: () => Navigator.pop(context),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: Colors.grey.shade300),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text("Cancel", style: TextStyle(color: Colors.black87, fontSize: 13)),
+                    child: const Text(
+                      "Cancel",
+                      style: TextStyle(color: Colors.black87, fontSize: 13),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
+                    // onPressed: () async {
+                    //   if (selectedRole != null) {
+                    //     await provider.updateEmployeeRole(employee.employeeID, selectedRole!, currentUserName);
+                    //     if (context.mounted) Navigator.pop(context);
+                    //   }
+                    // },
                     onPressed: () async {
                       if (selectedRole != null) {
-                        await provider.updateEmployeeRole(employee.employeeID, selectedRole!, currentUserName);
-                        if (context.mounted) Navigator.pop(context);
+                        final success = await provider.updateEmployeeRole(
+                          employee.employeeID,
+                          selectedRole!,
+                          currentUserName,
+                        );
+
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? "Role updated successfully to $selectedRole"
+                                  : "Failed to update role",
+                            ),
+                            backgroundColor: success
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        );
+
+                        if (success) Navigator.pop(context);
                       }
                     },
+
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1AA299),
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    child: const Text("Update Role", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: const Text(
+                      "Update Role",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -438,7 +700,11 @@ class EmployeeDirectoryScreen extends StatelessWidget {
     );
   }
 
-  void _showUpdatePositionDialog(BuildContext context, EmployeeDirectoryProvider provider, dynamic employee) {
+  void _showUpdatePositionDialog(
+    BuildContext context,
+    EmployeeDirectoryProvider provider,
+    dynamic employee,
+  ) {
     String? selectedLead;
     showDialog(
       context: context,
@@ -457,11 +723,25 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: const Icon(Icons.sell_outlined, color: Color(0xFF1AA299), size: 20),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.sell_outlined,
+                      color: Color(0xFF1AA299),
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  const Text("Assign Higher Position", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Assign Higher Position",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -474,9 +754,15 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                     children: [
                       RichText(
                         text: TextSpan(
-                          style: const TextStyle(color: Colors.black87, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 14,
+                          ),
                           children: [
-                            const TextSpan(text: "Selected Employees: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                            const TextSpan(
+                              text: "Selected Employees: ",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             TextSpan(text: employee.name),
                           ],
                         ),
@@ -484,26 +770,49 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       RichText(
                         text: TextSpan(
-                          style: const TextStyle(color: Colors.black87, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 14,
+                          ),
                           children: [
-                            const TextSpan(text: "Current Team Lead: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                            const TextSpan(
+                              text: "Current Team Lead: ",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             TextSpan(text: employee.teamLead ?? 'N/A'),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text("Select Higher Role", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const Text(
+                        "Select Higher Role",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         hint: const Text("Select.."),
-                        items: provider.tagOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                        items: provider.tagOptions
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
                         onChanged: (v) => selectedLead = v,
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF1AA299)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1AA299),
+                            ),
                           ),
                         ),
                       ),
@@ -520,26 +829,79 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF14343),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text("Close", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: const Text(
+                      "Close",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1AA299),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                     ),
+                    // onPressed: () async {
+                    //   if (selectedLead != null) {
+                    //     await provider.tagEmployee(
+                    //       employee.name,
+                    //       selectedLead!,
+                    //     );
+                    //     if (context.mounted) Navigator.pop(context);
+                    //   }
+                    // },
                     onPressed: () async {
                       if (selectedLead != null) {
-                        await provider.tagEmployee(employee.name, selectedLead!);
-                        if (context.mounted) Navigator.pop(context);
+                        final success = await provider.tagEmployee(
+                          employee.name,
+                          selectedLead!,
+                        );
+
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? "Employee successfully tagged as $selectedLead"
+                                  : "Tagging failed",
+                            ),
+                            backgroundColor: success
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        );
+
+                        if (success) Navigator.pop(context);
                       }
                     },
-                    child: const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+
+                    child: const Text(
+                      "Submit",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -550,11 +912,19 @@ class EmployeeDirectoryScreen extends StatelessWidget {
     );
   }
 
-  void _showTagDialog(BuildContext context, EmployeeDirectoryProvider provider) {
+  void _showTagDialog(
+    BuildContext context,
+    EmployeeDirectoryProvider provider,
+  ) {
     String? selectedLead;
-    final selectedEmployees = provider.employees.where((e) => provider.selectedEmployeeIds.contains(e.employeeID)).toList();
+    final selectedEmployees = provider.employees
+        .where((e) => provider.selectedEmployeeIds.contains(e.employeeID))
+        .toList();
     final names = selectedEmployees.map((e) => e.name).join(", ");
-    final leads = selectedEmployees.map((e) => e.teamLead ?? 'N/A').toSet().join(", ");
+    final leads = selectedEmployees
+        .map((e) => e.teamLead ?? 'N/A')
+        .toSet()
+        .join(", ");
 
     showDialog(
       context: context,
@@ -573,11 +943,25 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                    child: const Icon(Icons.sell_outlined, color: Color(0xFF1AA299), size: 20),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.sell_outlined,
+                      color: Color(0xFF1AA299),
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  const Text("Assign Higher Position", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                  const Text(
+                    "Assign Higher Position",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -590,9 +974,15 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                     children: [
                       RichText(
                         text: TextSpan(
-                          style: const TextStyle(color: Colors.black87, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 14,
+                          ),
                           children: [
-                            const TextSpan(text: "Selected Employees: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                            const TextSpan(
+                              text: "Selected Employees: ",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             TextSpan(text: names),
                           ],
                         ),
@@ -600,26 +990,49 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       RichText(
                         text: TextSpan(
-                          style: const TextStyle(color: Colors.black87, fontSize: 14),
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 14,
+                          ),
                           children: [
-                            const TextSpan(text: "Current Team Lead: ", style: TextStyle(fontWeight: FontWeight.bold)),
+                            const TextSpan(
+                              text: "Current Team Lead: ",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                             TextSpan(text: leads),
                           ],
                         ),
                       ),
                       const SizedBox(height: 20),
-                      const Text("Select Higher Role", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                      const Text(
+                        "Select Higher Role",
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         hint: const Text("Select.."),
-                        items: provider.tagOptions.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                        items: provider.tagOptions
+                            .map(
+                              (e) => DropdownMenuItem(value: e, child: Text(e)),
+                            )
+                            .toList(),
                         onChanged: (v) => selectedLead = v,
                         decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: const BorderSide(color: Color(0xFF1AA299)),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF1AA299),
+                            ),
                           ),
                         ),
                       ),
@@ -636,26 +1049,75 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF14343),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                     ),
                     onPressed: () => Navigator.pop(context),
-                    child: const Text("Close", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                    child: const Text(
+                      "Close",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1AA299),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
                     ),
+                    // onPressed: () async {
+                    //   if (selectedLead != null) {
+                    //     await provider.tagSelectedEmployees(selectedLead!);
+                    //     if (context.mounted) Navigator.pop(context);
+                    //   }
+                    // },
                     onPressed: () async {
                       if (selectedLead != null) {
-                        await provider.tagSelectedEmployees(selectedLead!);
-                        if (context.mounted) Navigator.pop(context);
+                        final success = await provider.tagSelectedEmployees(
+                          selectedLead!,
+                        );
+
+                        if (!context.mounted) return;
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              success
+                                  ? "Employees successfully tagged as $selectedLead"
+                                  : "Bulk tagging failed",
+                            ),
+                            backgroundColor: success
+                                ? Colors.green
+                                : Colors.red,
+                          ),
+                        );
+
+                        if (success) Navigator.pop(context);
                       }
                     },
-                    child: const Text("Submit", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+
+                    child: const Text(
+                      "Submit",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -672,21 +1134,28 @@ class _TableCell extends StatelessWidget {
   final String? text;
   final Widget? child;
   final bool isHeader;
-  const _TableCell({required this.width, this.text, this.child, this.isHeader = false});
+  const _TableCell({
+    required this.width,
+    this.text,
+    this.child,
+    this.isHeader = false,
+  });
   @override
   Widget build(BuildContext context) {
     return Container(
       width: width,
       padding: const EdgeInsets.all(12),
-      child: child ?? Text(
-        text ?? "",
-        style: TextStyle(
-          color: isHeader ? Colors.white : Colors.black87,
-          fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
-          fontSize: 13,
-        ),
-        overflow: TextOverflow.ellipsis,
-      ),
+      child:
+          child ??
+          Text(
+            text ?? "",
+            style: TextStyle(
+              color: isHeader ? Colors.white : Colors.black87,
+              fontWeight: isHeader ? FontWeight.bold : FontWeight.normal,
+              fontSize: 13,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
     );
   }
 }
@@ -695,14 +1164,21 @@ class _ActionButton extends StatelessWidget {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  const _ActionButton({required this.icon, required this.color, required this.onTap});
+  const _ActionButton({
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+        ),
         child: Icon(icon, color: Colors.white, size: 16),
       ),
     );

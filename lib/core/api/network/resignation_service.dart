@@ -54,6 +54,23 @@ class ResignationService {
     );
   }
 
+  // Future<ApiResponse<Map<String, dynamic>>> uploadDocument({
+  //   required String resignationId,
+  //   required String documentUrl,
+  // }) async {
+  //   final token = await _storage.getToken();
+
+  //   if (token == null || token.isEmpty) {
+  //     return ApiResponse.error('Token missing');
+  //   }
+
+  //   return await _apiHelper.put<Map<String, dynamic>>(
+  //     'resignation/uploadDocument/$resignationId',
+  //     {'newDocument': documentUrl},
+  //     headers: {'Authorization': 'Bearer $token'},
+  //   );
+  // }
+
   Future<ApiResponse<Map<String, dynamic>>> uploadDocument({
     required String resignationId,
     required String documentUrl,
@@ -66,7 +83,9 @@ class ResignationService {
 
     return await _apiHelper.put<Map<String, dynamic>>(
       'resignation/uploadDocument/$resignationId',
-      {'newDocument': documentUrl},
+      {
+        'newDocument': {'name': 'Resignation Document', 'url': documentUrl},
+      },
       headers: {'Authorization': 'Bearer $token'},
     );
   }
