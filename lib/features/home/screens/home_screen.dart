@@ -110,6 +110,7 @@ class HomeScreen extends StatelessWidget {
           builder: (context, snapshot) {
             final userData = snapshot.data;
             final userRole = authProvider.userData?['role']?.toString().toLowerCase();
+            final isEmployee = userRole != 'manager' && userRole != 'admin';
 
             return Column(
               // Changed ListView to Column to use Spacer
@@ -189,6 +190,24 @@ class HomeScreen extends StatelessWidget {
                           context.goToPerformance();
                         },
                       ),
+                      if (isEmployee)
+                         ListTile(
+                           leading: const Icon(Icons.emoji_events_outlined),
+                           title: const Text('Leaderboard'),
+                           onTap: () {
+                             Navigator.pop(context);
+                             context.goToLeaderboard();
+                           },
+                         ),
+                      if (!isEmployee)
+                        ListTile(
+                          leading: const Icon(Icons.emoji_events),
+                          title: const Text('Admin Leaderboard'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.goToAdminLeaderboard();
+                          },
+                        ),
                       if (userRole == 'manager' || userRole == 'admin')
                         ListTile(
                           leading: const Icon(Icons.people_alt_outlined),

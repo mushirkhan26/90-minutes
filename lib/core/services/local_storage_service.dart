@@ -4,6 +4,7 @@ import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
+import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
@@ -40,6 +41,10 @@ class LocalStorageService {
   // 📈 Performance caching related keys
   static const String keyMyRatings = 'my_ratings';
   static const String keyTeamRatings = 'team_ratings';
+
+  // 🏆 Leaderboard caching related keys
+  static const String keyLeaderboardList = 'leaderboard_list';
+  static const String keyUserStats = 'user_stats';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -594,5 +599,38 @@ Future<String?> getEmployeeId() async {
 /// 🔹 Get logged-in employee name
 Future<String?> getEmployeeName() async {
   return prefs.getString(_keyEmployeeName);
+}
+
+// 🏆 Leaderboard caching methods
+Future<void> saveLeaderboardList(List<LeaderboardModel> list) async {
+  final jsonList = list.map((e) => e.toJson()).toList();
+  await prefs.setString(keyLeaderboardList, jsonEncode(jsonList));
+  _logger.logStorage('Saved ${list.length} leaderboard entries');
+}
+
+Future<List<LeaderboardModel>?> getLeaderboardList() async {
+  final jsonString = prefs.getString(keyLeaderboardList);
+  if (jsonString == null) return null;
+  try {
+    final List<dynamic> list = jsonDecode(jsonString);
+    return list.map((json) => LeaderboardModel.fromJson(json)).toList();
+  } catch (e) {
+    return null;
+  }
+}
+
+Future<void> saveUserStats(UserStatsModel stats) async {
+  await prefs.setString(keyUserStats, jsonEncode(stats.toJson()));
+  _logger.logStorage('Saved user stats');
+}
+
+Future<UserStatsModel?> getUserStats() async {
+  final jsonString = prefs.getString(keyUserStats);
+  if (jsonString == null) return null;
+  try {
+    return UserStatsModel.fromJson(jsonDecode(jsonString));
+  } catch (e) {
+    return null;
+  }
 }
 }
