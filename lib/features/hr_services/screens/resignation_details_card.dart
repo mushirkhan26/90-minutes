@@ -8,11 +8,7 @@ class ResignationDetailsCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final VoidCallback? onApprove;
 
-  const ResignationDetailsCard({
-    super.key,
-    required this.data,
-    this.onApprove,
-  });
+  const ResignationDetailsCard({super.key, required this.data, this.onApprove});
 
   String _formatDate(String? date) {
     if (date == null || date.isEmpty) return '-';
@@ -27,9 +23,7 @@ class ResignationDetailsCard extends StatelessWidget {
 
   int _remainingDays(String? lastDate) {
     if (lastDate == null) return 0;
-    return DateTime.parse(lastDate)
-        .difference(DateTime.now())
-        .inDays;
+    return DateTime.parse(lastDate).difference(DateTime.now()).inDays;
   }
 
   @override
@@ -63,8 +57,10 @@ class ResignationDetailsCard extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFDFF9F3),
                     borderRadius: BorderRadius.circular(20),
@@ -83,14 +79,8 @@ class ResignationDetailsCard extends StatelessWidget {
 
             const SizedBox(height: 18),
 
-            _detailRow(
-              'Resignation:',
-              _formatDate(data['resignationDate']),
-            ),
-            _detailRow(
-              'Last Day:',
-              _formatDate(data['lastWorkingDay']),
-            ),
+            _detailRow('Resignation:', _formatDate(data['resignationDate'])),
+            _detailRow('Last Day:', _formatDate(data['lastWorkingDay'])),
             _detailRow(
               'Remaining:',
               remaining <= 0 ? 'Completed' : '$remaining days',
@@ -116,10 +106,7 @@ class ResignationDetailsCard extends StatelessWidget {
             const SizedBox(height: 14),
 
             /// REASON
-            const Text(
-              'Reason:',
-              style: TextStyle(color: Colors.grey),
-            ),
+            const Text('Reason:', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 6),
             Container(
               width: double.infinity,
@@ -137,38 +124,31 @@ class ResignationDetailsCard extends StatelessWidget {
             const SizedBox(height: 14),
 
             /// DOCUMENTS
-            const Text(
-              'Documents:',
-              style: TextStyle(color: Colors.grey),
-            ),
+            const Text('Documents:', style: TextStyle(color: Colors.grey)),
             const SizedBox(height: 6),
 
             if ((data['documents'] as List?)?.isNotEmpty ?? false)
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: List.generate(
-                  data['documents'].length,
-                  (index) {
-                    final doc =
-                        data['documents'][index] as Map<String, dynamic>;
-                    final String fileName = doc['name'] ?? 'Document';
-                    final String fileUrl = doc['url'] ?? '';
+                children: List.generate(data['documents'].length, (index) {
+                  final doc = data['documents'][index] as Map<String, dynamic>;
+                  final String fileName = doc['name'] ?? 'Document';
+                  final String fileUrl = doc['url'] ?? '';
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
-                      child: InkWell(
-                        onTap: () => launchUrl(Uri.parse(fileUrl)),
-                        child: Text(
-                          fileName,
-                          style: const TextStyle(
-                            color: Color(0xFF3B82F6),
-                            fontSize: 14,
-                          ),
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: InkWell(
+                      onTap: () => launchUrl(Uri.parse(fileUrl)),
+                      child: Text(
+                        fileName,
+                        style: const TextStyle(
+                          color: Color(0xFF3B82F6),
+                          fontSize: 14,
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  );
+                }),
               )
             else
               const Text('-'),
@@ -200,7 +180,10 @@ class ResignationDetailsCard extends StatelessWidget {
                     bgColor: const Color(0xFFDFF9F3),
                     iconColor: const Color(0xFF2F9E9E),
                     onTap: () {
-                      _showUploadDocumentDialog(parentContext: context, data: data);
+                      _showUploadDocumentDialog(
+                        parentContext: context,
+                        data: data,
+                      );
                     },
                   )
                 else if (isPending)
@@ -209,7 +192,10 @@ class ResignationDetailsCard extends StatelessWidget {
                     bgColor: const Color(0xFFDFF9F3),
                     iconColor: const Color(0xFF2F9E9E),
                     onTap: () {
-                      _showUpdateStatusDialog(parentContext: context, data: data);
+                      _showUpdateStatusDialog(
+                        parentContext: context,
+                        data: data,
+                      );
                     },
                   ),
               ],
@@ -254,52 +240,51 @@ class ResignationDetailsCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
-        child: Center(
-          child: Icon(icon, size: 22, color: iconColor),
-        ),
+        child: Center(child: Icon(icon, size: 22, color: iconColor)),
       ),
     );
   }
 
   /// STATUS CHIP
   Widget _statusChip(String status) {
-  final s = status.toLowerCase();
+    final s = status.toLowerCase();
 
-  Color bgColor;
-  Color textColor;
+    Color bgColor;
+    Color textColor;
 
-  if (s == 'accepted') {
-    bgColor = const Color(0xFFDFF9E6); // green
-    textColor = const Color(0xFF22C55E);
-  } else if (s == 'rejected') {
-    bgColor = const Color(0xFFFEE2E2); // red
-    textColor = const Color(0xFFEF4444);
-  } else {
-    bgColor = const Color(0xFFFFF4D6); // pending orange
-    textColor = const Color(0xFFF59E0B);
-  }
+    if (s == 'accepted') {
+      bgColor = const Color(0xFFDFF9E6); // green
+      textColor = const Color(0xFF22C55E);
+    } else if (s == 'rejected') {
+      bgColor = const Color(0xFFFEE2E2); // red
+      textColor = const Color(0xFFEF4444);
+    } else {
+      bgColor = const Color(0xFFFFF4D6); // pending orange
+      textColor = const Color(0xFFF59E0B);
+    }
 
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-    decoration: BoxDecoration(
-      color: bgColor,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Text(
-      status,
-      style: TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        color: textColor,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(20),
       ),
-    ),
-  );
-}
-  
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          color: textColor,
+        ),
+      ),
+    );
+  }
 
   /// BOTTOM SHEET
   void _showResignationDetailsSheet(
-      BuildContext context, Map<String, dynamic> data) {
+    BuildContext context,
+    Map<String, dynamic> data,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -320,8 +305,10 @@ class ResignationDetailsCard extends StatelessWidget {
                   children: [
                     const Text(
                       'Resignation Details',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     Container(
                       decoration: BoxDecoration(
@@ -352,10 +339,8 @@ class ResignationDetailsCard extends StatelessWidget {
                 _statusChip(data['status'] ?? '-'),
                 const SizedBox(height: 12),
 
-                _verticalItem(
-                    'Created On', _formatDateTime(data['createdOn'])),
-                _verticalItem(
-                    'Updated On', _formatDateTime(data['updatedOn'])),
+                _verticalItem('Created On', _formatDateTime(data['createdOn'])),
+                _verticalItem('Updated On', _formatDateTime(data['updatedOn'])),
 
                 const SizedBox(height: 12),
 
@@ -377,25 +362,28 @@ class ResignationDetailsCard extends StatelessWidget {
                 const SizedBox(height: 20),
 
                 Align(
-  alignment: Alignment.centerRight,
-  child: Container(
-    decoration: BoxDecoration(
-      color: Colors.grey.shade200, // 👈 grey background
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: TextButton(
-      onPressed: () => Navigator.pop(context),
-      style: TextButton.styleFrom(
-        foregroundColor: Colors.black87,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      ),
-      child: const Text(
-        'Close',
-        style: TextStyle(fontWeight: FontWeight.w500),
-      ),
-    ),
-  ),
-),
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade200, // 👈 grey background
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black87,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 6,
+                        ),
+                      ),
+                      child: const Text(
+                        'Close',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -410,15 +398,11 @@ class ResignationDetailsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
           const SizedBox(height: 4),
           Text(
             value?.toString() ?? '-',
-            style:
-                const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
           ),
         ],
       ),
@@ -432,186 +416,176 @@ class ResignationDetailsCard extends StatelessWidget {
         children: [
           SizedBox(
             width: 160,
-            child: Text(
-              label,
-              style: const TextStyle(color: Colors.grey),
-            ),
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
           ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 15),
-          ),
+          Text(value, style: const TextStyle(fontSize: 15)),
         ],
       ),
     );
   }
+
   void _showUpdateStatusDialog({
     required BuildContext parentContext,
     required Map<String, dynamic> data,
   }) {
-  String selectedStatus = data['status'] ?? 'Pending';
+    String selectedStatus = data['status'] ?? 'Pending';
 
-  showDialog(
-    context: parentContext,
-    barrierDismissible: false,
-    builder: (context) {
-      return AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Text(
-          'Update Status for ${data['name']}',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        content: StatefulBuilder(
-          builder: (context, setState) {
-            return DropdownButtonFormField<String>(
-              initialValue: selectedStatus,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'Pending', child: Text('Pending')),
-                DropdownMenuItem(value: 'Accepted', child: Text('Accepted')),
-                DropdownMenuItem(value: 'Rejected', child: Text('Rejected')),
-              ],
-              onChanged: (v) => setState(() => selectedStatus = v!),
-            );
-          },
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+    showDialog(
+      context: parentContext,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2F9E9E),
-            ),
-            onPressed: () async{
-             final provider =
-                  parentContext.read<ResignationProvider>();
-                  final success =
-                      await provider.updateResignationStatus(
-                    resignationId: data['resignationId'],
-                    status: selectedStatus,
-                    comments: data['comments'] ?? '',
-                  );
-                  if(!context.mounted) return;
-                  if(success) {
-                    Navigator.of(context).pop();
-                    await provider.fetchAllResignations();
-                    
-                  }
+          title: Text(
+            'Update Status for ${data['name']}',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return DropdownButtonFormField<String>(
+                initialValue: selectedStatus,
+                decoration: const InputDecoration(border: OutlineInputBorder()),
+                items: const [
+                  DropdownMenuItem(value: 'Pending', child: Text('Pending')),
+                  DropdownMenuItem(value: 'Accepted', child: Text('Accepted')),
+                  DropdownMenuItem(value: 'Rejected', child: Text('Rejected')),
+                ],
+                onChanged: (v) => setState(() => selectedStatus = v!),
+              );
             },
-            child: const Text('Update'),
           ),
-        ],
-      );
-    },
-  );
-}
- void _showUploadDocumentDialog({
-  required BuildContext parentContext,
-  required Map<String, dynamic> data,
-}) {
-  final TextEditingController urlController = TextEditingController();
-  bool isUploading = false;
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2F9E9E),
+              ),
+              onPressed: () async {
+                final provider = parentContext.read<ResignationProvider>();
+                final success = await provider.updateResignationStatus(
+                  resignationId: data['resignationId'],
+                  status: selectedStatus,
+                  comments: data['comments'] ?? '',
+                );
+                if (!context.mounted) return;
+                if (success) {
+                  Navigator.of(context).pop();
+                  await provider.fetchAllResignations();
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
-  showDialog(
-    context: parentContext,
-    barrierDismissible: false,
-    builder: (dialogContext) {
-      return StatefulBuilder(
-        builder: (dialogContext, setState) {
-          return AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: const Text(
-              'Upload Document',
-              style: TextStyle(fontWeight: FontWeight.w600),
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Document URL',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 6),
-                TextField(
-                  controller: urlController,
-                  decoration: InputDecoration(
-                    hintText: 'https://file_upload.com/document.pdf',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+  void _showUploadDocumentDialog({
+    required BuildContext parentContext,
+    required Map<String, dynamic> data,
+  }) {
+    final TextEditingController urlController = TextEditingController();
+    bool isUploading = false;
+
+    showDialog(
+      context: parentContext,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Text(
+                'Upload Document',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Document URL',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: urlController,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'https://file_upload.com/document.pdf',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
                   ),
+                ],
+              ),
+              actions: [
+                /// ❌ CANCEL
+                TextButton(
+                  onPressed: isUploading
+                      ? null
+                      : () => Navigator.pop(dialogContext),
+                  child: const Text('Cancel'),
+                ),
+
+                /// ✅ UPLOAD
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF22C55E), // green
+                  ),
+                  onPressed: (urlController.text.isNotEmpty && !isUploading)
+                      ? () async {
+                          final documentUrl = urlController.text.trim();
+
+                          debugPrint("🚀 UPLOAD CLICKED");
+                          debugPrint("resignationId: ${data['resignationId']}");
+                          debugPrint("documentUrl: $documentUrl");
+
+                          setState(() => isUploading = true);
+
+                          final provider = parentContext
+                              .read<ResignationProvider>();
+
+                          final success = await provider.uploadDocument(
+                            resignationId: data['resignationId'],
+                            documentUrl: documentUrl,
+                          );
+                          if (!dialogContext.mounted) return;
+
+                          setState(() => isUploading = false);
+
+                          if (success) {
+                            Navigator.pop(dialogContext);
+                            provider.fetchAllResignations();
+                            provider.fetchMyResignation();
+                          }
+                        }
+                      : null,
+                  child: isUploading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Upload'),
                 ),
               ],
-            ),
-            actions: [
-              /// ❌ CANCEL
-              TextButton(
-                onPressed:
-                    isUploading ? null : () => Navigator.pop(dialogContext),
-                child: const Text('Cancel'),
-              ),
-
-              /// ✅ UPLOAD
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF22C55E), // green
-                ),
-                onPressed: (urlController.text.isNotEmpty && !isUploading)
-                    ? () async {
-                        final documentUrl =
-                            urlController.text.trim();
-
-                        debugPrint("🚀 UPLOAD CLICKED");
-                        debugPrint("resignationId: ${data['resignationId']}");
-                        debugPrint("documentUrl: $documentUrl");
-
-                        setState(() => isUploading = true);
-
-                        final provider =
-                            parentContext.read<ResignationProvider>();
-
-                        final success =
-                            await provider.uploadDocument(
-                          resignationId: data['resignationId'],
-                          documentUrl: documentUrl,
-                        );
-                        if(!dialogContext.mounted) return;
-
-
-                        setState(() => isUploading = false);
-
-                        if (success) {
-                          Navigator.pop(dialogContext);
-                          provider.fetchAllResignations();
-                          provider.fetchMyResignation();
-                        }
-                      }
-                    : null,
-                child: isUploading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text('Upload'),
-              ),
-            ],
-          );
-        },
-      );
-    },
-  );
-}
+            );
+          },
+        );
+      },
+    );
+  }
 }
