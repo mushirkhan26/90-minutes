@@ -5,7 +5,6 @@ import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
 import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
-import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
@@ -612,38 +611,37 @@ class LocalStorageService {
     }
   }
 
-  Future<void> saveLoggedInEmployee({
-    required String employeeId,
-    required String employeeName,
-  }) async {
-    await prefs.setString(_keyEmployeeId, employeeId);
-    await prefs.setString(_keyEmployeeName, employeeName);
-  }
-
-  /// 🔹 Get logged-in employee id
-  Future<String?> getEmployeeId() async {
-    return prefs.getString(_keyEmployeeId);
-  }
-
   /// 🔹 Get logged-in employee name
   Future<String?> getEmployeeName() async {
     return prefs.getString(_keyEmployeeName);
   }
 
-  // 🏆 Leaderboard caching methods
-  Future<void> saveLeaderboardList(List<LeaderboardModel> list) async {
-    final jsonList = list.map((e) => e.toJson()).toList();
-    await prefs.setString(keyLeaderboardList, jsonEncode(jsonList));
-    _logger.logStorage('Saved ${list.length} leaderboard entries');
+  // ================= SERVICE REQUEST STORAGE =================
+
+  // Save service request list
+  Future<void> saveServiceRequests(List<Map<String, dynamic>> requests) async {
+    await prefs.setString(keyServiceRequests, jsonEncode(requests));
+    await prefs.setInt(
+      '${keyServiceRequests}_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    _logger.logStorage('Saved service requests (${requests.length})');
   }
 
-  Future<List<LeaderboardModel>?> getLeaderboardList() async {
-    final jsonString = prefs.getString(keyLeaderboardList);
+  // Get cached service request list
+  Future<List<Map<String, dynamic>>?> getServiceRequests() async {
+    final jsonString = prefs.getString(keyServiceRequests);
     if (jsonString == null) return null;
+
     try {
-      final List<dynamic> list = jsonDecode(jsonString);
-      return list.map((json) => LeaderboardModel.fromJson(json)).toList();
+      final List list = jsonDecode(jsonString);
+      return List<Map<String, dynamic>>.from(list);
     } catch (e) {
+      _logger.error(
+        'LOCAL_STORAGE',
+        'Failed to parse service requests',
+        error: e,
+      );
       return null;
     }
   }
@@ -661,5 +659,43 @@ class LocalStorageService {
     } catch (e) {
       return null;
     }
+  }
+
+  // ================= DEPARTMENTS =================
+  Future<void> saveDepartments(List<String> departments) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('departments', departments);
+  }
+
+  Future<List<String>?> getDepartments() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList('departments');
+  }
+
+  // ================= REQUEST COUNTS =================
+  Future<void> saveServiceRequestCounts(Map<String, int> counts) async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = counts.map((k, v) => MapEntry(k, v.toString()));
+    await prefs.setString('service_request_counts', jsonEncode(map));
+  }
+
+  Future<Map<String, dynamic>?> getServiceRequestCounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString('service_request_counts');
+    if (json == null) return null;
+    return Map<String, dynamic>.from(jsonDecode(json));
+  }
+
+  // ================= TIMESTAMP =================
+  Future<void> saveServiceRequestTimestamp(DateTime time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('service_request_timestamp', time.toIso8601String());
+  }
+
+  Future<DateTime?> getServiceRequestTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString('service_request_timestamp');
+    if (value == null) return null;
+    return DateTime.parse(value);
   }
 }
