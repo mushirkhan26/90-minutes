@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
+import 'package:hrtz_hrms/features/service_request/screens/request_details_screen.dart';
 import 'package:hrtz_hrms/features/service_request/widgets/service_request_model.dart';
+import 'package:provider/provider.dart';
+
 
 class ServiceRequestBottomSheet extends StatelessWidget {
   final ServiceRequest request;
@@ -37,7 +41,7 @@ class ServiceRequestBottomSheet extends StatelessWidget {
                   const SizedBox(height: 20),
                   _buildContactInfo(),
                   const SizedBox(height: 24),
-                  _buildViewDetailsButton(),
+                  _buildViewDetailsButton(context),
                 ],
               ),
             ),
@@ -290,7 +294,7 @@ else
   }
 
   // ================= BUTTON =================
-  Widget _buildViewDetailsButton() {
+  Widget _buildViewDetailsButton(BuildContext context) {
   return Align(
     alignment: Alignment.centerRight,
     child: ElevatedButton(
@@ -301,7 +305,18 @@ else
           borderRadius: BorderRadius.circular(12),
         ),
       ),
-      onPressed: () {},
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: context.read<ServiceRequestProvider>(),
+              child: RequestDetailScreen(request: request),
+
+            )
+          ),
+        );
+      },
       child: const Row(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -31,6 +31,7 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
   final TextEditingController _mobileCtrl = TextEditingController();
   final TextEditingController _descCtrl = TextEditingController();
 
+ final TextEditingController _requestTypeCtrl = TextEditingController();
   String? _selectedDepartment;
   bool _submitting = false;
 
@@ -42,15 +43,17 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
   @override
   void initState() {
     super.initState();
+    _requestTypeCtrl.text = widget.requestType;
+  
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = context.read<AuthProvider>();
       final provider = context.read<ServiceRequestProvider>();
 
-      // 🔹 Autofill
-      _nameCtrl.text = auth.userData?['username'] ?? '';
+      // Autofill
+    
       _empIdCtrl.text = auth.userData?['employeeId'] ?? '';
-      _emailCtrl.text = auth.userData?['email'] ?? '';
+  
       _mobileCtrl.text = auth.userData?['mobile'] ?? '';
 
       // 🔹 Fetch departments for dropdown
@@ -65,6 +68,7 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
     _emailCtrl.dispose();
     _mobileCtrl.dispose();
     _descCtrl.dispose();
+    _requestTypeCtrl.dispose();
     super.dispose();
   }
 
@@ -138,11 +142,17 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          'Request For ${widget.requestType} Service',
-        ),
-        backgroundColor: AppColors.primary,
-      ),
+  backgroundColor: AppColors.primary,
+  iconTheme: const IconThemeData(color: Colors.white),
+  title: Text(
+    'Request For ${widget.requestType} Service',
+    style: const TextStyle(
+      color: Colors.white,        
+      fontWeight: FontWeight.w600,
+      fontSize: 18,
+    ),
+  ),
+),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -162,8 +172,45 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
               _input(_nameCtrl, 'Name'),
               const SizedBox(height: 12),
 
-              _input(_empIdCtrl, 'Employee ID', enabled: false),
-              const SizedBox(height: 12),
+            TextFormField(
+  controller: _empIdCtrl,
+  readOnly: true,
+  decoration: InputDecoration(
+    label: RichText(
+      text: const TextSpan(
+        text: "Employee ID",
+        style: TextStyle(color: Colors.black87, fontSize: 14),
+        children: [
+          TextSpan(
+            text: " *",
+            style: TextStyle(color: Colors.red),
+          )
+        ],
+      ),
+    ),
+    filled: true,
+    fillColor: const Color(0xFFF1F1F1),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+  ),
+  validator: (v) =>
+      v == null || v.isEmpty ? "Employee ID is required" : null,
+),
+ const SizedBox(height: 12),
+
 
               _input(_emailCtrl, 'Email'),
               const SizedBox(height: 12),
@@ -178,33 +225,88 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return DropdownButtonFormField<String>(
-      value: _selectedDepartment,
-      hint: const Text('Select Department'),
-      items: provider.departments
-          .map(
-            (d) => DropdownMenuItem(
-              value: d,
-              child: Text(d),
-            ),
+   return DropdownButtonFormField<String>(
+  value: _selectedDepartment,
+  decoration: InputDecoration(
+    label: RichText(
+      text: const TextSpan(
+        text: "Department",
+        style: TextStyle(color: Colors.black87, fontSize: 14),
+        children: [
+          TextSpan(
+            text: " *",
+            style: TextStyle(color: Colors.red),
           )
-          .toList(),
-      onChanged: (v) => setState(() => _selectedDepartment = v),
-      validator: (v) => v == null ? 'Department required' : null,
-      decoration: const InputDecoration(
-        border: OutlineInputBorder(),
+        ],
       ),
-    );
+    ),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+  ),
+  validator: (v) =>
+      v == null ? "Department is required" : null,
+  items: provider.departments
+      .map((d) => DropdownMenuItem(
+            value: d,
+            child: Text(d),
+          ))
+      .toList(),
+  onChanged: (v) => setState(() => _selectedDepartment = v),
+);
   },
 ),
               const SizedBox(height: 12),
 
-              _input(
-                TextEditingController(text: widget.requestType),
-                'Request Type',
-                enabled: false,
-              ),
-
+              TextFormField(
+  controller: _requestTypeCtrl,
+  readOnly: true,
+  decoration: InputDecoration(
+    label: RichText(
+      text: const TextSpan(
+        text: "Request Type",
+        style: TextStyle(color: Colors.black87, fontSize: 14),
+        children: [
+          TextSpan(
+            text: " *",
+            style: TextStyle(color: Colors.red),
+          )
+        ],
+      ),
+    ),
+    filled: true,
+    fillColor: const Color(0xFFF1F1F1),
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(6),
+      borderSide: const BorderSide(color: Colors.red),
+    ),
+  ),
+  validator: (v) =>
+      v == null || v.isEmpty ? "Request Type is required" : null,
+),
               const SizedBox(height: 12),
 
               TextFormField(
@@ -221,30 +323,68 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
               const SizedBox(height: 16),
 
               // ================= FILE =================
-              OutlinedButton.icon(
-                icon: const Icon(Icons.upload),
-                label: const Text('Upload Attachment'),
-                onPressed: _pickFile,
-              ),
-
+              _addImageBox(),
               const SizedBox(height: 24),
+              
 
               // ================= SUBMIT =================
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _submitting ? null : _submit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    padding: const EdgeInsets.all(14),
-                  ),
-                  child: _submitting
-                      ? const CircularProgressIndicator(
-                          color: Colors.white,
-                        )
-                      : const Text('Submit'),
-                ),
+              Row(
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    // ❌ CANCEL BUTTON
+    TextButton(
+      onPressed: _submitting
+          ? null
+          : () {
+              Navigator.pop(context);
+            },
+      style: TextButton.styleFrom(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+      ),
+      child: const Text(
+        'Cancel',
+        style: TextStyle(
+          color: Colors.grey,
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    ),
+
+    const SizedBox(width: 12),
+
+    // SUBMIT BUTTON
+    ElevatedButton(
+      onPressed: _submitting ? null : _submit,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: AppColors.primary,
+        padding:
+            const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      child: _submitting
+          ? const SizedBox(
+              height: 18,
+              width: 18,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
               ),
+            )
+          : const Text(
+              'Submit',
+              style: TextStyle(
+                color: Colors.white, 
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+    ),
+  ],
+),
             ],
           ),
         ),
@@ -254,19 +394,109 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
 
   // ================= INPUT =================
   Widget _input(
-    TextEditingController ctrl,
-    String label, {
-    bool enabled = true,
-  }) {
-    return TextFormField(
-      controller: ctrl,
-      enabled: enabled,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
+  TextEditingController ctrl,
+  String label, {
+  bool required = true,
+}) {
+  return TextFormField(
+    controller: ctrl,
+    decoration: InputDecoration(
+      label: RichText(
+        text: TextSpan(
+          text: label,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 14,
+          ),
+          children: required
+              ? const [
+                  TextSpan(
+                    text: " *",
+                    style: TextStyle(color: Colors.red),
+                  )
+                ]
+              : [],
+        ),
       ),
-      validator: (v) =>
-          v == null || v.isEmpty ? '$label required' : null,
-    );
-  }
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFFD0D0D0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: AppColors.primary),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Colors.red),
+      ),
+    ),
+    validator: required
+        ? (v) => v == null || v.isEmpty ? "$label is required" : null
+        : null,
+  );
+}
+  Widget _addImageBox() {
+  return GestureDetector(
+    onTap: _pickFile,
+    child: Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.grey.shade400,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(
+            Icons.cloud_upload_outlined,
+            size: 34,
+            color: AppColors.primary,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Add Image',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Click to browse image',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+
+          // 🔹 show selected file name
+          if (_selectedFile != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _selectedFile!.path.split('/').last,
+              style: const TextStyle(
+                fontSize: 12,
+                color: Colors.black87,
+              ),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
+}
 }

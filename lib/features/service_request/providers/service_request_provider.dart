@@ -43,12 +43,11 @@ class ServiceRequestProvider extends ChangeNotifier {
   }
 
   Future<void> _init() async {
-    await _loadFromCache();
-    await _loadDepartmentsFromCache();
-    await fetchDepartments();
-    await fetchServiceRequests();
-    await fetchRequestCounts();
-  }
+  await _loadFromCache();
+  await _loadDepartmentsFromCache();
+
+ 
+}
 
   // ================= LOAD FROM CACHE =================
   Future<void> _loadFromCache() async {
@@ -66,7 +65,8 @@ class ServiceRequestProvider extends ChangeNotifier {
 
     if (cachedCounts != null) {
       _requestCounts =
-          cachedCounts.map((k, v) => MapEntry(k, v as int));
+          cachedCounts.map((k, v) => MapEntry(k, int.parse(v.toString())),
+          );
       notifyListeners();
     }
   }
@@ -184,6 +184,7 @@ Future<void> _loadDepartmentsFromCache() async {
   Future<bool> updateRequestStatus({
     required String requestId,
     required String status,
+    String? rejectionReason,
   }) async {
     _state = ServiceRequestState.loading;
     notifyListeners();
@@ -192,6 +193,7 @@ Future<void> _loadDepartmentsFromCache() async {
       final response = await _service.updateRequestStatus(
         requestId: requestId,
         status: status,
+        adminComment: rejectionReason ?? "",
       );
 
       if (response.success) {
@@ -200,7 +202,7 @@ Future<void> _loadDepartmentsFromCache() async {
 
         if (index != -1) {
           _allRequests[index] =
-              _allRequests[index].copyWith(requestStatus: status);
+              _allRequests[index].copyWith(requestStatus: status, adminComment: rejectionReason ?? "");
 
           // ✅ SAVE AS MAP LIST
           await _localStorage.saveServiceRequests(
@@ -238,6 +240,13 @@ Future<void> fetchRequestsByEmployee(String employeeId) async {
 
       _allRequests =
           list.map((e) => ServiceRequest.fromJson(e)).toList();
+
+      // ✅ IMPORTANT: SAVE TO CACHE
+      await _localStorage.saveServiceRequests(
+        _allRequests.map((e) => e.toJson()).toList(),
+      );
+
+      _state = ServiceRequestState.success;
     }
   } catch (e, s) {
     _logger.error(
@@ -340,6 +349,94 @@ Future<void> fetchDepartments({bool forceRefresh = false}) async {
   } finally {
     _isDepartmentLoading = false;
     notifyListeners();
+  }
+}
+
+// ================= SEND MAIL =================
+Future<bool> sendMail({
+  required String email,
+  required String subject,
+  required String content,
+  required String requestId,
+  required String employeeName,
+  required String employeeId,
+  required String requestType,
+}) async {
+  try {
+    _state = ServiceRequestState.loading;
+    notifyListeners();
+
+    final response = await _service.sendMail(
+      email: email,
+      subject: subject,
+      content: content,
+      requestId: requestId,
+      employeeName: employeeName,
+      employeeId: employeeId,
+      requestType: requestType,
+    );
+
+    if (response.success) {
+      _state = ServiceRequestState.success;
+      notifyListeners();
+      return true;
+    }
+
+    throw Exception(response.message);
+  } catch (e) {
+    _error = e.toString();
+    _state = ServiceRequestState.error;
+    notifyListeners();
+    return false;
+  }
+}
+// ================= ADD VIDEO =================
+Future<bool> addVideoToRequest({
+  required String requestId,
+  required String videoUrl,
+}) async {
+
+  try {
+    _state = ServiceRequestState.loading;
+    notifyListeners();
+
+    final response = await _service.addVideoToRequest(
+      requestId: requestId,
+      videoUrl: videoUrl,
+    );
+
+    if (response.success) {
+
+      final index =
+          _allRequests.indexWhere((r) => r.requestId == requestId);
+
+      if (index != -1) {
+        _allRequests[index] =
+            _allRequests[index].copyWith(videoUrl: videoUrl);
+
+        await _localStorage.saveServiceRequests(
+          _allRequests.map((e) => e.toJson()).toList(),
+        );
+      }
+
+      _state = ServiceRequestState.success;
+      notifyListeners();
+      return true;
+    }
+
+    throw Exception(response.message);
+
+  } catch (e, s) {
+    _error = e.toString();
+    _logger.error(
+      "SERVICE_REQUEST_PROVIDER",
+      "addVideoToRequest failed",
+      error: e,
+      stackTrace: s,
+    );
+    _state = ServiceRequestState.error;
+    notifyListeners();
+    return false;
   }
 }
   // ================= FILTER HELPERS =================

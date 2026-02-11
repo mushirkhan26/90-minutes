@@ -54,13 +54,15 @@ Future<ApiResponse<dynamic>> getDepartments() async {
   Future<ApiResponse<dynamic>> updateRequestStatus({
     required String requestId,
     required String status, // Approved | Rejected
+    String adminComment = "",
   }) async {
     final body = {
       "requestStatus": status,
+      "adminComment": adminComment,
     };
 
     _logger.logGeneral(
-      'Updating request status → $requestId : $status',
+      'Updating request status → $requestId | Status: $status | Comment: $adminComment',
     );
 
     return await _apiHelper.put<dynamic>(
@@ -68,6 +70,57 @@ Future<ApiResponse<dynamic>> getDepartments() async {
       body,
     );
   }
+
+  // ================= SEND MAIL =================
+Future<ApiResponse<dynamic>> sendMail({
+  required String email,
+  required String subject,
+  required String content,
+  required String requestId,
+  required String employeeName,
+  required String employeeId,
+  required String requestType,
+}) async {
+
+  final body = {
+    "email": email,
+    "subject": subject,
+    "content": content,
+    "requestId": requestId,
+    "employeeName": employeeName,
+    "employeeId": employeeId,
+    "requestType": requestType,
+  };
+
+  _logger.logGeneral(
+    "Sending mail → RequestId: $requestId | To: $email",
+  );
+
+  return await _apiHelper.post<dynamic>(
+    "request/sendMail",
+    body,
+  );
+}
+
+// ================= ADD VIDEO TO REQUEST =================
+Future<ApiResponse<dynamic>> addVideoToRequest({
+  required String requestId,
+  required String videoUrl,
+}) async {
+
+  final body = {
+    "videoUrl": videoUrl,
+  };
+
+  _logger.logGeneral(
+    "Uploading video → RequestId: $requestId | VideoUrl: $videoUrl",
+  );
+
+  return await _apiHelper.post<dynamic>(
+    "request/add-video/$requestId",
+    body,
+  );
+}
 
   
 }

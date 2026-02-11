@@ -24,6 +24,8 @@ class _ServiceRequestListScreenState
     extends State<ServiceRequestListScreen> {
   String search = '';
 
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -45,9 +47,10 @@ class _ServiceRequestListScreenState
           if (widget.filterType != null) {
             list = list
                 .where((e) =>
-                    e.type.toLowerCase() ==
-                    widget.filterType!.toLowerCase())
-                .toList();
+                    e.type.toLowerCase().contains(
+                    widget.filterType!.toLowerCase(),
+                    )
+                ).toList();
           }
 
           // 🔹 Search

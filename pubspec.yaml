@@ -48,6 +48,8 @@ dependencies:
   syncfusion_flutter_charts: ^31.2.4
   fl_chart: ^0.65.0
   dropdown_button2: ^2.3.9
+  syncfusion_flutter_xlsio: ^31.2.4
+  pdf: ^3.11.0
   
 
 flutter_native_splash:

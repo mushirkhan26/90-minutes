@@ -1,6 +1,11 @@
+import 'dart:io';
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
 import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
 import 'package:hrtz_hrms/features/service_request/widgets/service_request_model.dart';
@@ -20,7 +25,40 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
   String _searchQuery = '';
   int _currentPage = 1;
   final int _pageSize = 5;
+  bool _showAll = false;
 
+@override
+void initState() {
+  super.initState();
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    _loadData();
+  });
+}
+
+Future<void> _loadData() async {
+  final auth = context.read<AuthProvider>();
+  final provider = context.read<ServiceRequestProvider>();
+
+  // 🔁 Wait until userData is available
+  while (auth.userData == null) {
+    await Future.delayed(const Duration(milliseconds: 100));
+  }
+
+  final role =
+      auth.userData?['role']?.toString().toLowerCase();
+  final employeeId =
+      auth.userData?['employeeId']?.toString();
+
+  if (role == 'user' && employeeId != null) {
+    await provider.fetchRequestsByEmployee(employeeId);
+  }
+
+  if (role == 'manager') {
+    await provider.fetchServiceRequests(forceRefresh: true);
+    await provider.fetchRequestCounts(forceRefresh: true);
+  }
+}
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -56,21 +94,58 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
 
   // ================= MANAGER VIEW (UNCHANGED) =================
   Widget _managerView(Size size) {
-    return ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        _buildSearchBar(size),
-        Container(
-          color: Colors.white,
-          padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
-          child: _buildCountsSection(size),
-        ),
-        const SizedBox(height: 16),
-        _buildRequestsList(size),
-      ],
-    );
-  }
+  return ListView(
+    padding: EdgeInsets.zero,
+    children: [
+      _buildSearchBar(size),
 
+      // 🔹 COUNTS SECTION
+      Container(
+        color: Colors.white,
+        padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+        child: _buildCountsSection(size),
+      ),
+
+      // 🔹 EXPORT ICON ROW
+      Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: size.width * 0.04,
+          vertical: size.height * 0.015,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: IconButton(
+                onPressed: _exportToExcel,
+                icon: const Icon(
+                  Icons.insert_drive_file, // Excel style icon
+                  color: Colors.white,
+                  size: 26,
+                ),
+                tooltip: "Export Excel",
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      // 🔹 LIST SECTION
+      _buildRequestsList(size),
+    ],
+  );
+}
   // ================= USER VIEW =================
   Widget _userView(Size size) {
     return ListView(
@@ -114,10 +189,12 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
   Widget _buildUserCategories(Size size) {
     return Consumer<ServiceRequestProvider>(
       builder: (_, provider, __) {
-        if (provider.state == ServiceRequestState.loading &&
-            provider.requestCounts.isEmpty) {
-          return const ShimmerTile(height: 120);
-        }
+        if (provider.requestCounts.isEmpty) {
+  return Padding(
+    padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+    child: const ShimmerTile(height: 120),
+  );
+}
 
         final categories = provider.requestCounts.entries
             .where((e) => e.key != 'Total Requests')
@@ -158,10 +235,15 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => AddServiceRequestScreen(
+                      builder: (_) => ChangeNotifierProvider.value(
+                        value: context.read<ServiceRequestProvider>(),
+                        child: AddServiceRequestScreen(
+                      
+
                         requestType: category.key,
                       ),
                     ),
+                  )
                   );
                 },
                 child: Container(
@@ -210,113 +292,202 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
 
   // ================= USER PREVIOUS REQUESTS (WEB STYLE) =================
   Widget _buildUserPreviousRequests(Size size) {
-    return Consumer<ServiceRequestProvider>(
-      builder: (_, provider, __) {
-        if (provider.isUserRequestLoading) {
-          return Padding(
-            padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-            child: const ShimmerTile(height: 160),
-          );
-        }
+  final employeeId =
+      context.read<AuthProvider>().userData?['employeeId'];
 
-        if (provider.allRequests.isEmpty) {
-          return Padding(
-            padding: EdgeInsets.all(size.width * 0.08),
-            child: const Text(
-              'No previous requests',
-              style: TextStyle(color: Colors.grey),
-            ),
-          );
-        }
+  return Consumer<ServiceRequestProvider>(
+    builder: (_, provider, __) {
+      final myRequests = provider.allRequests
+    .where((r) => r.employeeId == employeeId)
+    .where((r) =>
+        r.name.toLowerCase().contains(_searchQuery) ||
+        r.description.toLowerCase().contains(_searchQuery) ||
+        r.department.toLowerCase().contains(_searchQuery) ||
+        r.requestId.toLowerCase().contains(_searchQuery))
+    .toList();
 
+      if (provider.isUserRequestLoading) {
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+          child: const ShimmerTile(height: 160),
+        );
+      }
+
+      if (myRequests.isEmpty) {
+        return Padding(
+          padding: EdgeInsets.all(size.width * 0.08),
+          child: const Text(
+            'No previous requests',
+            style: TextStyle(color: Colors.grey),
+          ),
+        );
+      }
+
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  children: [
+    const Text(
+      'Your Previous Requests',
+      style: TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    if (myRequests.length > 3)
+      TextButton(
+        onPressed: () {
+          setState(() {
+            _showAll = !_showAll;
+          });
+        },
+        child: Text(
+          _showAll
+              ? 'Show Less'
+              : 'Show All (${myRequests.length})',
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+  ],
+),
+const SizedBox(height: 12),
+
+
+...(_showAll
+    ? myRequests
+    : myRequests.take(3)).map(_userWebCard),
+          ],
+        ),
+      );
+    },
+  );
+}
+  Widget _userWebCard(ServiceRequest r) {
+
+  // 🔹 Decide status colors
+  Color statusTextColor;
+  Color statusBgColor;
+
+  switch (r.requestStatus.toLowerCase()) {
+    case 'rejected':
+      statusTextColor = Colors.red;
+      statusBgColor = Colors.red.shade50;
+      break;
+
+    case 'approved':
+    case 'accepted':
+      statusTextColor = Colors.green;
+      statusBgColor = Colors.green.shade50;
+      break;
+
+    default: // Waiting
+      statusTextColor = Colors.blue;
+      statusBgColor = Colors.blue.shade50;
+  }
+
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: Colors.grey.shade300),
+    ),
+    child: Column(
+      children: [
+        // 🔹 STATUS HEADER
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: statusBgColor,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+          child: Center(
+            child: Text(
+              'Status: ${r.requestStatus}',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: statusTextColor,
+              ),
+            ),
+          ),
+        ),
+
+        // 🔹 BODY
+        Padding(
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Your Previous Requests',
-                style: TextStyle(
+              Text(
+                r.department,
+                style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
-              ...provider.allRequests.map(_userWebCard),
+              const SizedBox(height: 4),
+              Text(
+                _formatDate(r.createdOn),
+                style: const TextStyle(color: Colors.grey),
+              ),
+              const Divider(height: 24),
+              _row('Request ID', r.requestId),
+              _row('Name', r.name),
+              _row('Employee ID', r.employeeId),
+              _row('Email', r.email),
+              const SizedBox(height: 10),
+
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(r.description),
+              ),
+
+              // 🔹 ATTACHMENT
+              if (r.attachmentUrl.isNotEmpty &&
+                  r.attachmentUrl.first.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: GestureDetector(
+                    onTap: () => _openAttachment(r.attachmentUrl.first),
+                    child: const Row(
+                      children: [
+                        Icon(
+                          Icons.attach_file,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          "View Attachment",
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
-        );
-      },
-    );
-  }
-
-  Widget _userWebCard(ServiceRequest r) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius:
-                  const BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            child: Center(
-              child: Text(
-                'Status: ${r.requestStatus}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue,
-                ),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  r.department,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _formatDate(r.createdOn),
-                  style: const TextStyle(color: Colors.grey),
-                ),
-                const Divider(height: 24),
-                _row('Request ID', r.requestId),
-                _row('Name', r.name),
-                _row('Employee ID', r.employeeId),
-                _row('Email', r.email),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(r.description),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+        ),
+      ],
+    ),
+  );
+}
   Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
@@ -660,4 +831,94 @@ if (_searchQuery.isNotEmpty && filtered.isEmpty) {
       ),
     );
   }
+  Future<void> _openAttachment(String url) async {
+  final uri = Uri.parse(url);
+
+  if (!await launchUrl(
+    uri,
+    mode: LaunchMode.externalApplication,
+  )) {
+    throw Exception('Could not open attachment');
+  }
+}
+
+Future<void> _exportToExcel() async {
+  try {
+    final provider = context.read<ServiceRequestProvider>();
+    final requests = provider.allRequests;
+
+    if (requests.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No data to export")),
+      );
+      return;
+    }
+
+    final workbook = xlsio.Workbook();
+    final sheet = workbook.worksheets[0];
+    sheet.name = "Requests";
+
+    // 🔹 Headers
+    final headers = [
+      'Department',
+      'Employee ID',
+      'Name',
+      'Email',
+      'Mobile',
+      'Manager Name',
+      'Admin Comment',
+      'Request ID',
+      'Status',
+      'Type',
+      'Created On',
+      'Description',
+      'Attachment URL',
+    ];
+
+    for (int col = 0; col < headers.length; col++) {
+      sheet.getRangeByIndex(1, col + 1).setText(headers[col]);
+      sheet.getRangeByIndex(1, col + 1).cellStyle.bold = true;
+    }
+
+    // 🔹 Rows
+    for (int row = 0; row < requests.length; row++) {
+      final r = requests[row];
+
+      sheet.getRangeByIndex(row + 2, 1).setText(r.department);
+      sheet.getRangeByIndex(row + 2, 2).setText(r.employeeId);
+      sheet.getRangeByIndex(row + 2, 3).setText(r.name);
+      sheet.getRangeByIndex(row + 2, 4).setText(r.email);
+      sheet.getRangeByIndex(row + 2, 5).setText(r.mobile);
+      sheet.getRangeByIndex(row + 2, 6).setText(r.managerName);
+      sheet.getRangeByIndex(row + 2, 7).setText(r.adminComment);
+      sheet.getRangeByIndex(row + 2, 8).setText(r.requestId);
+      sheet.getRangeByIndex(row + 2, 9).setText(r.requestStatus);
+      sheet.getRangeByIndex(row + 2, 10).setText(r.type);
+      sheet.getRangeByIndex(row + 2, 11).setText(r.createdOn.toString());
+      sheet.getRangeByIndex(row + 2, 12).setText(r.description);
+      sheet.getRangeByIndex(row + 2, 13)
+          .setText(r.attachmentUrl.join(", "));
+    }
+
+    final bytes = workbook.saveAsStream();
+    workbook.dispose();
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath =
+        "${directory.path}/requests_${DateTime.now().millisecondsSinceEpoch}.xlsx";
+
+    final file = File(filePath);
+    await file.writeAsBytes(bytes, flush: true);
+
+    await OpenFile.open(filePath);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Excel Downloaded Successfully")),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Export failed: $e")),
+    );
+  }
+}
 }

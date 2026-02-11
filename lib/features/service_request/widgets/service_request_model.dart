@@ -82,6 +82,7 @@ class ServiceRequest {
   ServiceRequest copyWith({
     String? requestStatus,
     String? adminComment,
+    String? videoUrl,
   }) {
     return ServiceRequest(
       requestId: requestId,
@@ -96,7 +97,7 @@ class ServiceRequest {
       email: email,
       mobile: mobile,
       adminComment: adminComment ?? this.adminComment,
-      videoUrl: videoUrl,
+      videoUrl: videoUrl ?? this.videoUrl,
       createdOn: createdOn,
       attachmentUrl: attachmentUrl,
     );
