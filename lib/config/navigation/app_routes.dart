@@ -42,5 +42,4 @@ class AppRoutes {
   static const String leaderboard = '/leaderboard';
   static const String adminLeaderboard = '/admin-leaderboard';
   static const String serviceRequest = '/service-request';
-
 }
