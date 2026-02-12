@@ -616,6 +616,21 @@ class LocalStorageService {
     return prefs.getString(_keyEmployeeName);
   }
 
+  /// 🔹 Save logged-in employee details
+  Future<void> saveLoggedInEmployee({
+    required String employeeId,
+    required String employeeName,
+  }) async {
+    await prefs.setString(_keyEmployeeId, employeeId);
+    await prefs.setString(_keyEmployeeName, employeeName);
+    _logger.logStorage('Saved logged-in employee: $employeeId - $employeeName');
+  }
+
+  /// 🔹 Get logged-in employee ID
+  Future<String?> getEmployeeId() async {
+    return prefs.getString(_keyEmployeeId);
+  }
+
   // ================= SERVICE REQUEST STORAGE =================
 
   // Save service request list
