@@ -229,14 +229,14 @@ class HomeScreen extends StatelessWidget {
                       Theme(
   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
   child: ExpansionTile(
-    leading: const Icon(Icons.work_outline),
+    leading: const Icon(Icons.work_outline, color: Colors.black87,),
     title: const Text('HR Services'),
     childrenPadding: const EdgeInsets.only(left: 16),
     children: [
 
-      /// 🔹 Resignation
+    
       ListTile(
-        leading: const Icon(Icons.person_remove_alt_1, color: Color(0xFF2F9E9E)),
+        leading: const Icon(Icons.person_remove_alt_1, color: Colors.black87),
         title: const Text('Resignation'),
         onTap: () {
           Navigator.pop(context);
@@ -265,10 +265,10 @@ class HomeScreen extends StatelessWidget {
           },
         ),
 
-      /// 🔹 Complaint
+      
       ListTile(
         leading: const Icon(Icons.report_problem_outlined,
-            color: Color(0xFF2F9E9E)),
+            color: Colors.black87),
         title: const Text('Complaint'),
         onTap: () {
           Navigator.pop(context);
@@ -279,20 +279,20 @@ class HomeScreen extends StatelessWidget {
   ),
 ),
 
-      /// 🔹 Learning & Growth (NEW)
+      
       Theme(
   data: Theme.of(context).copyWith(
-    dividerColor: Colors.transparent, // 🔥 THIS REMOVES LINE
+    dividerColor: Colors.transparent, 
   ),
   child: ExpansionTile(
-    leading: const Icon(Icons.school, color: Color(0xFF2F9E9E)),
+    leading: const Icon(Icons.school, color: Colors.black87),
     title: const Text('Learning & Growth'),
     childrenPadding: const EdgeInsets.only(left: 16),
     children: [
       ListTile(
         leading: const Icon(
           Icons.menu_book,
-          color: Color(0xFF2F9E9E),
+          color: Colors.black87,
         ),
         title: const Text('Learning Studio'),
         onTap: () {

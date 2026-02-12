@@ -313,8 +313,8 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
         await _sendMessage(
           fileUrl: documentUrl,
           fileName: picked.name,
-          type: 'document',
-          text: "document",
+          type: 'file',
+          text: picked.name,
         );
       }
     }
@@ -584,7 +584,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                                         isMedia: true,
                                       ),
                                 ),
-                              if (message.messageType == 'document')
+                              if (message.messageType == 'file')
                                 DocumentMessageBubble(
                                   key: ValueKey('chat-msg-$index'),
                                   documentUrl: message.fileUrl!,

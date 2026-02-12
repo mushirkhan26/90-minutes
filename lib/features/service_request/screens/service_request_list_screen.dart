@@ -4,6 +4,15 @@ import '../providers/service_request_provider.dart';
 import '../widgets/service_request_model.dart';
 import '../widgets/service_request_bottom_sheet.dart';
 import '../../../config/theme/app_colors.dart';
+import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
+import 'package:path_provider/path_provider.dart';
+import 'package:open_file/open_file.dart';
+import 'dart:io';
+
+
+
+
+
 
 class ServiceRequestListScreen extends StatefulWidget {
   final String title;
@@ -63,7 +72,7 @@ class _ServiceRequestListScreenState
           return Column(
             children: [
               _searchBar(),
-              _excelIcon(),
+              _excelIcon(list),
               Expanded(
                 child: ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -95,19 +104,21 @@ class _ServiceRequestListScreenState
     );
   }
 
-  Widget _excelIcon() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 16),
-      child: Align(
-        alignment: Alignment.centerLeft,
+  Widget _excelIcon(List<ServiceRequest> filteredList) {
+  return Padding(
+    padding: const EdgeInsets.only(left: 16),
+    child: Align(
+      alignment: Alignment.centerLeft,
+      child: GestureDetector(
+        onTap: () => _exportToExcel(filteredList),
         child: CircleAvatar(
           backgroundColor: AppColors.primary,
           child: const Icon(Icons.file_download, color: Colors.white),
         ),
       ),
-    );
-  }
-
+    ),
+  );
+}
   Widget _requestCard(ServiceRequest r, int index) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -194,6 +205,83 @@ Color _statusTextColor(String status) {
       return Colors.red.shade800;
     default:
       return Colors.grey.shade800;
+  }
+}
+
+Future<void> _exportToExcel(List<ServiceRequest> requests) async {
+  try {
+    if (requests.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No data to export")),
+      );
+      return;
+    }
+
+    final workbook = xlsio.Workbook();
+    final sheet = workbook.worksheets[0];
+    sheet.name = widget.title;
+
+    final headers = [
+      'Department',
+      'Employee ID',
+      'Name',
+      'Email',
+      'Mobile',
+      'Manager Name',
+      'Admin Comment',
+      'Request ID',
+      'Status',
+      'Type',
+      'Created On',
+      'Description',
+      'Attachment URL',
+      'Video URL',
+    ];
+
+    for (int col = 0; col < headers.length; col++) {
+      sheet.getRangeByIndex(1, col + 1).setText(headers[col]);
+      sheet.getRangeByIndex(1, col + 1).cellStyle.bold = true;
+    }
+
+    for (int row = 0; row < requests.length; row++) {
+      final r = requests[row];
+
+      sheet.getRangeByIndex(row + 2, 1).setText(r.department);
+sheet.getRangeByIndex(row + 2, 2).setText(r.employeeId.toString());
+sheet.getRangeByIndex(row + 2, 3).setText(r.name);
+sheet.getRangeByIndex(row + 2, 4).setText(r.email);
+sheet.getRangeByIndex(row + 2, 5).setText(r.mobile.toString());
+sheet.getRangeByIndex(row + 2, 6).setText(r.managerName);
+sheet.getRangeByIndex(row + 2, 7).setText(r.adminComment);
+sheet.getRangeByIndex(row + 2, 8).setText(r.requestId.toString());
+sheet.getRangeByIndex(row + 2, 9).setText(r.requestStatus);
+sheet.getRangeByIndex(row + 2, 10).setText(r.type);
+sheet.getRangeByIndex(row + 2, 11).setText(r.createdOn.toString());
+sheet.getRangeByIndex(row + 2, 12).setText(r.description);
+sheet.getRangeByIndex(row + 2, 13)
+    .setText(r.attachmentUrl.join(", "));
+sheet.getRangeByIndex(row + 2, 14).setText(r.videoUrl);
+    }
+
+    final bytes = workbook.saveAsStream();
+    workbook.dispose();
+
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath =
+        "${directory.path}/${widget.title}_${DateTime.now().millisecondsSinceEpoch}.xlsx";
+
+    final file = File(filePath);
+    await file.writeAsBytes(bytes, flush: true);
+
+    await OpenFile.open(filePath);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Excel Downloaded Successfully")),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Export failed: $e")),
+    );
   }
 }
 }

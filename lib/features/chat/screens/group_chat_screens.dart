@@ -273,8 +273,8 @@ class _GroupChatScreenState extends State<GroupChatScreen>
         await _sendMessage(
           fileUrl: documentUrl,
           fileName: picked.name,
-          type: 'document',
-          text: "document",
+          type: 'file',
+          text: picked.name,
         );
       }
     }
@@ -672,7 +672,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                                         isMedia: true,
                                       ),
                                 ),
-                              if (message.messageType == 'document')
+                              if (message.messageType == 'file')
                                 DocumentMessageBubble(
                                   key: ValueKey('group-msg-$index'),
                                   documentUrl: message.fileUrl!,

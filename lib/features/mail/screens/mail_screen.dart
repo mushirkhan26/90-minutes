@@ -26,9 +26,7 @@ class _MailScreenState extends State<MailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MailProvider>().fetchInbox();
-    });
+    
   }
 
   Future<void> _handleRefresh(MailProvider provider) async {
@@ -45,6 +43,7 @@ class _MailScreenState extends State<MailScreen> {
 
   void _onFolderSelected(String folder) {
     Navigator.pop(context);
+    if(_selectedFolder == folder) return;
     setState(() {
       _selectedFolder = folder;
       _isSelectionMode = false;
