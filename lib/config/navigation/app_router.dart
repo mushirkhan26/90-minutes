@@ -52,6 +52,8 @@ import '../../features/mail/screens/compose_mail_screen.dart';
 import '../../features/meet/screens/schedule_meet.dart';
 import 'package:hrtz_hrms/features/service_request/screens/service_requests_screen.dart';
 import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
+import 'package:hrtz_hrms/features/tasks/screens/manage_tasks_screen.dart';
+import 'package:hrtz_hrms/features/tasks/screens/add_project_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -358,6 +360,16 @@ final GoRouter appRouter = GoRouter(
       name: 'admin-leaderboard',
       builder: (context, state) => const AdminLeaderboardScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.manageTasks,
+      name: 'manage-tasks',
+      builder: (context, state) => const ManageTasksScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.addProject,
+      name: 'add-project',
+      builder: (context, state) => const AddProjectScreen(),
+    ),
   ],
 );
 
@@ -438,6 +450,7 @@ extension AuthNavigation on BuildContext {
   void goToPreviousReviews(String name, String id) => push(AppRoutes.previousReviews, extra: {'employeeName': name, 'employeeId': id});
   void goToLeaderboard() => push(AppRoutes.leaderboard);
   void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
+  void goToManageTasks() => push(AppRoutes.manageTasks);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {

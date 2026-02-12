@@ -8,6 +8,7 @@ import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
+import 'package:hrtz_hrms/core/models/project_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -45,6 +46,9 @@ class LocalStorageService {
   // 🏆 Leaderboard caching related keys
   static const String keyLeaderboardList = 'leaderboard_list';
   static const String keyUserStats = 'user_stats';
+
+  // 📁 Project caching related keys
+  static const String keyProjectList = 'project_list';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -723,5 +727,30 @@ class LocalStorageService {
 Future<void> clearLoggedInEmployee() async {
   await prefs.remove(_keyEmployeeId);
   await prefs.remove(_keyEmployeeName);
+
+Future<DateTime?> getServiceRequestTimestamp() async {
+  final prefs = await SharedPreferences.getInstance();
+  final value = prefs.getString('service_request_timestamp');
+  if (value == null) return null;
+  return DateTime.parse(value);
+}
+
+// 📁 Project caching methods
+Future<void> saveProjectList(List<ProjectModel> list) async {
+  final jsonList = list.map((e) => e.toJson()).toList();
+  await prefs.setString(keyProjectList, jsonEncode(jsonList));
+  _logger.logStorage('Saved ${list.length} project entries');
+}
+
+Future<List<ProjectModel>?> getProjectList() async {
+  final jsonString = prefs.getString(keyProjectList);
+  if (jsonString == null) return null;
+  try {
+    final List<dynamic> list = jsonDecode(jsonString);
+    return list.map((json) => ProjectModel.fromJson(json)).toList();
+  } catch (e) {
+    return null;
+  }
+}
 }
 }

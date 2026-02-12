@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 class AppColors {
   static const searchBarBgColor = Color(0xffECE6F0);
   static const surfaceVariant = Color(0xff49454F);
-  static const primary = Color(0xff009990);
+  // static const primary = Color(0xff009990);
+  static const primary = Color(0xFF14B8A6);
   static const primary2 = Color(0xff02A6A6);
   static var shadowColor25 = Color(0xff000000).withValues(alpha: 0.25);
   static const teal = Color(0xff009990);
