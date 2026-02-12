@@ -719,20 +719,9 @@ class LocalStorageService {
   }
 
   // ================= LOGGED IN EMPLOYEE =================
-
-
-
-
-
 Future<void> clearLoggedInEmployee() async {
   await prefs.remove(_keyEmployeeId);
   await prefs.remove(_keyEmployeeName);
-
-Future<DateTime?> getServiceRequestTimestamp() async {
-  final prefs = await SharedPreferences.getInstance();
-  final value = prefs.getString('service_request_timestamp');
-  if (value == null) return null;
-  return DateTime.parse(value);
 }
 
 // 📁 Project caching methods
@@ -751,6 +740,5 @@ Future<List<ProjectModel>?> getProjectList() async {
   } catch (e) {
     return null;
   }
-}
 }
 }
