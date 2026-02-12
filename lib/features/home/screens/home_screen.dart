@@ -190,6 +190,15 @@ class HomeScreen extends StatelessWidget {
                           context.goToPerformance();
                         },
                       ),
+                      if (!isEmployee)
+                         ListTile(
+                           leading: const Icon(Icons.checklist_rtl_outlined),
+                           title: const Text('Manage Tasks'),
+                           onTap: () {
+                              Navigator.pop(context);
+                              context.goToManageTasks();
+                              },
+                             ),
                       if (isEmployee)
                          ListTile(
                            leading: const Icon(Icons.emoji_events_outlined),
