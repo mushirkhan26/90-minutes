@@ -43,6 +43,15 @@ class AuthProvider extends ChangeNotifier {
   Map<String, dynamic>? get attendanceData => _attendanceData;
   bool get isFetchingAttendance => _isFetchingAttendance;
 
+  // --- Chart Data Logic moved from UI to Provider ---
+  String get totalTime => _attendanceData?['totalTime']?.toString() ?? '00:00';
+  String get productivityLabel => 'Productivity: ${_attendanceData?['productivity'] ?? '00:00'}';
+  String get onlineTime => _attendanceData?['onlineTime']?.toString() ?? '00:00';
+  String get meetingTime => _attendanceData?['meetingTime']?.toString() ?? '00:00';
+  String get breakTime => _attendanceData?['breakTime']?.toString() ?? '00:00';
+
+  bool get hasAttendanceData => _attendanceData != null && !(_attendanceData!['onlineTime'] == 0 && _attendanceData!['meetingTime'] == 0 && _attendanceData!['breakTime'] == 0);
+
   /// 🔑 Login Flow
   Future<void> login(String employeeId, String password) async {
     _state = AuthState.loading;
@@ -85,6 +94,12 @@ class AuthProvider extends ChangeNotifier {
       );
       // ✅ Ensure FCM token is up-to-date
       await PushNotificationService.checkAndUpdateFCMToken();
+      
+      // Auto-fetch attendance after login
+      await fetchAttendance(
+        employeeId: data['employeeId'].toString(),
+        date: DateTime.now().toUtc().toIso8601String(),
+      );
     } else {
       _state = AuthState.error;
       _errorMessage = response.message;
@@ -104,6 +119,7 @@ class AuthProvider extends ChangeNotifier {
     await _localStorage.setLoginState(false);
     _userData = null;
     _profileData = null;
+    _attendanceData = null;
     _ndaSubmitted = false;
     _onboardingCompleted = false;
     _state = AuthState.unauthenticated;
@@ -130,6 +146,14 @@ class AuthProvider extends ChangeNotifier {
       );
       // ✅ Ensure FCM token is up-to-date
       await PushNotificationService.checkAndUpdateFCMToken();
+
+      // Fetch attendance if authenticated
+      if (_userData != null) {
+        fetchAttendance(
+          employeeId: _userData!['employeeId'].toString(),
+          date: DateTime.now().toUtc().toIso8601String(),
+        );
+      }
     } else {
       _state = AuthState.unauthenticated;
       _logger.logAuth('No user session found, unauthenticated');
@@ -496,7 +520,8 @@ class AuthProvider extends ChangeNotifier {
       if (cachedData != null) {
         _attendanceData = cachedData;
         _logger.logAuth('✅ Using cached attendance data');
-        return (true, 'Attendance fetched successfully');
+        // Still fetch fresh data in background if needed, but for now we follow the "Use cached data" rule
+        // return (true, 'Attendance fetched successfully');
       }
 
       // Fetch fresh data from API

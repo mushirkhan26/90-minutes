@@ -38,6 +38,16 @@ class ClockProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  String? _formatIsoTime(String? isoString) {
+    if (isoString == null || isoString.isEmpty) return null;
+    try {
+      final dateTime = DateTime.parse(isoString).toLocal();
+      return dateTime.toString().split(' ')[1].split('.')[0];
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Clock In
   Future<void> clockIn({required String imageUrl, required String department}) async {
     _state = ClockState.loading;
@@ -98,10 +108,18 @@ class ClockProvider extends ChangeNotifier {
 
     // Calculate worked duration
     if (_startTime != null && _endTime != null) {
-      final start = DateTime.parse('1970-01-01 $_startTime');
-      final end = DateTime.parse('1970-01-01 $_endTime');
-      final duration = end.difference(start);
-      _workedDuration = duration.toString().split('.')[0];
+      try {
+        final startParts = _startTime!.split(':');
+        final endParts = _endTime!.split(':');
+        
+        final start = DateTime(2000, 1, 1, int.parse(startParts[0]), int.parse(startParts[1]), int.parse(startParts[2]));
+        final end = DateTime(2000, 1, 1, int.parse(endParts[0]), int.parse(endParts[1]), int.parse(endParts[2]));
+        
+        final duration = end.difference(start);
+        _workedDuration = duration.toString().split('.')[0];
+      } catch (e) {
+        _logger.error('CLOCK_PROVIDER', 'Error calculating duration', error: e);
+      }
     }
 
     final response = await _clockService.clockOut(employeeId: employeeId);
@@ -187,6 +205,9 @@ class ClockProvider extends ChangeNotifier {
     } else if (records.isEmpty) {
       // ✅ No attendance yet (VALID state)
       _attendanceModel = null;
+      _startTime = null;
+      _endTime = null;
+      _workedDuration = null;
       _isClockedIn = false;
       _isClockedOut = false;
       _state = ClockState.success;
@@ -194,11 +215,32 @@ class ClockProvider extends ChangeNotifier {
       _logger.logAuth('ℹ️ No attendance found for selected date');
     } else {
       // ✅ Attendance exists
-      _attendanceModel = ClockModel.fromJson(records.first);
+      final record = records.first;
+      _attendanceModel = ClockModel.fromJson(record);
       _isClockedIn = _attendanceModel!.clockIn.isNotEmpty;
       _isClockedOut = _attendanceModel!.clockOut?.isNotEmpty == true;
-      _state = ClockState.success;
+      
+      _startTime = _formatIsoTime(_attendanceModel!.clockIn);
+      _endTime = _formatIsoTime(_attendanceModel!.clockOut);
+      
+      if (_isClockedOut && _attendanceModel!.clockOut != null) {
+        if (record['totalHour'] != null) {
+          _workedDuration = record['totalHour'];
+        } else {
+          try {
+            final start = DateTime.parse(_attendanceModel!.clockIn);
+            final end = DateTime.parse(_attendanceModel!.clockOut!);
+            final duration = end.difference(start);
+            _workedDuration = duration.toString().split('.')[0];
+          } catch (e) {
+            _workedDuration = null;
+          }
+        }
+      } else {
+        _workedDuration = null;
+      }
 
+      _state = ClockState.success;
       _logger.logAuth('✅ Attendance fetched successfully');
     }
 

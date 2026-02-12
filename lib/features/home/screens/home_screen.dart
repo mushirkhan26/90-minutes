@@ -440,7 +440,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Worked Duration: ${clockProvider.workedDuration ?? '00:00:06'}',
+                        'Worked Duration: ${clockProvider.workedDuration ?? '00:00:00'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -455,8 +455,9 @@ class HomeScreen extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: clockProvider.isClockedIn
-                        ? Colors.grey
+                        ? const Color(0xFF64748B) // Light grey when disabled
                         : AppColors.primary,
+                    disabledBackgroundColor: const Color(0xFF64748B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -501,15 +502,16 @@ class HomeScreen extends StatelessWidget {
                   //
                   child: const Text(
                     'Clock In',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clockProvider.isClockedIn
-                        ? AppColors.primary
-                        : Colors.grey,
+                    backgroundColor: !clockProvider.isClockedIn
+                        ? const Color(0xFF64748B) // Light grey when disabled
+                        : AppColors.primary,
+                    disabledBackgroundColor: const Color(0xFF64748B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -545,7 +547,7 @@ class HomeScreen extends StatelessWidget {
                       : null,
                   child: const Text(
                     'Clock Out',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],
