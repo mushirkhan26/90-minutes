@@ -716,19 +716,7 @@ class LocalStorageService {
 
   // ================= LOGGED IN EMPLOYEE =================
 
-Future<void> saveLoggedInEmployee({
-  required String employeeId,
-  required String employeeName,
-}) async {
-  await prefs.setString(_keyEmployeeId, employeeId);
-  await prefs.setString(_keyEmployeeName, employeeName);
-  _logger.logStorage(
-      'Saved logged in employee → $employeeId ($employeeName)');
-}
 
-Future<String?> getEmployeeId() async {
-  return prefs.getString(_keyEmployeeId);
-}
 
 
 
