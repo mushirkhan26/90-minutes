@@ -14,7 +14,7 @@ class SecureStorageService {
   static const String _keyUsername = 'username';
   static const String _keyEmail = 'email';
   static const String _keyRole = 'role';
-  static const String _keyAppToken = 'app_token'; // 🔥 Added for FCM
+  static const String _keyAppToken = 'app_token'; 
 
   // 📄 Profile Keys
   static const String _keyMobile = 'mobile';

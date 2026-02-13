@@ -102,22 +102,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
     });
 
     try {
-      final String? uploadedUrl = await _fileUploadService.uploadFile(File(image.path));
+      final String? uploadedUrl = await _fileUploadService.uploadFile(
+        File(image.path),
+      );
       if (uploadedUrl != null) {
         setState(() {
           _profileImageUrl = uploadedUrl;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Photo uploaded successfully! Save to confirm.'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Photo uploaded successfully! Save to confirm.'),
+            backgroundColor: Colors.green,
+          ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Failed to upload photo'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('Failed to upload photo'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error uploading photo'), backgroundColor: Colors.red),
+        const SnackBar(
+          content: Text('Error uploading photo'),
+          backgroundColor: Colors.red,
+        ),
       );
     } finally {
       setState(() {
@@ -190,7 +201,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('My Profile',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'My Profile',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         actions: [
           if (!_isEditing)
             IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),
@@ -258,7 +272,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       labelText: 'Full Name',
                       prefixIcon: const Icon(Icons.person),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z\s]'),
+                        ),
                       ],
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -318,7 +334,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       prefixIcon: const Icon(Icons.phone_android),
                       maxLength: 10,
                       validator: (value) {
-                        if (value != null && value.isNotEmpty && value.length != 10) {
+                        if (value != null &&
+                            value.isNotEmpty &&
+                            value.length != 10) {
                           return 'Mobile number must be 10 digits';
                         }
                         return null;
@@ -331,7 +349,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // Gender Field
                     _isEditing
                         ? DropdownButtonFormField<String>(
-                            value: _genderOptions.contains(_genderController.text)
+                            value:
+                                _genderOptions.contains(_genderController.text)
                                 ? _genderController.text
                                 : null,
                             decoration: InputDecoration(
@@ -341,22 +360,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               fillColor: Colors.white,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey.shade400),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade400,
+                                ),
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: BorderSide(color: Colors.grey.shade400),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade400,
+                                ),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primary,
+                                  width: 2,
+                                ),
                               ),
                             ),
                             items: _genderOptions
-                                .map((gender) => DropdownMenuItem(
-                                      value: gender,
-                                      child: Text(gender),
-                                    ))
+                                .map(
+                                  (gender) => DropdownMenuItem(
+                                    value: gender,
+                                    child: Text(gender),
+                                  ),
+                                )
                                 .toList(),
                             onChanged: (value) {
                               setState(() {

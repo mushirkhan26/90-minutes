@@ -61,7 +61,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
     // Set this group as active
     _groupSocketProvider.setActiveGroupId(widget.groupId);
     // Reset unread count for this group
-    _groupSocketProvider.resetGroupUnreadCount(widget.groupId, notify: false);
+    _groupSocketProvider.resetGroupUnreadCount(widget.groupId, notify: true);
     // Register socket events
     _registerSocketEvents();
     // Load initial messages
@@ -213,38 +213,14 @@ class _GroupChatScreenState extends State<GroupChatScreen>
     String type = 'text',
   }) async {
     if ((text?.trim().isEmpty ?? true) && fileUrl == null) return;
-
-    final timestamp = DateTime.now();
-    // Use temp_ prefix for all optimistic messages
     final messageId = 'temp_${DateTime.now().millisecondsSinceEpoch}';
 
     try {
-      // ✅ 1️⃣ CREATE LOCAL MESSAGE (OPTIMISTIC UI)
-      final localMessage = GroupMessageModel(
-        id: null, // backend id later vastundi
-        messageId: messageId,
-        groupId: widget.groupId,
-        sender: widget.currentUserId,
-        senderName: widget.currentUserName,
-        text: text ?? '',
-        messageType: type,
-        fileUrl: fileUrl,
-        fileName: fileName,
-        timestamp: timestamp,
-        read: true,
-        isDeleted: false,
-      );
-
-      // ✅ 2️⃣ ADD TO PROVIDER (IMMEDIATE UI)
-      _groupSocketProvider.addLocalGroupMessage(localMessage);
-
-      _logger.info('GROUP_CHAT_SCREEN', '✅ Message added to UI (optimistic)');
-
-      // ✅ 3️⃣ CLEAR INPUT + SCROLL
+      // ✅ CLEAR INPUT + SCROLL
       _messageController.clear();
       _scrollToBottom();
 
-      // ✅ 4️⃣ SEND TO SOCKET (BACKEND)
+      // ✅ SEND TO SOCKET (BACKEND)
       await _groupSocketProvider.sendGroupMessage(
         groupId: widget.groupId,
         sender: widget.currentUserId,
@@ -297,8 +273,8 @@ class _GroupChatScreenState extends State<GroupChatScreen>
         await _sendMessage(
           fileUrl: documentUrl,
           fileName: picked.name,
-          type: 'document',
-          text: "document",
+          type: 'file',
+          text: picked.name,
         );
       }
     }
@@ -520,7 +496,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12),
               ),
-              onSubmitted: (_) => _sendMessage(text: _messageController.text),
+              // onSubmitted: (_) => _sendMessage(text: _messageController.text),
             ),
           ),
           IconButton(
@@ -696,7 +672,7 @@ class _GroupChatScreenState extends State<GroupChatScreen>
                                         isMedia: true,
                                       ),
                                 ),
-                              if (message.messageType == 'document')
+                              if (message.messageType == 'file')
                                 DocumentMessageBubble(
                                   key: ValueKey('group-msg-$index'),
                                   documentUrl: message.fileUrl!,

@@ -13,7 +13,7 @@ class SocialPostModel {
   final DateTime createdAt;
   final List<String> likes;
   final List<SocialComment> comments;
-  
+
   // New fields for Poll
   final String? question;
   final DateTime? expiry;
@@ -42,6 +42,26 @@ class SocialPostModel {
   });
 
   factory SocialPostModel.fromJson(Map<String, dynamic> json) {
+    //   // Helper to parse date and ensure it's local
+    //   DateTime parseDate(dynamic value) {
+    //     if (value == null) return DateTime.now().toUtc();
+    //     try {
+    //       return DateTime.parse(value.toString()).toUtc();
+    //     } catch (e) {
+    //       return DateTime.now().toUtc();
+    //     }
+    //   }
+
+    //   // Helper to try parse date and ensure it's local
+    //   DateTime? tryParseDate(dynamic value) {
+    //     if (value == null) return null;
+    //     try {
+    //       return DateTime.parse(value.toString()).toUtc();
+    //     } catch (e) {
+    //       return null;
+    //     }
+    //   }
+
     return SocialPostModel(
       id: json['eventId'] ?? json['_id'] ?? '',
       type: json['eventType'] ?? json['type'] ?? 'post',
@@ -52,18 +72,25 @@ class SocialPostModel {
       message: json['description'] ?? json['message'] ?? '',
       imageUrl: json['imageUrl'],
       createdBy: json['UserId'] ?? json['createdBy'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      // createdAt: parseDate(json['createdAt']),
+      createdAt: DateTime.parse(json['createdAt']),
       // API uses likeMembers for the list of user IDs
       likes: List<String>.from(json['likeMembers'] ?? json['likes'] ?? []),
       comments: (json['comments'] as List? ?? [])
           .map((x) => SocialComment.fromJson(x))
           .toList(),
       question: json['question'],
-      expiry: json['expiry'] != null ? DateTime.tryParse(json['expiry']) : null,
+      // expiry: tryParseDate(json['expiry']),
+      expiry: json['expiry'] != null
+          ? DateTime.parse(json['expiry']) // ✅ UTC
+          : null,
       options: (json['options'] as List? ?? [])
           .map((x) => PollOption.fromJson(x))
           .toList(),
-      eventDate: json['eventDate'] != null ? DateTime.tryParse(json['eventDate']) : null,
+      // eventDate: tryParseDate(json['eventDate']),
+      eventDate: json['eventDate'] != null
+          ? DateTime.parse(json['eventDate']) // ✅ UTC
+          : null,
     );
   }
 
@@ -75,17 +102,22 @@ class SocialPostModel {
       'title': title,
       'description': message,
       'imageUrl': imageUrl ?? '',
-      'employeeName': employeeName, // Added this field
     };
+
+    if (employeeName != null) {
+      data['employeeName'] = employeeName;
+    }
 
     if (type == 'poll') {
       data['question'] = question;
-      data['expiry'] = expiry?.toIso8601String();
+      // Convert to UTC before sending to server for consistency
+      data['expiry'] = expiry?.toUtc().toIso8601String();
       data['options'] = options?.map((v) => v.toJson()).toList();
     }
 
     if (type == 'event') {
-      data['eventDate'] = eventDate?.toIso8601String();
+      // Convert to UTC before sending to server for consistency
+      data['eventDate'] = eventDate?.toUtc().toIso8601String();
     }
 
     return data;
@@ -130,12 +162,21 @@ class SocialComment {
   });
 
   factory SocialComment.fromJson(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value == null) return DateTime.now().toUtc();
+      try {
+        return DateTime.parse(value.toString()).toUtc();
+      } catch (e) {
+        return DateTime.now().toUtc();
+      }
+    }
+
     return SocialComment(
       id: json['commentId'],
       userId: json['userId'] ?? '',
       userName: json['userName'] ?? '',
       comment: json['content'] ?? json['comment'] ?? '',
-      createdAt: DateTime.parse(json['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: parseDate(json['createdAt']),
     );
   }
 }

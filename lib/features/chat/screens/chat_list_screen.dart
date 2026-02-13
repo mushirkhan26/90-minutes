@@ -120,9 +120,10 @@ class _ChatListScreenState extends State<ChatListScreen>
                         child: Text(
                           errorMessage!,
                           style: const TextStyle(
-                              color: Colors.red,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500),
+                            color: Colors.red,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                     CustomTextField(
@@ -211,8 +212,8 @@ class _ChatListScreenState extends State<ChatListScreen>
                           }
 
                           Navigator.pop(context); // close dialog
-                          final createdBy =
-                              await context.getCurrentEmployeeId();
+                          final createdBy = await context
+                              .getCurrentEmployeeId();
                           if (createdBy == null) {
                             if (context.mounted) {
                               AlertHelper.snackBarError(
@@ -424,6 +425,7 @@ class _ChatListScreenState extends State<ChatListScreen>
               time: statusText, // "Online" or "2 hr ago"
               isActive: isActive,
               onTap: () async {
+                socketProvider.setActiveChatUserId(employee.employeeID);
                 socketProvider.resetUnreadCount(employee.employeeID);
                 await socketProvider.markUserAsRecentlyChatted(
                   employee.employeeID,
@@ -471,6 +473,8 @@ class _ChatListScreenState extends State<ChatListScreen>
           time: groupChat.createdAt,
           unreadCount: unreadCount,
           onTap: () {
+            groupSocketProvider.setActiveGroupId(groupChat.groupId);
+            groupSocketProvider.resetGroupUnreadCount(groupChat.groupId);
             context.goToGroupChat(
               groupId: groupChat.groupId,
               groupName: groupChat.name,

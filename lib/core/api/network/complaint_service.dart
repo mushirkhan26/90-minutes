@@ -36,4 +36,26 @@ class ComplaintService {
       'complaint/get/$employeeId',
     );
   }
+
+  // GET ALL COMPLAINTS (FOR MANAGERS)
+  Future<ApiResponse> getAllComplaints() async {
+    return await _apiHelper.get(
+      'complaint/getAll',
+    );
+  }
+
+  // UPDATE COMPLAINT STATUS (MANAGER)
+Future<ApiResponse> updateComplaintStatus({
+  required String complaintId,
+  required String status, // Resolved | Pending | Investigating
+}) async {
+  final body = {
+    "complaintStatus": status,
+  };
+
+  return await _apiHelper.put(
+    'complaint/update/$complaintId',
+    body,
+  );
+}
 }

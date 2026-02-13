@@ -98,7 +98,7 @@ class SocketManager {
         'replyTo': replyTo,
       },
       ack: ([dynamic res]) {
-        LoggingService.instance.logNetwork("Message sent. Ack: $res");
+        LoggingService.instance.logNetwork("Message sent Full Ack Response: $res| Type : ${res.runtimeType}");
       },
     );
   }

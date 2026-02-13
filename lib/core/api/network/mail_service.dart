@@ -8,19 +8,25 @@ class MailService {
   final LoggingService _logger = LoggingService.instance;
 
   /// Get inbox mails for a specific employee (returns raw response)
-  Future<ApiResponse<Map<String, dynamic>>> getInbox({required String employeeId}) async {
+  Future<ApiResponse<Map<String, dynamic>>> getInbox({
+    required String employeeId,
+  }) async {
     _logger.logNetwork('Fetching inbox for employeeId: $employeeId');
     return await _apiHelper.get<Map<String, dynamic>>('mail/inbox/$employeeId');
   }
 
   /// 📤 Get sent mails for a specific employee
-  Future<ApiResponse<Map<String, dynamic>>> getSentMails({required String employeeId}) async {
+  Future<ApiResponse<Map<String, dynamic>>> getSentMails({
+    required String employeeId,
+  }) async {
     _logger.logNetwork('Fetching sent mails for employeeId: $employeeId');
     return await _apiHelper.get<Map<String, dynamic>>('mail/sent/$employeeId');
   }
 
   /// 🗑️ Get trash mails for a specific employee
-  Future<ApiResponse<Map<String, dynamic>>> getTrashMails({required String employeeId}) async {
+  Future<ApiResponse<Map<String, dynamic>>> getTrashMails({
+    required String employeeId,
+  }) async {
     _logger.logNetwork('Fetching trash mails for employeeId: $employeeId');
     return await _apiHelper.get<Map<String, dynamic>>('mail/trash/$employeeId');
   }
@@ -48,28 +54,31 @@ class MailService {
       "cc": cc,
       "bcc": bcc,
       "subject": subject,
-      "message": body,
+      "body": body,
       "attachmentUrls": attachmentUrls,
     });
     return response;
   }
 
-  /// 🗑️ Move single mail to trash
-  Future<ApiResponse<Map<String, dynamic>>> moveToTrash(String mailId) async {
-    _logger.logNetwork('Moving mail to trash: $mailId');
-    return await _apiHelper.patch<Map<String, dynamic>>('mail/move-to-trash/$mailId', {});
-  }
-
   /// 🔁 Restore single mail from trash
-  Future<ApiResponse<Map<String, dynamic>>> restoreFromTrash(String mailId) async {
+  Future<ApiResponse<Map<String, dynamic>>> restoreFromTrash(
+    String mailId,
+  ) async {
     _logger.logNetwork('Restoring mail from trash: $mailId');
-    return await _apiHelper.patch<Map<String, dynamic>>('mail/restore-from-trash/$mailId', {});
+    return await _apiHelper.patch<Map<String, dynamic>>(
+      'mail/restore-from-trash/$mailId',
+      {},
+    );
   }
 
   /// 🧹 Empty entire trash for an employee
-  Future<ApiResponse<Map<String, dynamic>>> emptyTrash(String? employeeId) async {
+  Future<ApiResponse<Map<String, dynamic>>> emptyTrash(
+    String? employeeId,
+  ) async {
     _logger.logNetwork('Emptying trash for employeeId: $employeeId');
-    return await _apiHelper.delete<Map<String, dynamic>>('mail/empty-trash/$employeeId');
+    return await _apiHelper.delete<Map<String, dynamic>>(
+      'mail/empty-trash/$employeeId',
+    );
   }
 
   /// 🗑️ Move multiple mails to trash
@@ -78,10 +87,10 @@ class MailService {
     required String employeeId,
   }) async {
     _logger.logNetwork('Moving many mails to trash: $mailIds');
-    return await _apiHelper.patch<Map<String, dynamic>>('mail/move-to-trash-many', {
-      "mailIds": mailIds,
-      "employeeId": employeeId,
-    });
+    return await _apiHelper.patch<Map<String, dynamic>>(
+      'mail/move-to-trash-many',
+      {"mailIds": mailIds, "employeeId": employeeId},
+    );
   }
 
   /// 🔁 Restore multiple mails from trash
@@ -91,40 +100,47 @@ class MailService {
   }) async {
     _logger.logNetwork('Restoring many mails from trash: $mailIds');
     // Fix: Changed from put to patch to match moveManyToTrash pattern
-    return await _apiHelper.patch<Map<String, dynamic>>('mail/restore-from-trash-many', {
-      "mailIds": mailIds,
-      "employeeId": employeeId,
-    });
+    return await _apiHelper.patch<Map<String, dynamic>>(
+      'mail/restore-from-trash-many',
+      {"mailIds": mailIds, "employeeId": employeeId},
+    );
   }
 
   /// ❌ Delete mail permanently by ID
-  Future<ApiResponse<Map<String, dynamic>>> deleteMail({required String mailId}) async {
-    _logger.logNetwork('Deleting mail permanently with id: $mailId');
-    return await _apiHelper.delete<Map<String, dynamic>>('mail/$mailId');
-  }
-  Future<ApiResponse<Map<String, dynamic>>> toggleStarMail({
+  Future<ApiResponse<Map<String, dynamic>>> deleteMail({
   required String mailId,
   required String employeeId,
-  required bool isStarred,
+}) async {
+  _logger.logNetwork('Deleting mail permanently with id: $mailId');
+
+  return await _apiHelper.delete<Map<String, dynamic>>(
+    'mail/$mailId',
+    body: {"employeeId": employeeId},
+  );
+}
+
+  Future<ApiResponse<Map<String, dynamic>>> toggleStarMail({
+    required String mailId,
+    required String employeeId,
+    required bool isStarred,
   }) async {
     _logger.logNetwork(
-    'Toggling star for mailId: $mailId, isStarred: $isStarred');
+      'Toggling star for mailId: $mailId, isStarred: $isStarred',
+    );
 
     return await _apiHelper.patch<Map<String, dynamic>>(
-    'mail/toggle-Star/$mailId',
-      {
-        "employeeId": employeeId,
-        "isStarred": isStarred,
-      },
+      'mail/toggle-Star/$mailId',
+      {"employeeId": employeeId, "isStarred": isStarred},
     );
   }
+
   Future<ApiResponse<Map<String, dynamic>>> getStarredMails({
-  required String employeeId,
+    required String employeeId,
   }) async {
-   _logger.logNetwork('Fetching starred mails for employeeId: $employeeId');
+    _logger.logNetwork('Fetching starred mails for employeeId: $employeeId');
 
     return await _apiHelper.get<Map<String, dynamic>>(
-    'mail/get-stared-mails/$employeeId',
-  );
+      'mail/get-stared-mails/$employeeId',
+    );
   }
 }

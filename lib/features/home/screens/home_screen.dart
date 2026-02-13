@@ -109,6 +109,9 @@ class HomeScreen extends StatelessWidget {
           future: secureStorage.getUserData(),
           builder: (context, snapshot) {
             final userData = snapshot.data;
+            final userRole = authProvider.userData?['role']?.toString().toLowerCase();
+            final isEmployee = userRole != 'manager' && userRole != 'admin';
+
             return Column(
               // Changed ListView to Column to use Spacer
               children: [
@@ -179,43 +182,139 @@ class HomeScreen extends StatelessWidget {
                           context.goToTasks();
                         },
                       ),
-                      Theme(
-                        data: Theme.of(context).copyWith(
-                        dividerColor: Colors.transparent,
-                        ),
-                        child: ExpansionTile(
-                        leading: const Icon(Icons.work_outline),
-                          title: const Text(
-                        'HR Services',
-      
-                        ),
-                        childrenPadding: const EdgeInsets.only(left: 16),
-                        children: [
-                        ListTile(
-                        leading: const Icon(
-                        Icons.person_remove_alt_1,
-                        color: Color(0xFF2F9E9E),
-                       ),
-                        title: const Text('Resignation'),
-                       onTap: () {
-                       Navigator.pop(context);
-                       context.push(AppRoutes.resignation);
-                     },
-                    ),
-                    ListTile(
-                      leading: const Icon(
-                        Icons.report_problem_outlined,
-                        color: Color(0xFF2F9E9E),
+                      ListTile(
+                        leading: const Icon(Icons.bar_chart),
+                        title: const Text('Performance'),
+                        onTap: () {
+                          Navigator.pop(context);
+                          context.goToPerformance();
+                        },
                       ),
-                      title: const Text('Complaint'),
-                      onTap: () {
-                        Navigator.pop(context);
-                        context.push(AppRoutes.complaint);
-                      },
-                    )
-                   ],
-                 ),
-                 ),
+                      if (!isEmployee)
+                         ListTile(
+                           leading: const Icon(Icons.checklist_rtl_outlined),
+                           title: const Text('Manage Tasks'),
+                           onTap: () {
+                              Navigator.pop(context);
+                              context.goToManageTasks();
+                              },
+                             ),
+                      if (isEmployee)
+                         ListTile(
+                           leading: const Icon(Icons.emoji_events_outlined),
+                           title: const Text('Leaderboard'),
+                           onTap: () {
+                             Navigator.pop(context);
+                             context.goToLeaderboard();
+                           },
+                         ),
+                      if (!isEmployee)
+                        ListTile(
+                          leading: const Icon(Icons.emoji_events),
+                          title: const Text('Admin Leaderboard'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.goToAdminLeaderboard();
+                          },
+                        ),
+                      if (userRole == 'manager' || userRole == 'admin')
+                        ListTile(
+                          leading: const Icon(Icons.people_alt_outlined),
+                          title: const Text('Employee Directory'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.goToEmployeeDirectory();
+                          },
+                        ),
+                      if (userRole == 'manager' || userRole == 'admin')
+                        ListTile(
+                          leading: const Icon(Icons.person_add_alt_1),
+                          title: const Text('New Registrations'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            context.push(AppRoutes.newRegistrations);
+                          },
+                        ),
+                      Theme(
+  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+  child: ExpansionTile(
+    leading: const Icon(Icons.work_outline, color: Colors.black87,),
+    title: const Text('HR Services'),
+    childrenPadding: const EdgeInsets.only(left: 16),
+    children: [
+
+    
+      ListTile(
+        leading: const Icon(Icons.person_remove_alt_1, color: Colors.black87),
+        title: const Text('Resignation'),
+        onTap: () {
+          Navigator.pop(context);
+
+          final role = context
+              .read<AuthProvider>()
+              .userData?['role']
+              ?.toString()
+              .toLowerCase();
+
+          context.push(
+            AppRoutes.resignation,
+            extra: {
+              'openManagement': role == 'manager',
+            },
+          );
+        },
+      ),
+      
+        ListTile(
+          leading: const Icon(Icons.headset_mic),
+          title: const Text('Service Request'),
+          onTap: () {
+            Navigator.pop(context);
+            context.push(AppRoutes.serviceRequest);
+          },
+        ),
+
+      
+      ListTile(
+        leading: const Icon(Icons.report_problem_outlined,
+            color: Colors.black87),
+        title: const Text('Complaint'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.complaint);
+        },
+      ),
+    ],
+  ),
+),
+
+      
+      Theme(
+  data: Theme.of(context).copyWith(
+    dividerColor: Colors.transparent, 
+  ),
+  child: ExpansionTile(
+    leading: const Icon(Icons.school, color: Colors.black87),
+    title: const Text('Learning & Growth'),
+    childrenPadding: const EdgeInsets.only(left: 16),
+    children: [
+      ListTile(
+        leading: const Icon(
+          Icons.menu_book,
+          color: Colors.black87,
+        ),
+        title: const Text('Learning Studio'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.learningStudio);
+        },
+      ),
+    ],
+  ),
+),
+    
+
+
                       ListTile(
                         leading: const Icon(Icons.settings),
                         title: const Text('Settings'),
@@ -341,7 +440,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Worked Duration: ${clockProvider.workedDuration ?? '00:00:06'}',
+                        'Worked Duration: ${clockProvider.workedDuration ?? '00:00:00'}',
                         style: const TextStyle(fontSize: 14),
                       ),
                     ],
@@ -356,8 +455,9 @@ class HomeScreen extends StatelessWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: clockProvider.isClockedIn
-                        ? Colors.grey
+                        ? const Color(0xFF64748B) // Light grey when disabled
                         : AppColors.primary,
+                    disabledBackgroundColor: const Color(0xFF64748B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -373,43 +473,45 @@ class HomeScreen extends StatelessWidget {
                       //     showFaceVerificationDialog(isClockIn: true);
                       //   },
                       : () async {
-                    // showFaceVerificationDialog(isClockIn: true);
-                    // comment face recognizaton
-                    //
-                    await clockProvider.clockIn(
-                      department: authProvider.userData?['department'] ??
-                          'Department',
-                      imageUrl: '', // Face recognition is off
-                    );
-                    if (context.mounted) {
-                      if (clockProvider.state == ClockState.error) {
-                        AlertHelper.snackBarError(
-                          context,
-                          clockProvider.errorMessage ??
-                              'An error occurred',
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Clock in successful!'),
-                            backgroundColor: Colors.green,
-                          ),
-                        );
-                      }
-                    }
-                  },
+                          // showFaceVerificationDialog(isClockIn: true);
+                          // comment face recognizaton
+                          //
+                          await clockProvider.clockIn(
+                            department:
+                                authProvider.userData?['department'] ??
+                                'Department',
+                            imageUrl: '', // Face recognition is off
+                          );
+                          if (context.mounted) {
+                            if (clockProvider.state == ClockState.error) {
+                              AlertHelper.snackBarError(
+                                context,
+                                clockProvider.errorMessage ??
+                                    'An error occurred',
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Clock in successful!'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          }
+                        },
                   //
                   child: const Text(
                     'Clock In',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const SizedBox(width: 10),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: clockProvider.isClockedIn
-                        ? AppColors.primary
-                        : Colors.grey,
+                    backgroundColor: !clockProvider.isClockedIn
+                        ? const Color(0xFF64748B) // Light grey when disabled
+                        : AppColors.primary,
+                    disabledBackgroundColor: const Color(0xFF64748B),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -445,7 +547,7 @@ class HomeScreen extends StatelessWidget {
                       : null,
                   child: const Text(
                     'Clock Out',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
+                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
                   ),
                 ),
               ],

@@ -52,10 +52,11 @@ class SocketProvider extends ChangeNotifier {
 
   void addLocalMessage(ChatMessageModel message) async {
     // Deduplication check: if messageId already exists, don't add
-    if (message.messageId != null && _messages.any((m) => m.messageId == message.messageId)) {
+    if (message.messageId != null &&
+        _messages.any((m) => m.messageId == message.messageId)) {
       return;
     }
-    
+
     _messages.add(message);
     notifyListeners();
     if (message.conversationId != null) {
@@ -138,68 +139,130 @@ class SocketProvider extends ChangeNotifier {
       _logger.logNetwork("[Socket] Online users updated: $_onlineUsers");
     });
 
-    /// 📨 Receive Message Listener (this is now the only place where message is added to local)
+    // /// 📨 Receive Message Listener (this is now the only place where message is added to local)
+    // _manager.registerEvent('receiveMessage', (data) async {
+    //   _logger.logNetwork("[Socket] Incoming raw message data: $data");
+
+    //   final message = ChatMessageModel.fromBackendMap(data);
+
+    //   // ✅ Fetch current user info for deduplication
+    //   final currentUserData = await SecureStorageService().getUserData();
+    //   final currentUserID = currentUserData?['employeeId'] ?? "";
+    //   final currentUserName = currentUserData?["username"] ?? "";
+
+    //   // 🆕 Check duplicates using either `id` (MongoDB) or `messageId` (client)
+    //   int index = _messages.indexWhere(
+    //     (m) =>
+    //         (message.id != null && m.id == message.id) ||
+    //         (message.messageId != null && m.messageId == message.messageId),
+    //   );
+
+    //   // 🔍 Better deduplication for own messages if IDs don't match for some reason
+    //   if (index == -1 && message.sender == currentUserID) {
+    //     index = _messages.indexWhere((m) =>
+    //         m.sender == message.sender &&
+    //         m.message == message.message &&
+    //         // Check if they were sent within a 30 second window to be safe
+    //         message.timestamp.difference(m.timestamp).inSeconds.abs() < 30);
+    //   }
+
+    //   if (index != -1) {
+    //     // If message exists (likely the optimistic one), update it with backend ID and data
+    //     _messages[index] = message;
+    //     _logger.logNetwork(
+    //       "[Socket] Optimistic message updated with backend data: ${message.id}",
+    //     );
+    //     notifyListeners();
+    //     return;
+    //   }
+
+    //   // 🟢 Remove pending state if matches client messageId
+    //   if (message.messageId != null) {
+    //     _pendingMessages.remove(message.messageId);
+    //   }
+
+    //   _messages.add(message);
+    //   _logger.logNetwork(
+    //     "[Socket] Message added locally: id=${message.id} | messageId=${message.messageId}",
+    //   );
+
+    //   if (message.conversationId != null) {
+    //     final existingMessages = await _localStorage.getChatMessages(
+    //       message.conversationId!,
+    //     );
+    //     existingMessages.add(message);
+    //     await _localStorage.saveChatMessages(
+    //       message.conversationId!,
+    //       existingMessages,
+    //     );
+    //     _logger.logNetwork(
+    //       "[LocalStorage] Message saved for conversation: ${message.conversationId}",
+    //     );
+    //   }
+
+    //   notifyListeners();
+    /// 📨 Receive Message Listener (ONLY place where message is saved)
     _manager.registerEvent('receiveMessage', (data) async {
       _logger.logNetwork("[Socket] Incoming raw message data: $data");
 
       final message = ChatMessageModel.fromBackendMap(data);
-      
-      // ✅ Fetch current user info for deduplication
+
       final currentUserData = await SecureStorageService().getUserData();
       final currentUserID = currentUserData?['employeeId'] ?? "";
       final currentUserName = currentUserData?["username"] ?? "";
 
-      // 🆕 Check duplicates using either `id` (MongoDB) or `messageId` (client)
-      int index = _messages.indexWhere(
-        (m) =>
-            (message.id != null && m.id == message.id) ||
-            (message.messageId != null && m.messageId == message.messageId),
-      );
-      
-      // 🔍 Better deduplication for own messages if IDs don't match for some reason
-      if (index == -1 && message.sender == currentUserID) {
-        index = _messages.indexWhere((m) =>
-            m.sender == message.sender &&
-            m.message == message.message &&
-            // Check if they were sent within a 30 second window to be safe
-            message.timestamp.difference(m.timestamp).inSeconds.abs() < 30);
-      }
+      // 🛑 STRICT DEDUP (memory)
+      final existsInMemory = _messages.any((m) {
+        if (message.id != null && m.id != null) {
+          return m.id == message.id;
+        }
+        if (message.messageId != null && m.messageId != null) {
+          return m.messageId == message.messageId;
+        }
+        return false;
+      });
 
-      if (index != -1) {
-        // If message exists (likely the optimistic one), update it with backend ID and data
-        _messages[index] = message;
+      if (existsInMemory) {
         _logger.logNetwork(
-          "[Socket] Optimistic message updated with backend data: ${message.id}",
+          "[Socket] Duplicate ignored (memory) → "
+          "id=${message.id}, messageId=${message.messageId}",
         );
-        notifyListeners();
         return;
       }
 
-      // 🟢 Remove pending state if matches client messageId
+      // 🟢 Remove pending state
       if (message.messageId != null) {
         _pendingMessages.remove(message.messageId);
       }
 
+      // ✅ ADD MESSAGE ONCE
       _messages.add(message);
-      _logger.logNetwork(
-        "[Socket] Message added locally: id=${message.id} | messageId=${message.messageId}",
-      );
+      notifyListeners();
 
+      // 🛑 STRICT DEDUP (local storage)
       if (message.conversationId != null) {
         final existingMessages = await _localStorage.getChatMessages(
           message.conversationId!,
         );
-        existingMessages.add(message);
-        await _localStorage.saveChatMessages(
-          message.conversationId!,
-          existingMessages,
-        );
-        _logger.logNetwork(
-          "[LocalStorage] Message saved for conversation: ${message.conversationId}",
-        );
-      }
 
-      notifyListeners();
+        final existsInStorage = existingMessages.any((m) {
+          if (message.id != null && m.id != null) {
+            return m.id == message.id;
+          }
+          if (message.messageId != null && m.messageId != message.messageId) {
+            return m.messageId == message.messageId;
+          }
+          return false;
+        });
+
+        if (!existsInStorage) {
+          existingMessages.add(message);
+          await _localStorage.saveChatMessages(
+            message.conversationId!,
+            existingMessages,
+          );
+        }
+      }
 
       // 🧠 Show notification only if message is NOT from current user
       if (message.sender != _activeChatUserId &&

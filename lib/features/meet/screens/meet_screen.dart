@@ -19,8 +19,8 @@ class MeetScreen extends StatefulWidget {
 class _MeetScreenState extends State<MeetScreen> {
   DateTime _selectedDate = DateTime.now();
   String? _currentUserId;
-  final ScrollController _timelineScrollController = ScrollController(); 
-  final ScrollController _dateScrollController = ScrollController(); 
+  final ScrollController _timelineScrollController = ScrollController();
+  final ScrollController _dateScrollController = ScrollController();
 
   @override
   void initState() {
@@ -28,15 +28,14 @@ class _MeetScreenState extends State<MeetScreen> {
     _loadUserId();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<MeetProvider>().fetchUpcomingMeetings();
-      _scrollToSelectedDate(); 
+      _scrollToSelectedDate();
     });
   }
-
 
   @override
   void dispose() {
     _timelineScrollController.dispose();
-    _dateScrollController.dispose(); 
+    _dateScrollController.dispose();
     super.dispose();
   }
 
@@ -46,11 +45,11 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   void _scrollToTime(int hour) {
-    if (hour < 9) hour = 9; 
-    if (hour > 24) hour = 24; 
-    
+    if (hour < 9) hour = 9;
+    if (hour > 24) hour = 24;
+
     final int index = hour - 9;
-    final double offset = index * 70.0; 
+    final double offset = index * 70.0;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_timelineScrollController.hasClients) {
@@ -66,7 +65,8 @@ class _MeetScreenState extends State<MeetScreen> {
   void _scrollToSelectedDate() {
     final startDate = DateTime.now().subtract(const Duration(days: 30));
     final difference = _selectedDate.difference(startDate).inDays;
-    final double offset = (difference * 60.0) - (MediaQuery.of(context).size.width / 2) + 30;
+    final double offset =
+        (difference * 60.0) - (MediaQuery.of(context).size.width / 2) + 30;
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_dateScrollController.hasClients) {
@@ -88,7 +88,7 @@ class _MeetScreenState extends State<MeetScreen> {
       body: Column(
         children: [
           _buildHeader(meetProvider),
-          _buildDatePicker(), 
+          _buildDatePicker(),
           Expanded(
             child: meetProvider.state == MeetState.loading
                 ? const Center(child: CircularProgressIndicator())
@@ -130,8 +130,28 @@ class _MeetScreenState extends State<MeetScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Text('My Meetings ▾', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        Text('${provider.meetList.length} meetings total', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                        const Text(
+                          'My Meetings ▾',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '${provider.meetList.where((m) {
+                            final isCreator = m.createdBy['employeeId'] == _currentUserId;
+
+                            final isParticipant = m.participants.any((p) => p['employeeId'] == _currentUserId);
+
+                            return isCreator || isParticipant;
+                          }).length} meetings total',
+                          // '${provider.meetList.length} meetings total',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 10,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -152,9 +172,22 @@ class _MeetScreenState extends State<MeetScreen> {
                     _scrollToSelectedDate();
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15)),
-                    child: const Text('Today', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10)),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: const Text(
+                      'Today',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 10,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -166,11 +199,24 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   void _showMyCreatedMeetings(MeetProvider provider) {
-    final myMeets = provider.meetList.where((m) => m.createdBy['employeeId'] == _currentUserId).toList();
+    // final myMeets = provider.meetList
+    //     .where((m) => m.createdBy['employeeId'] == _currentUserId)
+    //     .toList();
+    final myMeets = provider.meetList.where((m) {
+      final isCreator = m.createdBy['employeeId'] == _currentUserId;
+
+      final isParticipant = m.participants.any(
+        (p) => p['employeeId'] == _currentUserId,
+      );
+
+      return isCreator || isParticipant;
+    }).toList();
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(20),
@@ -178,7 +224,10 @@ class _MeetScreenState extends State<MeetScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Meetings Created By You", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                "Meetings Created By You",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 15),
               if (myMeets.isEmpty)
                 const Center(child: Text("No meetings created by you yet."))
@@ -191,15 +240,23 @@ class _MeetScreenState extends State<MeetScreen> {
                       final meet = myMeets[index];
                       final date = DateTime.parse(meet.time).toLocal();
                       return ListTile(
-                        leading: const Icon(Icons.event, color: AppColors.primary),
-                        title: Text(meet.description, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text("${DateFormat('dd MMM yyyy').format(date)} at ${DateFormat('hh:mm a').format(date)}"),
+                        leading: const Icon(
+                          Icons.event,
+                          color: AppColors.primary,
+                        ),
+                        title: Text(
+                          meet.description,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text(
+                          "${DateFormat('dd MMM yyyy').format(date)} at ${DateFormat('hh:mm a').format(date)}",
+                        ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          setState(() => _selectedDate = date); 
+                          setState(() => _selectedDate = date);
                           Navigator.pop(context);
                           _scrollToSelectedDate();
-                          _scrollToTime(date.hour); 
+                          _scrollToTime(date.hour);
                         },
                       );
                     },
@@ -217,7 +274,11 @@ class _MeetScreenState extends State<MeetScreen> {
       initialValue: _selectedDate,
       onSelected: (DateTime date) {
         setState(() {
-          _selectedDate = DateTime(_selectedDate.year, date.month, _selectedDate.day);
+          _selectedDate = DateTime(
+            _selectedDate.year,
+            date.month,
+            _selectedDate.day,
+          );
           _scrollToSelectedDate();
         });
       },
@@ -233,7 +294,10 @@ class _MeetScreenState extends State<MeetScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(DateFormat('MMMM yyyy').format(_selectedDate), style: const TextStyle(color: Colors.white, fontSize: 11)),
+          Text(
+            DateFormat('MMMM yyyy').format(_selectedDate),
+            style: const TextStyle(color: Colors.white, fontSize: 11),
+          ),
           const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 14),
         ],
       ),
@@ -241,15 +305,19 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   Widget _buildDatePicker() {
-    final startDate = DateTime.now().subtract(const Duration(days: 30)); 
-    
+    final startDate = DateTime.now().subtract(const Duration(days: 30));
+
     return Container(
       height: 90,
       color: Colors.white,
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left, color: AppColors.primary, size: 20),
+            icon: const Icon(
+              Icons.chevron_left,
+              color: AppColors.primary,
+              size: 20,
+            ),
             onPressed: () {
               _dateScrollController.animateTo(
                 _dateScrollController.offset - 120,
@@ -262,13 +330,14 @@ class _MeetScreenState extends State<MeetScreen> {
             child: ListView.builder(
               controller: _dateScrollController,
               scrollDirection: Axis.horizontal,
-              itemCount: 365, 
+              itemCount: 365,
               itemBuilder: (context, index) {
                 final date = startDate.add(Duration(days: index));
-                bool isSelected = date.day == _selectedDate.day && 
-                                 date.month == _selectedDate.month && 
-                                 date.year == _selectedDate.year;
-                
+                bool isSelected =
+                    date.day == _selectedDate.day &&
+                    date.month == _selectedDate.month &&
+                    date.year == _selectedDate.year;
+
                 return GestureDetector(
                   onTap: () {
                     setState(() => _selectedDate = date);
@@ -277,32 +346,45 @@ class _MeetScreenState extends State<MeetScreen> {
                   child: Container(
                     width: 60,
                     padding: const EdgeInsets.symmetric(vertical: 10),
-                    decoration: isSelected ? const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: AppColors.primary, width: 2))
-                    ) : null,
+                    decoration: isSelected
+                        ? const BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(
+                                color: AppColors.primary,
+                                width: 2,
+                              ),
+                            ),
+                          )
+                        : null,
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(DateFormat('EEE').format(date), 
+                        Text(
+                          DateFormat('EEE').format(date),
                           style: TextStyle(
-                            color: isSelected ? AppColors.primary : Colors.grey, 
+                            color: isSelected ? AppColors.primary : Colors.grey,
                             fontSize: 10,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal
-                          )
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
                         ),
                         const SizedBox(height: 5),
                         Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: isSelected ? const BoxDecoration(
-                            color: AppColors.primary, 
-                            shape: BoxShape.circle
-                          ) : null,
-                          child: Text('${date.day}', 
+                          decoration: isSelected
+                              ? const BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                )
+                              : null,
+                          child: Text(
+                            '${date.day}',
                             style: TextStyle(
                               color: isSelected ? Colors.white : Colors.black,
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
-                            )
+                            ),
                           ),
                         ),
                       ],
@@ -313,7 +395,11 @@ class _MeetScreenState extends State<MeetScreen> {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right, color: AppColors.primary, size: 20),
+            icon: const Icon(
+              Icons.chevron_right,
+              color: AppColors.primary,
+              size: 20,
+            ),
             onPressed: () {
               _dateScrollController.animateTo(
                 _dateScrollController.offset + 120,
@@ -329,15 +415,34 @@ class _MeetScreenState extends State<MeetScreen> {
 
   // ✅ Updated logic to handle Recurrence (Daily/Weekly) in UI
   Widget _buildMeetingTimeline(List<Meet> meets) {
-    final dailyMeets = meets.where((m) {
+    if (_currentUserId == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    // Filter meetings to only those created by current user
+    // final userMeets = meets.where((m) {
+    //   return m.createdBy['employeeId'] == _currentUserId;
+    // }).toList();
+    final userMeets = meets.where((m) {
+      final isCreator = m.createdBy['employeeId'] == _currentUserId;
+
+      final isParticipant = m.participants.any(
+        (p) => p['employeeId'] == _currentUserId,
+      );
+
+      return isCreator || isParticipant;
+    }).toList();
+
+    final dailyMeets = userMeets.where((m) {
       final mDate = DateTime.parse(m.time).toLocal();
       final String recurrence = m.recurrence ?? "One-time meeting";
-      
+
       // Basic check: Is the meeting on the selected date?
-      bool isSameDay = mDate.day == _selectedDate.day && 
-                       mDate.month == _selectedDate.month && 
-                       mDate.year == _selectedDate.year;
-      
+      bool isSameDay =
+          mDate.day == _selectedDate.day &&
+          mDate.month == _selectedDate.month &&
+          mDate.year == _selectedDate.year;
+
       if (isSameDay) return true;
 
       // Handle Daily: Show if selected date is after meeting start date
@@ -347,46 +452,59 @@ class _MeetScreenState extends State<MeetScreen> {
 
       // Handle Weekly: Show if selected date is after start date AND same day of week
       if (recurrence == "Weekly") {
-        return _selectedDate.isAfter(mDate) && _selectedDate.weekday == mDate.weekday;
+        return _selectedDate.isAfter(mDate) &&
+            _selectedDate.weekday == mDate.weekday;
       }
 
       return false;
     }).toList();
 
     return ListView.builder(
-      controller: _timelineScrollController, 
-      itemCount: 16, 
+      controller: _timelineScrollController,
+      itemCount: 16,
       itemBuilder: (context, index) {
         int hour = 9 + index;
         String timeStr;
-        
+
         if (hour < 12) {
           timeStr = '$hour AM';
+          // ignore: curly_braces_in_flow_control_structures
+        } else if (hour == 12)
+          timeStr = '12 PM';
         // ignore: curly_braces_in_flow_control_structures
-        } else if (hour == 12) timeStr = '12 PM';
+        else if (hour < 24)
+          timeStr = '${hour - 12} PM';
         // ignore: curly_braces_in_flow_control_structures
-        else if (hour < 24) timeStr = '${hour - 12} PM';
-        // ignore: curly_braces_in_flow_control_structures
-        else timeStr = '12 AM'; 
+        else
+          timeStr = '12 AM';
 
-        final hourMeets = dailyMeets.where((m) => DateTime.parse(m.time).toLocal().hour == hour).toList();
+        final hourMeets = dailyMeets
+            .where((m) => DateTime.parse(m.time).toLocal().hour == hour)
+            .toList();
 
         return Container(
           height: 70,
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade200))),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+          ),
           child: Row(
             children: [
               Container(
                 width: 50,
                 alignment: Alignment.topCenter,
                 padding: const EdgeInsets.only(top: 10),
-                child: Text(timeStr, style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                child: Text(
+                  timeStr,
+                  style: const TextStyle(color: Colors.grey, fontSize: 9),
+                ),
               ),
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
                   child: Row(
-                    children: hourMeets.map((m) => _buildMeetingBlock(m)).toList(),
+                    children: hourMeets
+                        .map((m) => _buildMeetingBlock(m))
+                        .toList(),
                   ),
                 ),
               ),
@@ -398,9 +516,14 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   Widget _buildMeetingBlock(Meet meeting) {
-    final startTime = DateFormat('hh:mm a').format(DateTime.parse(meeting.time).toLocal());
+    final startTime = DateFormat(
+      'hh:mm a',
+    ).format(DateTime.parse(meeting.time).toLocal());
     return GestureDetector(
-      onTap: () => showDialog(context: context, builder: (context) => MeetDetailsDialog(meeting: meeting)),
+      onTap: () => showDialog(
+        context: context,
+        builder: (context) => MeetDetailsDialog(meeting: meeting),
+      ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
         padding: const EdgeInsets.all(8),
@@ -414,12 +537,20 @@ class _MeetScreenState extends State<MeetScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(meeting.description, 
-              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), 
-              maxLines: 1, 
-              overflow: TextOverflow.ellipsis),
-            Text('$startTime - ${meeting.duration}m', 
-              style: const TextStyle(color: Colors.white70, fontSize: 8)),
+            Text(
+              meeting.description,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              '$startTime - ${meeting.duration}m',
+              style: const TextStyle(color: Colors.white70, fontSize: 8),
+            ),
           ],
         ),
       ),

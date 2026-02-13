@@ -4,10 +4,14 @@ import 'package:hrtz_hrms/core/models/chat_message_model.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/core/models/group_message_model.dart';
+import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
+import 'package:hrtz_hrms/core/models/performance_model.dart';
+import 'package:hrtz_hrms/core/models/project_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class LocalStorageService {
   static final LocalStorageService _instance = LocalStorageService._internal();
@@ -36,6 +40,17 @@ class LocalStorageService {
   static const String keySentMails = 'sent_mails';
   static const String keyTrashMails = 'trash_mails';
 
+  // 📈 Performance caching related keys
+  static const String keyMyRatings = 'my_ratings';
+  static const String keyTeamRatings = 'team_ratings';
+
+  // 🏆 Leaderboard caching related keys
+  static const String keyLeaderboardList = 'leaderboard_list';
+  static const String keyUserStats = 'user_stats';
+
+  // 📁 Project caching related keys
+  static const String keyProjectList = 'project_list';
+
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
 
@@ -46,6 +61,20 @@ class LocalStorageService {
   static const String keyLeaveHistory = 'leave_history';
   static const String keyAvailableLeave = 'available_leave';
   static const String keyAttendanceData = 'attendance_data';
+
+  ///learning studio related keys
+  // Learning Studio cache keys
+  static const String keyDepartments = 'ls_departments';
+  static const String keySubDepartmentsPrefix = 'ls_sub_departments_';
+  static const String keyCoursesPrefix = 'ls_courses_';
+  static const String keyEmployeeCourses = 'ls_employee_courses';
+  static const String keyCourseCount = 'ls_course_count';
+
+  ///service request cache keys
+
+  static const String keyServiceRequests = 'service_requests';
+  static const String keyServiceRequestCounts = 'service_request_counts';
+  static const String keyDepartmentsConfig = 'config_departments';
 
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
@@ -78,6 +107,27 @@ class LocalStorageService {
   Future<void> removeString(String key) async {
     await prefs.remove(key);
     _logger.logStorage('Removed string: $key');
+  }
+
+  Future<void> saveJson(String key, dynamic data) async {
+    await prefs.setString(key, jsonEncode(data));
+    await prefs.setInt(
+      '${key}_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    _logger.logStorage('Saved JSON cache: $key');
+  }
+
+  Future<dynamic> getJson(String key) async {
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    _logger.logStorage('Loaded JSON cache: $key');
+    return jsonDecode(jsonString);
+  }
+
+  Future<DateTime?> getTimestamp(String key) async {
+    final ts = prefs.getInt('${key}_timestamp');
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
   }
 
   /// 🔘 Boolean
@@ -239,6 +289,38 @@ class LocalStorageService {
     _logger.logStorage('Cleared mail cache for $key');
   }
 
+  // 📈 Performance related save methods
+  Future<void> savePerformanceRatings(
+    String key,
+    List<PerformanceModel> ratings,
+  ) async {
+    final jsonList = ratings.map((e) => e.toJson()).toList();
+    await prefs.setString(key, jsonEncode(jsonList));
+    await prefs.setInt(
+      '${key}_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    _logger.logStorage(
+      'Saved ${ratings.length} performance ratings to cache ($key)',
+    );
+  }
+
+  Future<List<PerformanceModel>?> getPerformanceRatings(String key) async {
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((json) => PerformanceModel.fromJson(json)).toList();
+    } catch (e) {
+      _logger.error(
+        'LOCAL_STORAGE',
+        'Failed to parse cached performance ratings',
+        error: e,
+      );
+      return null;
+    }
+  }
+
   //--------------------------------------------------------------------------
   // meet api  storage methods
   // -------------------------------------------------------------------------
@@ -248,7 +330,10 @@ class LocalStorageService {
   Future<void> saveMeetList(List<Meet> meets) async {
     final meetJsonList = meets.map((e) => e.toJson()).toList();
     await prefs.setString(keyMeetList, jsonEncode(meetJsonList));
-    await prefs.setInt(keyMeetListTimestamp, DateTime.now().millisecondsSinceEpoch);
+    await prefs.setInt(
+      keyMeetListTimestamp,
+      DateTime.now().millisecondsSinceEpoch,
+    );
     _logger.logStorage('Saved meet list (${meets.length} meets)');
   }
 
@@ -270,7 +355,9 @@ class LocalStorageService {
   // Get timestamp when meet list was last cached
   Future<DateTime?> getMeetListTimestamp() async {
     final timestamp = prefs.getInt(keyMeetListTimestamp);
-    return timestamp != null ? DateTime.fromMillisecondsSinceEpoch(timestamp) : null;
+    return timestamp != null
+        ? DateTime.fromMillisecondsSinceEpoch(timestamp)
+        : null;
   }
 
   // Clear meet list cache
@@ -528,20 +615,137 @@ class LocalStorageService {
       return null;
     }
   }
+
+  /// 🔹 Get logged-in employee name
+  Future<String?> getEmployeeName() async {
+    return prefs.getString(_keyEmployeeName);
+  }
+
+  /// 🔹 Save logged-in employee details
   Future<void> saveLoggedInEmployee({
-  required String employeeId,
-  required String employeeName,
-}) async {
-  await prefs.setString(_keyEmployeeId, employeeId);
-  await prefs.setString(_keyEmployeeName, employeeName);
-}
-/// 🔹 Get logged-in employee id
-Future<String?> getEmployeeId() async {
-  return prefs.getString(_keyEmployeeId);
+    required String employeeId,
+    required String employeeName,
+  }) async {
+    await prefs.setString(_keyEmployeeId, employeeId);
+    await prefs.setString(_keyEmployeeName, employeeName);
+    _logger.logStorage('Saved logged-in employee: $employeeId - $employeeName');
+  }
+
+  /// 🔹 Get logged-in employee ID
+  Future<String?> getEmployeeId() async {
+    return prefs.getString(_keyEmployeeId);
+  }
+
+  // ================= SERVICE REQUEST STORAGE =================
+
+  // Save service request list
+  Future<void> saveServiceRequests(List<Map<String, dynamic>> requests) async {
+    await prefs.setString(keyServiceRequests, jsonEncode(requests));
+    await prefs.setInt(
+      '${keyServiceRequests}_timestamp',
+      DateTime.now().millisecondsSinceEpoch,
+    );
+    _logger.logStorage('Saved service requests (${requests.length})');
+  }
+
+  // Get cached service request list
+  Future<List<Map<String, dynamic>>?> getServiceRequests() async {
+    final jsonString = prefs.getString(keyServiceRequests);
+    if (jsonString == null) return null;
+
+    try {
+      final List list = jsonDecode(jsonString);
+      return List<Map<String, dynamic>>.from(list);
+    } catch (e) {
+      _logger.error(
+        'LOCAL_STORAGE',
+        'Failed to parse service requests',
+        error: e,
+      );
+      return null;
+    }
+  }
+
+  Future<void> saveUserStats(UserStatsModel stats) async {
+    await prefs.setString(keyUserStats, jsonEncode(stats.toJson()));
+    _logger.logStorage('Saved user stats');
+  }
+
+  Future<UserStatsModel?> getUserStats() async {
+    final jsonString = prefs.getString(keyUserStats);
+    if (jsonString == null) return null;
+    try {
+      return UserStatsModel.fromJson(jsonDecode(jsonString));
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // ================= DEPARTMENTS =================
+  Future<void> saveDepartments(List<String> departments) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('departments', departments);
+  }
+
+  Future<List<String>?> getDepartments() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList('departments');
+  }
+
+  // ================= REQUEST COUNTS =================
+  Future<void> saveServiceRequestCounts(Map<String, int> counts) async {
+    final prefs = await SharedPreferences.getInstance();
+    final map = counts.map((k, v) => MapEntry(k, v.toString()));
+    await prefs.setString('service_request_counts', jsonEncode(map));
+  }
+
+  Future<Map<String, dynamic>?> getServiceRequestCounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString('service_request_counts');
+    if (json == null) return null;
+    return Map<String, dynamic>.from(jsonDecode(json));
+  }
+
+  // ================= TIMESTAMP =================
+  Future<void> saveServiceRequestTimestamp(DateTime time) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('service_request_timestamp', time.toIso8601String());
+  }
+
+  Future<DateTime?> getServiceRequestTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString('service_request_timestamp');
+    if (value == null) return null;
+    return DateTime.parse(value);
+  }
+
+  // ================= LOGGED IN EMPLOYEE =================
+
+
+
+
+
+Future<void> clearLoggedInEmployee() async {
+  await prefs.remove(_keyEmployeeId);
+  await prefs.remove(_keyEmployeeName);
 }
 
-/// 🔹 Get logged-in employee name
-Future<String?> getEmployeeName() async {
-  return prefs.getString(_keyEmployeeName);
+// 📁 Project caching methods
+Future<void> saveProjectList(List<ProjectModel> list) async {
+  final jsonList = list.map((e) => e.toJson()).toList();
+  await prefs.setString(keyProjectList, jsonEncode(jsonList));
+  _logger.logStorage('Saved ${list.length} project entries');
+}
+
+Future<List<ProjectModel>?> getProjectList() async {
+  final jsonString = prefs.getString(keyProjectList);
+  if (jsonString == null) return null;
+  try {
+    final List<dynamic> list = jsonDecode(jsonString);
+    return list.map((json) => ProjectModel.fromJson(json)).toList();
+  } catch (e) {
+    return null;
+  }
 }
 }
+

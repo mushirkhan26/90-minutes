@@ -45,23 +45,35 @@ class MailModel {
       senderProfileUrl: json['senderProfileUrl'],
       receiver: json['receiver'] is List
           ? List<String>.from(json['receiver'].map((e) => e.toString()))
-          : json['receiver'] != null ? [json['receiver'].toString()] : [],
+          : json['receiver'] != null
+          ? [json['receiver'].toString()]
+          : [],
       receiverName: json['receiverName'] is List
           ? List<String>.from(json['receiverName'].map((e) => e.toString()))
-          : json['receiverName'] != null ? [json['receiverName'].toString()] : [],
+          : json['receiverName'] != null
+          ? [json['receiverName'].toString()]
+          : [],
       cc: json['cc'] is List ? List<String>.from(json['cc']) : [],
       bcc: json['bcc'] is List ? List<String>.from(json['bcc']) : [],
       subject: json['subject'] ?? '',
       // ✅ Fix: Check both 'message' and 'body' keys
-      body: json['message'] ?? json['body'] ?? '',
-      attachmentUrls: json['attachmentUrls'] is List ? List<String>.from(json['attachmentUrls']) : [],
+      body: json['content'] ?? json['message'] ?? json['body'] ?? '',
+      attachmentUrls: json['attachmentUrls'] is List
+          ? List<String>.from(json['attachmentUrls'])
+          : [],
       status: json['status'] ?? '',
       isStarred: json['isStarred'] ?? false,
       replyTo: json['replyTo'],
-      perUserStatus: json['perUserStatus'] is Map ? Map<String, dynamic>.from(json['perUserStatus']) : {},
+      perUserStatus: json['perUserStatus'] is Map
+          ? Map<String, dynamic>.from(json['perUserStatus'])
+          : {},
       // ✅ Fix: Local Time conversion
-      createdAt: DateTime.tryParse(json['createdAt'] ?? '')?.toLocal() ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(json['updatedAt'] ?? '')?.toLocal() ?? DateTime.now(),
+      createdAt:
+          DateTime.tryParse(json['createdAt'] ?? '')?.toLocal() ??
+          DateTime.now(),
+      updatedAt:
+          DateTime.tryParse(json['updatedAt'] ?? '')?.toLocal() ??
+          DateTime.now(),
     );
   }
 

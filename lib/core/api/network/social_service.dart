@@ -8,27 +8,38 @@ class SocialService {
   final LoggingService _logger = LoggingService.instance;
 
   /// ➕ Create Social Post (Post/Poll/Event)
-  Future<ApiResponse<Map<String, dynamic>>> createPost(SocialPostModel post) async {
+  Future<ApiResponse<Map<String, dynamic>>> createPost(
+    SocialPostModel post,
+  ) async {
     _logger.info('SOCIAL', 'Creating ${post.type}: ${post.title}');
-    return await _apiHelper.post<Map<String, dynamic>>('event/addEvent', post.toJson());
+    return await _apiHelper.post<Map<String, dynamic>>(
+      'event/addEvent',
+      post.toJson(),
+    );
   }
 
   /// 📜 Get Social Posts
   Future<ApiResponse<List<SocialPostModel>>> getPosts() async {
     _logger.info('SOCIAL', 'Fetching social posts');
     final response = await _apiHelper.get<dynamic>('event/getEvents');
-    
+
     if (response.success && response.data != null) {
       try {
         List<dynamic> postsJson = [];
         if (response.data is Map<String, dynamic>) {
           // Changed to look for 'items' key based on the actual API response
-          postsJson = response.data['items'] ?? response.data['message'] ?? response.data['data'] ?? [];
+          postsJson =
+              response.data['items'] ??
+              response.data['message'] ??
+              response.data['data'] ??
+              [];
         } else if (response.data is List) {
           postsJson = response.data;
         }
 
-        final posts = postsJson.map((json) => SocialPostModel.fromJson(json)).toList();
+        final posts = postsJson
+            .map((json) => SocialPostModel.fromJson(json))
+            .toList();
         return ApiResponse.success(posts);
       } catch (e) {
         _logger.error('SOCIAL', 'Error parsing posts', error: e);
@@ -43,7 +54,10 @@ class SocialService {
     required String eventId,
     required Map<String, dynamic> body,
   }) async {
-    return await _apiHelper.put<Map<String, dynamic>>('event/updateEvent/$eventId', body);
+    return await _apiHelper.put<Map<String, dynamic>>(
+      'event/updateEvent/$eventId',
+      body,
+    );
   }
 
   /// 💬 Add Comment
@@ -57,18 +71,27 @@ class SocialService {
       "action": "comment",
       "userId": userId,
       "userName": userName,
-      "content": content
+      "content": content,
     };
-    return await _apiHelper.put<Map<String, dynamic>>('event/updateEvent/$eventId', body);
+    return await _apiHelper.put<Map<String, dynamic>>(
+      'event/updateEvent/$eventId',
+      body,
+    );
   }
 
   /// 🗑️ Delete Event
   Future<ApiResponse<Map<String, dynamic>>> deletePost(String eventId) async {
-    return await _apiHelper.delete<Map<String, dynamic>>('event/deleteEvent/$eventId');
+    return await _apiHelper.delete<Map<String, dynamic>>(
+      'event/deleteEvent/$eventId',
+    );
   }
 
   /// 🗑️ Delete Comment
-  Future<ApiResponse<Map<String, dynamic>>> deleteComment(String commentId) async {
-    return await _apiHelper.delete<Map<String, dynamic>>('event/deleteComment/$commentId');
+  Future<ApiResponse<Map<String, dynamic>>> deleteComment(
+    String commentId,
+  ) async {
+    return await _apiHelper.delete<Map<String, dynamic>>(
+      'event/deleteComment/$commentId',
+    );
   }
 }

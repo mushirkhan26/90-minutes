@@ -29,8 +29,21 @@ class AppRoutes {
   static const adminLeaveApproval = '/admin-leave-approval';
   static const String holidayCalendar = '/holiday-calendar';
   static const String tasksRoute = '/tasks';
+  static const String generalHrTasks = '/general-hr-tasks';
   static const String socialHub = '/social-hub';
   static const String resignation = '/resignation';
   static const String complaint = '/complaint';
+  static const String learningStudio = '/learning-studio';
+  static const String newRegistrations = '/new-registrations';
+  static const String employeeDirectory = '/employee-directory';
+  static const String performance = '/performance';
+  static const String previousReviews = '/previous-reviews';
+  static const String reviewDetails = '/review-details';
+  static const String leaderboard = '/leaderboard';
+  static const String adminLeaderboard = '/admin-leaderboard';
+  static const String serviceRequest = '/service-request';
+  
+  static const String manageTasks = '/manage-tasks';
+  static const String addProject = '/add-project';
 
 }
