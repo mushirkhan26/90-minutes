@@ -24,9 +24,7 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
     super.initState();
     _statusTabController = TabController(length: _statuses.length, vsync: this);
     _statusTabController.addListener(_handleTabSelection);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<TasksProvider>().fetchStandaloneTasks();
-    });
+    // Logic for initial fetching moved to TasksProvider constructor/_bootstrap.
   }
 
   void _handleTabSelection() {
@@ -177,7 +175,7 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
                     const SizedBox(width: 6),
                     Text(
                       "(${tasksProvider.standaloneTasks.where((t) => t.status == _statuses[_statusTabController.index]).length})",
-                      style: TextStyle(color: Colors.grey[50], fontSize: 14, fontWeight: FontWeight.w500),
+                      style: TextStyle(color: Colors.grey[600], fontSize: 14, fontWeight: FontWeight.w500),
                     ),
                   ],
                 ),

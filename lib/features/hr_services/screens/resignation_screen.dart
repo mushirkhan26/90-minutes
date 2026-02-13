@@ -30,32 +30,13 @@ class _ResignationScreenState extends State<ResignationScreen>
   @override
   void initState() {
     super.initState();
-
-    final auth = context.read<AuthProvider>();
-    final String role = auth.userData?['role']?.toString().toLowerCase() ?? '';
-    final bool isManager = role == 'manager';
-
-    debugPrint('INIT → role=$role isManager=$isManager');
-
-    _tabController = TabController(
-      length: 2,
-      vsync: this,
-      initialIndex: isManager ? 0 : 1,
-    );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final provider = context.read<ResignationProvider>();
-      provider.fetchMyResignation();
-
-      if (isManager) {
-        debugPrint('POST FRAME → fetch manager resignations');
-        context.read<ResignationProvider>().fetchAllResignations();
-      }
-    });
+    // ✅ TabController is UI logic, so it stays here or move to provider if it affects data.
+    // For now keeping it here as it manages purely UI view state.
+    _tabController = TabController(length: 2, vsync: this);
+    
+    // ✅ Note: No more fetchMyResignation or fetchAllResignations here.
+    // The Provider constructor handles it.
   }
-
-  // ---------------- DATE PICKER ----------------
 
   void _pickResignationDate() async {
     final picked = await showDatePicker(
@@ -72,8 +53,6 @@ class _ResignationScreenState extends State<ResignationScreen>
       });
     }
   }
-
-  // ---------------- SUBMIT ----------------
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -101,37 +80,21 @@ class _ResignationScreenState extends State<ResignationScreen>
           backgroundColor: Colors.green,
         ),
       );
+    } else {
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(provider.errorMessage ?? 'Submission failed'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  Widget _readOnlyField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-        const SizedBox(height: 6),
-        TextFormField(
-          initialValue: value,
-          readOnly: true,
-          decoration: const InputDecoration(
-            filled: true,
-            border: OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: 16),
-      ],
-    );
-  }
-
-  // ---------------- BUILD ----------------
-
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final auth = context.read<AuthProvider>();
     final provider = context.watch<ResignationProvider>();
-
-    final bool isManager =
-        auth.userData?['role']?.toString().toLowerCase() == 'manager';
+    final bool isManager = provider.isManager;
 
     return Scaffold(
       appBar: AppBar(
@@ -156,8 +119,6 @@ class _ResignationScreenState extends State<ResignationScreen>
           : _userResignationUI(provider, auth),
     );
   }
-
-  // ---------------- SEGMENTED HEADER TAB ----------------
 
   Widget _segmentedHeaderTabs() {
     return Padding(
@@ -187,48 +148,47 @@ class _ResignationScreenState extends State<ResignationScreen>
     );
   }
 
-  // ---------------- MANAGEMENT TAB ----------------
-
   Widget _managementTab(ResignationProvider provider) {
-    if (provider.isLoadingResignations) {
+    if (provider.isLoadingResignations && provider.allResignations.isEmpty) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.allResignations.isEmpty) {
+    if (provider.allResignations.isEmpty && !provider.isLoadingResignations) {
       return const Center(child: Text('No resignations found'));
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: provider.allResignations.length,
-      itemBuilder: (_, index) {
-        final data = provider.allResignations[index];
-
-        return ResignationDetailsCard(data: data);
-      },
+    return RefreshIndicator(
+      onRefresh: () => provider.fetchAllResignations(),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: provider.allResignations.length,
+        itemBuilder: (_, index) {
+          final data = provider.allResignations[index];
+          return ResignationDetailsCard(data: data);
+        },
+      ),
     );
   }
-
-  // ---------------- USER RESIGNATION UI ----------------
 
   Widget _userResignationUI(
     ResignationProvider provider,
     AuthProvider authProvider,
   ) {
-    // 1️⃣ Loading
-    if (provider.isLoadingMyResignation) {
+    if (provider.isLoadingMyResignation && provider.myResignation == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // 2️⃣ Already submitted → show details
     if (provider.myResignation != null) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: ResignationMyDetailsCard(data: provider.myResignation!),
+      return RefreshIndicator(
+        onRefresh: () => provider.fetchMyResignation(),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: ResignationMyDetailsCard(data: provider.myResignation!),
+        ),
       );
     }
 
-    // 3️⃣ Not submitted → show apply form
     return SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -243,10 +203,7 @@ class _ResignationScreenState extends State<ResignationScreen>
               ),
               const SizedBox(height: 20),
 
-              _readOnlyField(
-                'Employee ID',
-                authProvider.userData?['employeeId'] ?? '-',
-              ),
+              _readOnlyField('Employee ID', authProvider.userData?['employeeId'] ?? '-'),
               _readOnlyField('Name', authProvider.userData?['username'] ?? '-'),
 
               const Text('Resignation Date *'),
@@ -254,9 +211,7 @@ class _ResignationScreenState extends State<ResignationScreen>
               InkWell(
                 onTap: _pickResignationDate,
                 child: InputDecorator(
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
+                  decoration: const InputDecoration(border: OutlineInputBorder()),
                   child: Text(
                     resignationDate == null
                         ? 'Select date'
@@ -274,9 +229,7 @@ class _ResignationScreenState extends State<ResignationScreen>
                 decoration: InputDecoration(
                   filled: true,
                   border: const OutlineInputBorder(),
-                  hintText: lastWorkingDate == null
-                      ? ''
-                      : apiDateFormat.format(lastWorkingDate!),
+                  hintText: lastWorkingDate == null ? '' : uiDateFormat.format(lastWorkingDate!),
                 ),
               ),
 
@@ -300,7 +253,10 @@ class _ResignationScreenState extends State<ResignationScreen>
                 child: ElevatedButton(
                   onPressed: provider.isSubmitting ? null : _submit,
                   child: provider.isSubmitting
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                       : const Text('Submit Resignation'),
                 ),
               ),
@@ -332,6 +288,26 @@ class _ResignationScreenState extends State<ResignationScreen>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _readOnlyField(String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
+        const SizedBox(height: 6),
+        TextFormField(
+          initialValue: value,
+          readOnly: true,
+          decoration: const InputDecoration(
+            filled: true,
+            fillColor: Color(0xFFF5F5F5),
+            border: OutlineInputBorder(),
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 

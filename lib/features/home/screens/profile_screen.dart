@@ -1,94 +1,20 @@
-// ignore_for_file: use_build_context_s, use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import 'package:hrtz_hrms/core/services/file_upload_service.dart';
+import 'package:hrtz_hrms/features/auth/providers/profile_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
-  @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
+  final List<String> _genderOptions = const ['Male', 'Female', 'Other'];
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
-  late TextEditingController _nameController;
-  late TextEditingController _emailController;
-  late TextEditingController _mobileController;
-  late TextEditingController _alterMobileController;
-  late TextEditingController _genderController;
-  late TextEditingController _addressController;
-  bool _isLoading = false;
-  bool _isEditing = false;
-  String? _profileImageUrl;
-
-  final List<String> _genderOptions = ['Male', 'Female', 'Other'];
-  final FileUploadService _fileUploadService = FileUploadService();
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController();
-    _emailController = TextEditingController();
-    _mobileController = TextEditingController();
-    _alterMobileController = TextEditingController();
-    _genderController = TextEditingController();
-    _addressController = TextEditingController();
-    _loadProfileData();
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _mobileController.dispose();
-    _alterMobileController.dispose();
-    _genderController.dispose();
-    _addressController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadProfileData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final secureStorage = SecureStorageService();
-
-    // Fetch profile data from provider or secure storage
-    if (authProvider.profileData == null) {
-      final employeeId = await secureStorage.getEmployeeId() ?? '';
-      if (employeeId.isNotEmpty) {
-        await authProvider.fetchAndCacheProfileData(employeeId: employeeId);
-      }
-    }
-
-    // Load data into controllers
-    final profileData = authProvider.profileData;
-    final userData = await secureStorage.getUserData();
-
-    setState(() {
-      _nameController.text = userData?['username'] ?? '';
-      _emailController.text = userData?['email'] ?? '';
-      _mobileController.text = profileData?.mobile ?? '';
-      _alterMobileController.text = profileData?.alterMobile ?? '';
-      _genderController.text = profileData?.gender ?? '';
-      _addressController.text = profileData?.address ?? '';
-      _profileImageUrl = profileData?.profileImage;
-    });
-  }
-
-  Future<void> _toggleEdit() async {
-    setState(() {
-      _isEditing = !_isEditing;
-    });
-  }
-
-  Future<void> _pickAndUploadImage() async {
+  Future<void> _pickAndUploadImage(BuildContext context, ProfileProvider provider) async {
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(
       source: ImageSource.gallery,
@@ -96,106 +22,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
 
     if (image == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final String? uploadedUrl = await _fileUploadService.uploadFile(
-        File(image.path),
-      );
-      if (uploadedUrl != null) {
-        setState(() {
-          _profileImageUrl = uploadedUrl;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Photo uploaded successfully! Save to confirm.'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to upload photo'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error uploading photo'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
-    }
+    await provider.uploadImage(File(image.path));
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _saveProfile(BuildContext context, ProfileProvider profileProvider, AuthProvider authProvider) async {
+    final success = await profileProvider.saveProfile(authProvider);
 
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final secureStorage = SecureStorageService();
-      final employeeId = await secureStorage.getEmployeeId() ?? '';
-
-      final success = await authProvider.updateProfileData(
-        employeeId: employeeId,
-        name: _nameController.text,
-        email: _emailController.text,
-        mobile: _mobileController.text,
-        alterMobile: _alterMobileController.text,
-        gender: _genderController.text,
-        address: _addressController.text,
-        profileImage: _profileImageUrl,
-      );
-
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        setState(() {
-          _isEditing = false;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              authProvider.errorMessage ?? 'Failed to update profile',
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('An error occurred while updating profile'),
+          content: Text('Profile updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authProvider.errorMessage ?? 'Failed to update profile'),
           backgroundColor: Colors.red,
         ),
       );
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final profileProvider = context.watch<ProfileProvider>();
+    final authProvider = context.read<AuthProvider>();
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
@@ -206,20 +60,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
-          if (!_isEditing)
-            IconButton(icon: const Icon(Icons.edit), onPressed: _toggleEdit),
-          if (_isEditing)
-            IconButton(icon: const Icon(Icons.save), onPressed: _saveProfile),
-          if (_isEditing)
-            IconButton(icon: const Icon(Icons.close), onPressed: _toggleEdit),
+          if (!profileProvider.isEditing)
+            IconButton(icon: const Icon(Icons.edit), onPressed: () => profileProvider.setEditing(true)),
+          if (profileProvider.isEditing)
+            IconButton(icon: const Icon(Icons.save), onPressed: () => _saveProfile(context, profileProvider, authProvider)),
+          if (profileProvider.isEditing)
+            IconButton(icon: const Icon(Icons.close), onPressed: () => profileProvider.setEditing(false)),
         ],
       ),
-      body: _isLoading
+      body: profileProvider.isLoading && profileProvider.employeeIdController.text.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
               child: Form(
-                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -230,10 +83,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           CircleAvatar(
                             radius: 50,
                             backgroundColor: Colors.grey[300],
-                            backgroundImage: _profileImageUrl != null
-                                ? NetworkImage(_profileImageUrl!)
+                            backgroundImage: profileProvider.profileImageUrl != null
+                                ? NetworkImage(profileProvider.profileImageUrl!)
                                 : null,
-                            child: _profileImageUrl == null
+                            child: profileProvider.profileImageUrl == null
                                 ? const Icon(
                                     Icons.person,
                                     size: 50,
@@ -241,12 +94,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   )
                                 : null,
                           ),
-                          if (_isEditing)
+                          if (profileProvider.isEditing)
                             Positioned(
                               bottom: 0,
                               right: 0,
                               child: InkWell(
-                                onTap: _pickAndUploadImage,
+                                onTap: () => _pickAndUploadImage(context, profileProvider),
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
                                   decoration: const BoxDecoration(
@@ -268,90 +121,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     // Name Field
                     CustomTextField(
-                      controller: _nameController,
+                      controller: profileProvider.nameController,
                       labelText: 'Full Name',
                       prefixIcon: const Icon(Icons.person),
+                      onChanged: (_) => profileProvider.onFieldChanged(),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
                           RegExp(r'[a-zA-Z\s]'),
                         ),
                       ],
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        return null;
-                      },
-                      readOnly: !_isEditing,
+                      readOnly: !profileProvider.isEditing,
                     ),
                     const SizedBox(height: 16),
 
                     // Email Field
                     CustomTextField(
-                      controller: _emailController,
+                      controller: profileProvider.emailController,
                       labelText: 'Email',
                       prefixIcon: const Icon(Icons.email),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value)) {
-                          return 'Please enter a valid email';
-                        }
-                        return null;
-                      },
-                      readOnly: !_isEditing,
+                      onChanged: (_) => profileProvider.onFieldChanged(),
+                      readOnly: !profileProvider.isEditing,
                     ),
                     const SizedBox(height: 16),
 
                     // Mobile Field
                     CustomTextField(
-                      controller: _mobileController,
+                      controller: profileProvider.mobileController,
                       labelText: 'Mobile Number',
-
                       prefixIcon: const Icon(Icons.phone),
                       maxLength: 10,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your mobile number';
-                        }
-                        if (value.length != 10) {
-                          return 'Mobile number must be 10 digits';
-                        }
-                        return null;
-                      },
-                      readOnly: !_isEditing,
+                      onChanged: (_) => profileProvider.onFieldChanged(),
+                      readOnly: !profileProvider.isEditing,
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 16),
 
                     // Alternate Mobile Field
                     CustomTextField(
-                      controller: _alterMobileController,
+                      controller: profileProvider.alterMobileController,
                       labelText: 'Alternate Mobile Number',
                       prefixIcon: const Icon(Icons.phone_android),
                       maxLength: 10,
-                      validator: (value) {
-                        if (value != null &&
-                            value.isNotEmpty &&
-                            value.length != 10) {
-                          return 'Mobile number must be 10 digits';
-                        }
-                        return null;
-                      },
-                      readOnly: !_isEditing,
+                      onChanged: (_) => profileProvider.onFieldChanged(),
+                      readOnly: !profileProvider.isEditing,
                       keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 16),
 
                     // Gender Field
-                    _isEditing
+                    profileProvider.isEditing
                         ? DropdownButtonFormField<String>(
-                            value:
-                                _genderOptions.contains(_genderController.text)
-                                ? _genderController.text
+                            value: _genderOptions.contains(profileProvider.genderController.text)
+                                ? profileProvider.genderController.text
                                 : null,
                             decoration: InputDecoration(
                               labelText: 'Gender',
@@ -387,19 +208,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 )
                                 .toList(),
                             onChanged: (value) {
-                              setState(() {
-                                _genderController.text = value ?? '';
-                              });
-                            },
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Please select your gender';
-                              }
-                              return null;
+                              profileProvider.genderController.text = value ?? '';
+                              profileProvider.onFieldChanged();
                             },
                           )
                         : CustomTextField(
-                            controller: _genderController,
+                            controller: profileProvider.genderController,
                             labelText: 'Gender',
                             prefixIcon: const Icon(Icons.transgender),
                             readOnly: true,
@@ -408,32 +222,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                     // Address Field
                     CustomTextField(
-                      controller: _addressController,
+                      controller: profileProvider.addressController,
                       labelText: 'Address',
                       prefixIcon: const Icon(Icons.home),
                       maxLines: 5,
-                      readOnly: !_isEditing,
+                      onChanged: (_) => profileProvider.onFieldChanged(),
+                      readOnly: !profileProvider.isEditing,
                     ),
                     const SizedBox(height: 24),
-                    Consumer<AuthProvider>(
-                      builder: (context, auth, child) {
-                        final TextEditingController employeeIdController =
-                            TextEditingController();
-                        SecureStorageService().getEmployeeId().then((
-                          employeeId,
-                        ) {
-                          if (employeeId != null) {
-                            employeeIdController.text = employeeId;
-                          }
-                        });
 
-                        return CustomTextField(
-                          controller: employeeIdController,
-                          labelText: 'Employee ID',
-                          prefixIcon: const Icon(Icons.badge),
-                          readOnly: true,
-                        );
-                      },
+                    // Employee ID Field
+                    CustomTextField(
+                      controller: profileProvider.employeeIdController,
+                      labelText: 'Employee ID',
+                      prefixIcon: const Icon(Icons.badge),
+                      readOnly: true,
                     ),
                   ],
                 ),

@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:provider/provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'dart:io';
-
 
 class CreateComplaintBottomSheet extends StatefulWidget {
   const CreateComplaintBottomSheet({super.key});
@@ -19,59 +17,29 @@ class CreateComplaintBottomSheet extends StatefulWidget {
 class _CreateComplaintBottomSheetState
     extends State<CreateComplaintBottomSheet> {
   final _formKey = GlobalKey<FormState>();
-
-  // 🔹 Controllers
-  final _nameCtrl = TextEditingController();
-  final _employeeIdCtrl = TextEditingController();
-  final _titleCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _addInfoCtrl = TextEditingController();
-
-  String? _category;
-  String? _complainPerson;
-
-  List<String> attachments = [];
-
-  final categories = ['IT', 'HR', 'Facilities'];
-  final people = ['Team Lead', 'Manager', 'CEO'];
-
-  @override
-  void initState() {
-    super.initState();
-    _loadUser(); // ✅ Autofill
-  }
-
-  /// 🔹 Load login user details
-  Future<void> _loadUser() async {
-    final prefs = await SharedPreferences.getInstance();
-    _nameCtrl.text = prefs.getString('employee_name') ?? '';
-    _employeeIdCtrl.text = prefs.getString('employee_id') ?? '';
-  }
-
-  /// 🔹 File picker
   final FileUploadService _uploader = FileUploadService();
 
-Future<void> _pickFile() async {
-  final result = await FilePicker.platform.pickFiles(
-    allowMultiple: true,
-  );
+  Future<void> _pickFile(ComplaintProvider provider) async {
+    final result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
+    );
 
-  if (result == null) return;
+    if (result == null) return;
 
-  for (final file in result.files) {
-    if (file.path == null) continue;
+    for (final file in result.files) {
+      if (file.path == null) continue;
 
-    final s3Url = await _uploader.uploadFile(File(file.path!));
-
-    if (s3Url != null) {
-      setState(() {
-        attachments.add(s3Url); // ✅ ONLY S3 URL
-      });
+      final s3Url = await _uploader.uploadFile(File(file.path!));
+      if (s3Url != null) {
+        provider.addAttachment(s3Url);
+      }
     }
   }
-}
+
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<ComplaintProvider>();
+
     return Material(
       color: Colors.white,
       borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
@@ -89,7 +57,7 @@ Future<void> _pickFile() async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// 🔹 HEADER (First pic style)
+                  /// 🔹 HEADER
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(
@@ -124,12 +92,12 @@ Future<void> _pickFile() async {
 
                   const SizedBox(height: 16),
 
-                  /// 🔹 NAME (Auto-filled)
-                  _readOnlyField('Your Name *', _nameCtrl),
+                  /// 🔹 NAME
+                  _readOnlyField('Your Name *', provider.loggedInName),
                   const SizedBox(height: 12),
 
-                  /// 🔹 EMPLOYEE ID (Auto-filled)
-                  _readOnlyField('Employee ID *', _employeeIdCtrl),
+                  /// 🔹 EMPLOYEE ID
+                  _readOnlyField('Employee ID *', provider.loggedInEmployeeId),
                   const SizedBox(height: 12),
 
                   /// 🔹 CATEGORY + PERSON
@@ -139,9 +107,9 @@ Future<void> _pickFile() async {
                         child: _dropdown(
                           label: 'Category *',
                           hintText: 'Select Category',
-                          value: _category,
-                          items: categories,
-                          onChanged: (v) => setState(() => _category = v),
+                          initialValue: provider.selectedCategory,
+                          items: provider.categories,
+                          onChanged: (v) => provider.setCategory(v),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -149,9 +117,9 @@ Future<void> _pickFile() async {
                         child: _dropdown(
                           label: 'Mention Complaining People',
                           hintText: 'Select Person',
-                          value: _complainPerson,
-                          items: people,
-                          onChanged: (v) => setState(() => _complainPerson = v),
+                          initialValue: provider.selectedPerson,
+                          items: provider.mentionPeople,
+                          onChanged: (v) => provider.setPerson(v),
                         ),
                       ),
                     ],
@@ -160,13 +128,13 @@ Future<void> _pickFile() async {
                   const SizedBox(height: 12),
 
                   /// 🔹 ADDITIONAL INFO
-                  _textField('Additional Info', _addInfoCtrl, maxLines: 4),
+                  _textField('Additional Info', provider.additionalInfoController, maxLines: 4, onChanged: (_) => provider.onFieldChanged()),
 
                   const SizedBox(height: 12),
 
                   /// 🔹 ATTACHMENT
                   GestureDetector(
-                    onTap: _pickFile,
+                    onTap: () => _pickFile(provider),
                     child: Container(
                       height: 120,
                       width: double.infinity,
@@ -189,11 +157,11 @@ Future<void> _pickFile() async {
                     ),
                   ),
 
-                  if (attachments.isNotEmpty)
+                  if (provider.attachments.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
-                        '${attachments.length} file(s) selected',
+                        '${provider.attachments.length} file(s) selected',
                         style: const TextStyle(color: Colors.grey),
                       ),
                     ),
@@ -203,7 +171,8 @@ Future<void> _pickFile() async {
                   /// 🔹 TITLE
                   _textField(
                     'Title of Complaint *',
-                    _titleCtrl,
+                    provider.titleController,
+                    onChanged: (_) => provider.onFieldChanged(),
                     validator: (v) => v!.isEmpty ? 'Required' : null,
                   ),
 
@@ -212,14 +181,15 @@ Future<void> _pickFile() async {
                   /// 🔹 DESCRIPTION
                   _textField(
                     'Description *',
-                    _descCtrl,
+                    provider.descriptionController,
                     maxLines: 4,
+                    onChanged: (_) => provider.onFieldChanged(),
                     validator: (v) => v!.isEmpty ? 'Required' : null,
                   ),
 
                   const SizedBox(height: 20),
 
-                  /// 🔹 BUTTONS (First pic style)
+                  /// 🔹 BUTTONS
                   Row(
                     children: [
                       Expanded(
@@ -241,20 +211,12 @@ Future<void> _pickFile() async {
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () async {
+                          onPressed: provider.isLoading ? null : () async {
                             if (!_formKey.currentState!.validate()) return;
 
-                            final provider = context.read<ComplaintProvider>();
+                            final success = await provider.addComplaint();
 
-                            final success = await provider.addComplaint(
-                              category: _category!,
-                              title: _titleCtrl.text,
-                              description: _descCtrl.text,
-                              additionalInfo: _addInfoCtrl.text,
-                              attachment: attachments,
-                            );
-
-                            if (success && mounted) {
+                            if (success && context.mounted) {
                               Navigator.pop(context);
                             }
                           },
@@ -265,10 +227,12 @@ Future<void> _pickFile() async {
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                           ),
-                          child: const Text(
-                            'Submit',
-                            style: TextStyle(color: Colors.white),
-                          ),
+                          child: provider.isLoading
+                              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text(
+                                  'Submit',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                         ),
                       ),
                     ],
@@ -283,14 +247,14 @@ Future<void> _pickFile() async {
   }
 
   /// 🔹 READ-ONLY FIELD
-  Widget _readOnlyField(String label, TextEditingController controller) {
+  Widget _readOnlyField(String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label),
         const SizedBox(height: 4),
         TextFormField(
-          controller: controller,
+          initialValue: value,
           readOnly: true,
           decoration: const InputDecoration(
             filled: true,
@@ -308,6 +272,7 @@ Future<void> _pickFile() async {
     TextEditingController ctrl, {
     int maxLines = 1,
     String? Function(String?)? validator,
+    Function(String)? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -318,6 +283,7 @@ Future<void> _pickFile() async {
           controller: ctrl,
           maxLines: maxLines,
           validator: validator,
+          onChanged: onChanged,
           decoration: const InputDecoration(border: OutlineInputBorder()),
         ),
       ],
@@ -327,7 +293,7 @@ Future<void> _pickFile() async {
   /// 🔹 DROPDOWN
   Widget _dropdown({
     required String label,
-    required String? value,
+    required String? initialValue,
     required List<String> items,
     required void Function(String?) onChanged,
     required String hintText,
@@ -338,7 +304,7 @@ Future<void> _pickFile() async {
         Text(label),
         const SizedBox(height: 4),
         DropdownButtonFormField<String>(
-          initialValue: value,
+          value: initialValue,
           hint: Text(hintText),
           style: const TextStyle(color: Colors.black, fontSize: 14),
           items: items

@@ -348,11 +348,11 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
           ),
         ],
       ),
-      body: provider.state == ProjectState.loading && projects.isEmpty
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: () => provider.fetchProjects(),
-              child: SingleChildScrollView(
+      body: RefreshIndicator(
+        onRefresh: () => provider.fetchProjects(),
+        child: provider.state == ProjectState.loading && projects.isEmpty
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -362,7 +362,6 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Expanded(
-                          // Added Expanded to fix overflow
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -431,7 +430,7 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
                   ],
                 ),
               ),
-            ),
+      ),
     );
   }
 

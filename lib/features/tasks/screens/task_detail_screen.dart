@@ -32,16 +32,11 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> with SingleTickerPr
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    
+    // UI is "dumb" - it just tells the smart provider to prepare data for this specific task.
+    // The provider decides what to fetch, what to load from cache, and manages the state.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<TasksProvider>();
-      provider.fetchSubtasks(widget.task.id);
-      provider.fetchComments(widget.task.id);
-      
-      if (widget.task.sprintId != null && widget.task.sprintId!.isNotEmpty) {
-        provider.fetchActivityLogs(widget.task.sprintId!);
-      } else {
-        provider.setActivityLogs(widget.task.activityLog);
-      }
+      context.read<TasksProvider>().loadTaskDetails(widget.task);
       context.read<AuthProvider>().fetchAndCacheEmployeeList();
     });
   }
@@ -299,7 +294,6 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> with SingleTickerPr
   }
 
   Widget _buildCommentList(TasksProvider provider, String currentEmployeeId) {
-    // Only show loader if we have NO comments. If we have some, refresh in background.
     if (provider.isCommentLoading && provider.currentComments.isEmpty) {
       return const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
     }
@@ -402,158 +396,66 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> with SingleTickerPr
 
   Widget _buildCommentInput(TasksProvider provider, String employeeId, String employeeName) {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: TextField(
-        controller: _commentController, 
-        style: const TextStyle(fontSize: 14),
-        decoration: InputDecoration(
-          hintText: "Add a comment...", 
-          hintStyle: TextStyle(color: Colors.grey[400]),
-          isDense: true, 
-          border: InputBorder.none, 
-          contentPadding: const EdgeInsets.symmetric(vertical: 16),
-          suffixIcon: IconButton(
-            splashRadius: 20,
-            icon: const Icon(Icons.send, size: 20, color: Color(0xFF26A69A)), 
-            onPressed: () { 
-              if (_commentController.text.isNotEmpty) { 
-                final commentData = {
-                  'parentId': widget.task.id, 
-                  'parentType': 'task', 
-                  'employeeId': employeeId, 
-                  'employeeName': employeeName, 
-                  'text': _commentController.text, 
-                  'mentions': [], 
-                  'attachments': [], 
-                  'parentCommentId': null
-                }; 
-                provider.addComment(commentData, widget.task.id); 
-                _commentController.clear(); 
-              } 
-            }
-          )
-        )
-      ),
-    );
-  }
-
-  void _openAddSubtaskDialog(TasksProvider provider, String employeeId) {
-    showDialog(context: context, builder: (context) => AddSubtaskDialog(onSave: (data) { final subtaskData = {'taskId': widget.task.id, 'title': data['title'], 'description': data['description'], 'priority': data['priority'], 'storyPoints': data['storyPoints'], 'deadline': data['deadline'], 'assignee': data['assignee'], 'createdBy': employeeId}; provider.createSubtask(subtaskData, widget.task.id); }));
-  }
-
-  void _showDeleteConfirmation(String employeeId) {
-    showDialog(
-      context: context, 
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text("Delete Task"), 
-        content: const Text("Are you sure you want to delete this task? This action cannot be undone."), 
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text("Cancel", style: TextStyle(color: Colors.grey[600]))), 
-          ElevatedButton(
-            onPressed: () { context.read<TasksProvider>().deleteTask(widget.task.id, employeeId); Navigator.pop(context); Navigator.pop(context); }, 
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, elevation: 0),
-            child: const Text("Delete", style: TextStyle(color: Colors.white))
-          )
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+      child: Column(
+        children: [
+          TextField(
+            controller: _commentController,
+            maxLines: null,
+            style: const TextStyle(fontSize: 13),
+            decoration: const InputDecoration(hintText: "Add a comment...", contentPadding: EdgeInsets.all(12), border: InputBorder.none),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton(
+                  onPressed: () async {
+                    if (_commentController.text.trim().isEmpty) return;
+                    final data = {
+                      "employeeId": employeeId,
+                      "employeeName": employeeName,
+                      "text": _commentController.text.trim(),
+                      "itemType": "task",
+                      "itemId": widget.task.id,
+                      "createdAt": DateTime.now().toIso8601String(),
+                    };
+                    await provider.addComment(data, widget.task.id);
+                    _commentController.clear();
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF673AB7), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)), elevation: 0),
+                  child: const Text("Comment", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
         ],
-      )
-    );
-  }
-
-  Widget _buildProgressBar(TasksProvider provider) {
-    double progress = 0;
-    if (provider.currentSubtasks.isNotEmpty) {
-      final doneCount = provider.currentSubtasks.where((s) => s['status'] == 'Done').length;
-      progress = doneCount / provider.currentSubtasks.length;
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${(progress * 100).toInt()}% Complete", style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold)), Text("${provider.currentSubtasks.where((s) => s['status'] == 'Done').length}/${provider.currentSubtasks.length}", style: const TextStyle(fontSize: 11, color: Colors.grey))]), const SizedBox(height: 6), ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress, backgroundColor: Colors.grey[200], valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF26A69A)), minHeight: 6))]);
-  }
-
-  Widget _buildSubtasksTable(TasksProvider provider, String employeeId) {
-    // Background refresh: only show loader if list is empty
-    if (provider.isSubtaskLoading && provider.currentSubtasks.isEmpty) {
-      return const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2)));
-    }
-    
-    if (provider.currentSubtasks.isEmpty) return _buildEmptySection("No subtasks yet");
-    return Container(
-      decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(8)), 
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal, 
-        physics: const BouncingScrollPhysics(),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minWidth: 650), 
-          child: Table(
-            columnWidths: const {0: FixedColumnWidth(40), 1: FlexColumnWidth(2), 2: FixedColumnWidth(90), 3: FixedColumnWidth(70), 4: FlexColumnWidth(1.5), 5: FixedColumnWidth(130), 6: FixedColumnWidth(40)}, 
-            defaultVerticalAlignment: TableCellVerticalAlignment.middle, 
-            children: [
-              TableRow(
-                decoration: BoxDecoration(color: Colors.grey[50]), 
-                children: const [SizedBox(height: 40), _TableCell(text: "WORK", isHeader: true), _TableCell(text: "PRIORITY", isHeader: true), _TableCell(text: "POINTS", isHeader: true), _TableCell(text: "ASSIGNEE", isHeader: true), _TableCell(text: "STATUS", isHeader: true), _TableCell(text: "", isHeader: true)]
-              ), 
-              ...provider.currentSubtasks.map((sub) => TableRow(
-                children: [
-                  Center(child: Checkbox(activeColor: const Color(0xFF26A69A), value: sub['status'] == 'Done', onChanged: (v) { provider.updateSubtaskStatus(sub['subtaskId'], employeeId, v! ? 'Done' : 'ToDo', widget.task.id); })), 
-                  Padding(padding: const EdgeInsets.all(12.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(sub['title'] ?? "", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF37474F))), if(sub['description'] != null && sub['description'].isNotEmpty) Text(sub['description'], style: const TextStyle(color: Colors.grey, fontSize: 11), maxLines: 1, overflow: TextOverflow.ellipsis)])), 
-                  _buildTablePriorityBadge(sub['priority'] ?? 'Medium'), 
-                  _TableCell(text: "${sub['storyPoints'] ?? 0}"), 
-                  Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Row(children: [CircleAvatar(radius: 10, backgroundColor: Colors.blue[50], child: Text((sub['assignee'] ?? "U")[0].toUpperCase(), style: const TextStyle(fontSize: 10, color: Colors.blue, fontWeight: FontWeight.bold))), const SizedBox(width: 6), Flexible(child: Text(sub['assignee'] ?? "Unassigned", style: const TextStyle(fontSize: 11, color: Colors.black87), overflow: TextOverflow.ellipsis))])), 
-                  _buildSubtaskStatusDropdown(sub, employeeId, provider), 
-                  IconButton(splashRadius: 20, icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18), onPressed: () => provider.deleteSubtask(sub['subtaskId'], widget.task.id))
-                ]
-              ))
-            ]
-          )
-        )
-      )
-    );
-  }
-
-  Widget _buildSubtaskStatusDropdown(dynamic sub, String employeeId, TasksProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8), 
-      child: Container(
-        height: 32, 
-        padding: const EdgeInsets.symmetric(horizontal: 8), 
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.grey.shade300)), 
-        child: DropdownButtonHideUnderline(
-          child: DropdownButton<String>(
-            value: _subtaskStatuses.contains(sub['status']) ? sub['status'] : 'To Do', 
-            isExpanded: true, 
-            icon: const Icon(Icons.arrow_drop_down, size: 16),
-            style: const TextStyle(fontSize: 11, color: Colors.black87, fontWeight: FontWeight.w500), 
-            items: _subtaskStatuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(), 
-            onChanged: (val) => provider.updateSubtaskStatus(sub['subtaskId'], employeeId, val!, widget.task.id)
-          )
-        )
-      )
+      ),
     );
   }
 
   Widget _buildSidePanel(String employeeId) {
-    return Column(children: [TabBar(controller: _tabController, labelColor: const Color(0xFF26A69A), unselectedLabelColor: Colors.grey, indicatorColor: const Color(0xFF26A69A), indicatorWeight: 3, labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), tabs: const [Tab(text: "Details"), Tab(text: "Activity Log")]), Expanded(child: TabBarView(controller: _tabController, children: [_buildSidePanelContent(employeeId), _buildActivityLogTab()]))]);
-  }
-
-  Widget _buildSidePanelContent(String employeeId) {
     return Consumer<TasksProvider>(
       builder: (context, provider, child) {
         final currentTask = provider.allTasksList.followedBy(provider.standaloneTasks).firstWhere((t) => t.id == widget.task.id, orElse: () => widget.task);
-        return SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          physics: const BouncingScrollPhysics(),
+        return Padding(
+          padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildEditablePriority(currentTask, employeeId, provider),
-              _buildEditableAssignees(currentTask, employeeId, provider),
-              _buildEditableDueDate(currentTask, employeeId, provider),
-              _buildDetailItem("DEPARTMENT", currentTask.department ?? "Development", null, null),
-              _buildDetailItem("CATEGORY", currentTask.category ?? "UI", null, null),
+              _buildSideSection("STATUS", _buildDynamicStatusDropdown(currentTask, employeeId, provider)),
+              const SizedBox(height: 24),
+              _buildSideSection("PRIORITY", _buildPriorityEditor(currentTask, employeeId, provider)),
+              const SizedBox(height: 24),
+              _buildSideSection("DUE DATE", _buildDueDateEditor(currentTask, employeeId, provider)),
+              const SizedBox(height: 32),
+              const Divider(),
+              const SizedBox(height: 16),
+              const Text("ACTIVITY LOG", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+              const SizedBox(height: 16),
+              Expanded(child: _buildActivityTimeline(provider)),
             ],
           ),
         );
@@ -561,155 +463,224 @@ class _TaskDetailDialogState extends State<TaskDetailDialog> with SingleTickerPr
     );
   }
 
-  Widget _buildEditablePriority(Task task, String employeeId, TasksProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("PRIORITY", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey[600], letterSpacing: 0.5)), InkWell(onTap: () => setState(() => _isEditingPriority = !_isEditingPriority), borderRadius: BorderRadius.circular(4), child: const Padding(padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: Text("Edit", style: TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.bold))))]),
-          const SizedBox(height: 8),
-          if (_isEditingPriority) Container(decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(8), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)]), child: Column(children: [..._priorities.map((p) => ListTile(dense: true, visualDensity: VisualDensity.compact, title: Text(p, style: TextStyle(fontSize: 13, color: task.priority == p ? Colors.orange[800] : Colors.black87, fontWeight: task.priority == p ? FontWeight.bold : FontWeight.normal)), tileColor: task.priority == p ? Colors.orange[50] : null, onTap: () { provider.updateTask(task.id, {'priority': p, 'employeeId': employeeId}, employeeId); setState(() => _isEditingPriority = false); })), const Divider(height: 1), ListTile(dense: true, visualDensity: VisualDensity.compact, title: const Center(child: Text("Cancel", style: TextStyle(color: Colors.grey, fontSize: 12))), onTap: () => setState(() => _isEditingPriority = false))]))
-          else Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), decoration: BoxDecoration(color: Colors.orange[50], border: Border.all(color: Colors.orange.shade100), borderRadius: BorderRadius.circular(6)), child: Text(task.priority, style: TextStyle(fontSize: 14, color: Colors.orange[800], fontWeight: FontWeight.bold))),
-        ],
-      ),
-    );
-  }
+  Widget _buildActivityTimeline(TasksProvider provider) {
+    final logs = provider.currentActivityLogs;
+    if (provider.isLogLoading && logs.isEmpty) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (logs.isEmpty) return const Text("No logs available", style: TextStyle(fontSize: 12, color: Colors.grey));
 
-  Widget _buildEditableAssignees(Task task, String employeeId, TasksProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("ASSIGNEES", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey[600], letterSpacing: 0.5)), InkWell(onTap: () => _showEmployeeSelectionDialog(task, employeeId, provider), borderRadius: BorderRadius.circular(4), child: const Padding(padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: Text("Edit", style: TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.bold))))]),
-          const SizedBox(height: 8),
-          Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(6)), child: Wrap(spacing: 8, runSpacing: 8, children: task.assignees.isEmpty ? [const Text("Unassigned", style: TextStyle(fontSize: 13, color: Colors.grey))] : task.assignees.map((a) => Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: Colors.purple[50], borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.purple.shade100)), child: Row(mainAxisSize: MainAxisSize.min, children: [CircleAvatar(radius: 8, backgroundColor: Colors.purple[100], child: Text(a[0].toUpperCase(), style: const TextStyle(fontSize: 7, fontWeight: FontWeight.bold, color: Colors.purple))), const SizedBox(width: 6), Text(a, style: const TextStyle(fontSize: 12, color: Colors.purple, fontWeight: FontWeight.w500))]))).toList())),
-        ],
-      ),
-    );
-  }
-
-  void _showEmployeeSelectionDialog(Task task, String employeeId, TasksProvider provider) {
-    final authProvider = context.read<AuthProvider>();
-    List<String> tempSelected = List.from(task.assignees);
-    showDialog(context: context, builder: (context) { String searchQuery = ''; return StatefulBuilder(builder: (context, setDialogState) { final employees = authProvider.searchEmployees(searchQuery); return Dialog(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), child: Container(padding: const EdgeInsets.all(16), height: 500, child: Column(children: [Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [const Text('Select Assignees', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context))]), TextField(decoration: InputDecoration(hintText: 'Search employees...', prefixIcon: const Icon(Icons.search), border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), isDense: true), onChanged: (val) => setDialogState(() => searchQuery = val)), const SizedBox(height: 16), Expanded(child: ListView.builder(itemCount: employees.length, itemBuilder: (context, index) { final emp = employees[index]; final isSelected = tempSelected.contains(emp.employeeID) || tempSelected.contains(emp.name); return CheckboxListTile(activeColor: const Color(0xFF26A69A), title: Text(emp.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)), subtitle: Text('ID: ${emp.employeeID}', style: const TextStyle(fontSize: 12)), value: isSelected, onChanged: (bool? value) { setDialogState(() { if (value == true) tempSelected.add(emp.employeeID); else tempSelected.remove(emp.employeeID); }); }); })), const Divider(), SizedBox(width: double.infinity, child: ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF673AB7), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), elevation: 0), onPressed: () { provider.updateTask(task.id, {'assignedTo': tempSelected, 'employeeId': employeeId}, employeeId); Navigator.pop(context); }, child: const Text('Done')))]))); }); });
-  }
-
-  Widget _buildEditableDueDate(Task task, String employeeId, TasksProvider provider) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("DUE DATE", style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: Colors.grey[600], letterSpacing: 0.5)), InkWell(onTap: () => setState(() { _isEditingDueDate = !_isEditingDueDate; _tempDeadline = task.deadline; }), borderRadius: BorderRadius.circular(4), child: const Padding(padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), child: Text("Edit", style: TextStyle(fontSize: 11, color: Colors.blue, fontWeight: FontWeight.bold))))]),
-          const SizedBox(height: 8),
-          if (_isEditingDueDate) Row(children: [Expanded(child: InkWell(onTap: () async { final date = await showDatePicker(context: context, initialDate: _tempDeadline ?? DateTime.now(), firstDate: DateTime.now().subtract(const Duration(days: 365)), lastDate: DateTime.now().add(const Duration(days: 365))); if (date != null) setState(() => _tempDeadline = date); }, borderRadius: BorderRadius.circular(8), child: Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade300), borderRadius: BorderRadius.circular(8), color: Colors.white), child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(DateFormat('dd-MM-yyyy').format(_tempDeadline ?? task.deadline), style: const TextStyle(fontSize: 13)), const Icon(Icons.calendar_today, size: 16, color: Colors.grey)])))), const SizedBox(width: 8), ElevatedButton(style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(horizontal: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), elevation: 0), onPressed: () { provider.updateTask(task.id, {'deadline': DateFormat('yyyy-MM-dd').format(_tempDeadline!), 'employeeId': employeeId}, employeeId); setState(() => _isEditingDueDate = false); }, child: const Text("Save", style: TextStyle(fontSize: 12))), const SizedBox(width: 4), TextButton(onPressed: () => setState(() => _isEditingDueDate = false), child: const Text("Cancel", style: TextStyle(fontSize: 12, color: Colors.grey)))])
-          else Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12), decoration: BoxDecoration(color: Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(6)), child: Row(children: [const Icon(Icons.calendar_today, size: 16, color: Colors.grey), const SizedBox(width: 8), Text(DateFormat('MMM dd, yyyy').format(task.deadline), style: const TextStyle(fontSize: 13, color: Color(0xFF455A64)))]))
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityLogTab() {
-    return Consumer<TasksProvider>(
-      builder: (context, provider, child) {
-        if (provider.isLogLoading && provider.currentActivityLogs.isEmpty) return const Center(child: CircularProgressIndicator(strokeWidth: 2));
-        if (provider.currentActivityLogs.isEmpty) return const Center(child: Text("No activity logs found.", style: TextStyle(color: Colors.grey)));
-        
-        return ListView.builder(
-          padding: const EdgeInsets.all(16),
-          physics: const BouncingScrollPhysics(),
-          itemCount: provider.currentActivityLogs.length,
-          itemBuilder: (context, index) {
-            final log = provider.currentActivityLogs[index];
-            final creator = log['employeeName'] ?? "System";
-            final action = log['action'] ?? "updated";
-            final details = log['details'] ?? "";
-            final timeStr = log['timestamp'] ?? log['createdAt'];
-            final time = timeStr != null 
-                ? DateFormat('MMM dd, hh:mm a').format(DateTime.parse(timeStr))
-                : "Recently";
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
+    return ListView.builder(
+      itemCount: logs.length,
+      itemBuilder: (context, index) {
+        final log = logs[index];
+        final bool isLast = index == logs.length - 1;
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Column(
+              children: [
+                Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF26A69A), shape: BoxShape.circle)),
+                if (!isLast) Container(width: 2, height: 40, color: Colors.grey[200]),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF455A64)),
-                            children: [
-                              TextSpan(text: creator, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              TextSpan(text: " $action"),
-                            ]
-                          )
-                        ),
-                      ),
-                    ],
+                  Text(log['logMessage'] ?? "Status updated", style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: 2),
+                  Text(
+                    log['updatedOn'] != null ? DateFormat('MMM dd, hh:mm a').format(DateTime.parse(log['updatedOn'])) : "Unknown",
+                    style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                   ),
-                  const SizedBox(height: 4),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 22),
-                    child: Text(time, style: TextStyle(color: Colors.grey[400], fontSize: 11)),
-                  ),
-                  const SizedBox(height: 10),
-                  Padding(
-                    padding: const EdgeInsets.only(left: 22),
-                    child: Text(
-                      details,
-                      style: const TextStyle(fontSize: 12, color: Colors.black87, height: 1.4),
-                    ),
-                  ),
+                  const SizedBox(height: 12),
                 ],
               ),
-            );
-          },
+            ),
+          ],
         );
       },
     );
   }
 
-  Widget _buildDetailItem(String label, String value, Color? bgColor, Color? textColor) {
-    return Padding(padding: const EdgeInsets.only(bottom: 20.0), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.grey[500], letterSpacing: 0.5)), const SizedBox(height: 8), Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: bgColor ?? Colors.white, border: Border.all(color: Colors.grey.shade200), borderRadius: BorderRadius.circular(6)), child: Text(value, style: TextStyle(fontSize: 12, color: textColor ?? Colors.black87, fontWeight: FontWeight.w500)))]));
-  }
+  // --- Helper Widgets ---
 
   Widget _buildSectionHeader(IconData icon, String title) {
-    return Row(children: [Icon(icon, size: 18, color: const Color(0xFF26A69A)), const SizedBox(width: 8), Text(title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF263238)))]);
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: const Color(0xFF263238)),
+        const SizedBox(width: 10),
+        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF263238))),
+      ],
+    );
+  }
+
+  Widget _buildSideSection(String label, Widget content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+        const SizedBox(height: 12),
+        content,
+      ],
+    );
   }
 
   Widget _buildEmptySection(String text) {
-    return Container(width: double.infinity, height: 80, decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200, style: BorderStyle.solid)), child: Center(child: Text(text, style: TextStyle(color: Colors.grey[400], fontSize: 13, fontStyle: FontStyle.italic))));
+    return Text(text, style: const TextStyle(color: Colors.grey, fontStyle: FontStyle.italic, fontSize: 13));
+  }
+
+  Widget _buildProgressBar(TasksProvider provider) {
+    final int total = provider.currentSubtasks.length;
+    if (total == 0) return const SizedBox.shrink();
+    final int done = provider.currentSubtasks.where((s) => s['status'] == 'Done').length;
+    final double progress = done / total;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text("${(progress * 100).toInt()}% Complete", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)), Text("$done/$total", style: const TextStyle(fontSize: 11, color: Colors.grey))]),
+        const SizedBox(height: 6),
+        LinearProgressIndicator(value: progress, backgroundColor: Colors.grey[200], valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF4CAF50)), minHeight: 6, borderRadius: BorderRadius.circular(3)),
+      ],
+    );
+  }
+
+  Widget _buildSubtasksTable(TasksProvider provider, String employeeId) {
+    if (provider.isSubtaskLoading && provider.currentSubtasks.isEmpty) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2));
+    }
+    if (provider.currentSubtasks.isEmpty) return _buildEmptySection("No subtasks created.");
+    return Container(
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade200)),
+      child: Table(
+        columnWidths: const {0: FlexColumnWidth(2), 1: FixedColumnWidth(110), 2: FixedColumnWidth(50)},
+        children: provider.currentSubtasks.map<TableRow>((s) {
+          return TableRow(
+            decoration: BoxDecoration(border: Border(bottom: BorderSide(color: Colors.grey.shade100))),
+            children: [
+              Padding(padding: const EdgeInsets.all(12), child: Text(s['title'] ?? "", style: const TextStyle(fontSize: 13))),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: _buildSubtaskStatusDropdown(s, provider, employeeId),
+              ),
+              IconButton(onPressed: () => provider.deleteSubtask(s['subtaskId'] ?? s['_id'], widget.task.id), icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent))
+            ]
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildSubtaskStatusDropdown(dynamic subtask, TasksProvider provider, String employeeId) {
+    return PopupMenuButton<String>(
+      onSelected: (val) => provider.updateSubtaskStatus(subtask['subtaskId'] ?? subtask['_id'], employeeId, val, widget.task.id),
+      itemBuilder: (ctx) => _subtaskStatuses.map((s) => PopupMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 12)))).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(color: _getStatusColor(subtask['status']).withOpacity(0.1), borderRadius: BorderRadius.circular(4)),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [Text(subtask['status'] ?? "ToDo", style: TextStyle(fontSize: 11, color: _getStatusColor(subtask['status']), fontWeight: FontWeight.bold)), const Icon(Icons.arrow_drop_down, size: 14)])
+      ),
+    );
   }
 
   Widget _buildPriorityChip(String priority) {
-    Color color = priority.toLowerCase() == 'high' || priority.toLowerCase() == 'highest' ? Colors.red[700]! : priority.toLowerCase() == 'medium' ? Colors.orange[800]! : Colors.blue[700]! ;
-    return Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(4), border: Border.all(color: color.withOpacity(0.2))), child: Text(priority.toUpperCase(), style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold)));
+    Color color;
+    switch (priority.toLowerCase()) {
+      case 'highest': color = Colors.red; break;
+      case 'high': color = Colors.orange; break;
+      case 'medium': color = Colors.blue; break;
+      case 'low': color = Colors.green; break;
+      default: color = Colors.grey;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(Icons.flag, color: color, size: 14), const SizedBox(width: 4), Text(priority, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold))]),
+    );
   }
 
-  Widget _buildTablePriorityBadge(String priority) {
-    Color color = priority.toLowerCase() == 'high' || priority.toLowerCase() == 'highest' ? Colors.red : priority.toLowerCase() == 'medium' ? Colors.orange : Colors.blue ;
-    return Padding(padding: const EdgeInsets.symmetric(horizontal: 8), child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Text(priority, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center)));
+  Widget _buildPriorityEditor(Task task, String employeeId, TasksProvider provider) {
+    if (_isEditingPriority) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.grey.shade300)),
+        child: DropdownButtonHideUnderline(
+          child: DropdownButton<String>(
+            value: task.priority,
+            isExpanded: true,
+            items: _priorities.map((p) => DropdownMenuItem(value: p, child: Text(p, style: const TextStyle(fontSize: 13)))).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                provider.updateTask(task.id, {"priority": val}, employeeId);
+                setState(() => _isEditingPriority = false);
+              }
+            },
+          ),
+        ),
+      );
+    }
+    return InkWell(
+      onTap: () => setState(() => _isEditingPriority = true),
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(task.priority, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), const Icon(Icons.edit_outlined, size: 16, color: Colors.grey)]),
+    );
   }
-}
 
-class _TableCell extends StatelessWidget {
-  final String text;
-  final bool isHeader;
-  const _TableCell({required this.text, this.isHeader = false});
+  Widget _buildDueDateEditor(Task task, String employeeId, TasksProvider provider) {
+    return InkWell(
+      onTap: () async {
+        final date = await showDatePicker(context: context, initialDate: task.deadline, firstDate: DateTime.now().subtract(const Duration(days: 365)), lastDate: DateTime.now().add(const Duration(days: 3650)));
+        if (date != null) {
+          provider.updateTask(task.id, {"deadline": date.toIso8601String()}, employeeId);
+        }
+      },
+      child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(DateFormat('MMM dd, yyyy').format(task.deadline), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)), const Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey)]),
+    );
+  }
 
-  @override
-  Widget build(BuildContext context) {
-    return Padding(padding: const EdgeInsets.all(12.0), child: Text(text, style: TextStyle(fontSize: isHeader ? 10 : 12, fontWeight: isHeader ? FontWeight.w900 : FontWeight.normal, color: isHeader ? Colors.grey[600] : const Color(0xFF37474F), letterSpacing: isHeader ? 0.5 : 0)));
+  void _openAddSubtaskDialog(TasksProvider provider, String employeeId) {
+    showDialog(
+      context: context,
+      builder: (context) => AddSubtaskDialog(
+        onSave: (title) {
+          provider.createSubtask({
+            "title": title,
+            "status": "ToDo",
+            "taskId": widget.task.id,
+            "employeeId": employeeId,
+          }, widget.task.id);
+        },
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(String employeeId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Delete Task"),
+        content: const Text("Are you sure you want to delete this task? This action cannot be undone."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () {
+            context.read<TasksProvider>().deleteTask(widget.task.id, employeeId);
+            Navigator.pop(ctx);
+            Navigator.pop(context);
+          }, child: const Text("Delete", style: TextStyle(color: Colors.red))),
+        ],
+      ),
+    );
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'ToDo': return Colors.grey;
+      case 'In Progress': return Colors.blue;
+      case 'In Review': return Colors.orange;
+      case 'Review Completed': return Colors.purple;
+      case 'Done': return Colors.green;
+      default: return Colors.grey;
+    }
   }
 }

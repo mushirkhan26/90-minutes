@@ -16,4 +16,12 @@ class HolidayModel {
       holiday: json['Holiday'],
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'Date': date,
+      'Day': day,
+      'Holiday': holiday,
+    };
+  }
 }
