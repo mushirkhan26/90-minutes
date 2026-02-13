@@ -20,16 +20,40 @@ class LeaveProvider extends ChangeNotifier {
   List<dynamic> get allLeaveRequests => _allLeaveRequests;
   bool get isLoading => _isLoading;
 
-  Future<void> fetchLeaveInfo({required String employeeId, bool clearCache = false}) async {
-    _isLoading = true;
-    if (clearCache) {
-      _leaveHistory = null;
+  LeaveProvider() {
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final employeeId = await _localStorage.getEmployeeId();
+    if (employeeId != null) {
+      await fetchLeaveInfo(employeeId: employeeId);
     }
+    // For admin, we could fetchAllLeaveRequests() here too if user is manager,
+    // but typically admin lists are large and better fetched when entering the screen
+    // or triggered via bootstrap if it's a primary dashboard item.
+  }
+
+  Future<void> fetchLeaveInfo({required String employeeId, bool forceRefresh = false}) async {
+    _isLoading = true;
     notifyListeners();
 
+    // 1. Load from local storage first for instant UI
+    if (!forceRefresh) {
+      final cachedHistory = await _localStorage.getLeaveHistory();
+      final cachedAvailable = await _localStorage.getAvailableLeave();
+      if (cachedHistory != null) _leaveHistory = cachedHistory;
+      if (cachedAvailable != null) _availableLeave = cachedAvailable;
+      if (_leaveHistory != null || _availableLeave != null) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+
+    // 2. Fetch fresh from API in background or if forced
     await Future.wait([
-      fetchLeaveHistory(employeeId: employeeId, useCache: !clearCache),
-      fetchAvailableLeave(employeeId: employeeId),
+      fetchLeaveHistory(employeeId: employeeId, useCache: !forceRefresh),
+      fetchAvailableLeave(employeeId: employeeId, useCache: !forceRefresh),
     ]);
 
     _isLoading = false;
@@ -38,9 +62,9 @@ class LeaveProvider extends ChangeNotifier {
 
   Future<void> fetchLeaveHistory({required String employeeId, bool useCache = true}) async {
     try {
-      if (useCache) {
+      if (useCache && _leaveHistory == null) {
         final cachedData = await _localStorage.getLeaveHistory();
-        if (cachedData != null && _leaveHistory == null) {
+        if (cachedData != null) {
           _leaveHistory = cachedData;
           notifyListeners();
         }
@@ -50,23 +74,20 @@ class LeaveProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         _leaveHistory = response.data!;
         
-        // 🚀 Fix: Sort history by createdOn descending to ensure newest is always at the top
         if (_leaveHistory?['message']?['data'] != null) {
           final List<dynamic> data = List.from(_leaveHistory!['message']['data']);
           data.sort((a, b) {
             final dateA = DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
             final dateB = DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
-            return dateB.compareTo(dateA); // Newest first
+            return dateB.compareTo(dateA);
           });
           _leaveHistory!['message']['data'] = data;
         }
         
         await _localStorage.saveLeaveHistory(_leaveHistory!);
-        notifyListeners(); // Ensure UI updates with fresh API data
+        notifyListeners();
       } else if (response.message != null && response.message!.contains("No leave records found")) {
-        _leaveHistory = {
-          'message': {'data': []}
-        };
+        _leaveHistory = {'message': {'data': []}};
         await _localStorage.saveLeaveHistory(_leaveHistory!);
         notifyListeners();
       }
@@ -75,12 +96,14 @@ class LeaveProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchAvailableLeave({required String employeeId}) async {
+  Future<void> fetchAvailableLeave({required String employeeId, bool useCache = true}) async {
     try {
-      final cachedData = await _localStorage.getAvailableLeave();
-      if (cachedData != null && _availableLeave == null) {
-        _availableLeave = cachedData;
-        notifyListeners();
+      if (useCache && _availableLeave == null) {
+        final cachedData = await _localStorage.getAvailableLeave();
+        if (cachedData != null) {
+          _availableLeave = cachedData;
+          notifyListeners();
+        }
       }
 
       final response = await _authService.getAvailableLeave(employeeId: employeeId);
@@ -94,7 +117,6 @@ class LeaveProvider extends ChangeNotifier {
     }
   }
 
-  /// Admin: Fetch all leave requests
   Future<void> fetchAllLeaveRequests() async {
     _isLoading = true;
     notifyListeners();
@@ -113,7 +135,6 @@ class LeaveProvider extends ChangeNotifier {
           _allLeaveRequests = [];
         }
         
-        // 🚀 Sort admin requests by createdOn descending
         _allLeaveRequests.sort((a, b) {
           final dateA = DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
           final dateB = DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
@@ -127,7 +148,6 @@ class LeaveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Admin: Update leave status (Approve/Reject)
   Future<(bool success, String message)> updateLeaveStatus({
     required String leaveId,
     required String status,
@@ -173,7 +193,6 @@ class LeaveProvider extends ChangeNotifier {
     );
 
     if (response.success) {
-      // 🚀 Ensure immediate refresh of locally sorted data
       final Map<String, dynamic> newLeave = {
         'employeeId': employeeId,
         'name': name,
@@ -189,14 +208,14 @@ class LeaveProvider extends ChangeNotifier {
 
       if (_leaveHistory != null && _leaveHistory!['message'] != null && _leaveHistory!['message']['data'] != null) {
         final List<dynamic> data = List.from(_leaveHistory!['message']['data']);
-        data.insert(0, newLeave); // Add to the top immediately
+        data.insert(0, newLeave);
         _leaveHistory!['message']['data'] = data;
+        await _localStorage.saveLeaveHistory(_leaveHistory!);
         notifyListeners();
       }
 
-      // Then trigger background refresh to sync with server
       await Future.delayed(const Duration(seconds: 1));
-      await fetchLeaveInfo(employeeId: employeeId, clearCache: true);
+      await fetchLeaveInfo(employeeId: employeeId, forceRefresh: true);
       
       return (true, 'Leave request added successfully');
     } else {
@@ -215,7 +234,7 @@ class LeaveProvider extends ChangeNotifier {
     );
 
     if (response.success) {
-      await fetchLeaveInfo(employeeId: employeeId, clearCache: true);
+      await fetchLeaveInfo(employeeId: employeeId, forceRefresh: true);
       return (true, 'Leave request cancelled successfully');
     } else {
       return (false, response.message ?? 'Failed to cancel leave request');

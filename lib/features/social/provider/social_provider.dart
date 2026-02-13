@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/social_service.dart';
 import 'package:hrtz_hrms/core/models/social_post_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 
 enum SocialState { initial, loading, loaded, error }
 
 class SocialProvider with ChangeNotifier {
   final SocialService _socialService = SocialService();
+  final LocalStorageService _localStorage = LocalStorageService();
   
   SocialState _state = SocialState.initial;
   SocialState get state => _state;
@@ -19,6 +21,38 @@ class SocialProvider with ChangeNotifier {
 
   String _selectedType = 'all';
   String get selectedType => _selectedType;
+
+  static const String _keySocialPosts = 'social_posts_cache';
+
+  SocialProvider() {
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    // 1. Try to load from local cache first for instant UI
+    await _loadFromCache();
+    // 2. Fetch fresh posts in the background
+    await fetchPosts(showLoader: _posts.isEmpty);
+  }
+
+  Future<void> _loadFromCache() async {
+    final cachedData = await _localStorage.getJson(_keySocialPosts);
+    if (cachedData != null) {
+      try {
+        final List<dynamic> list = cachedData as List;
+        _posts = list.map((json) => SocialPostModel.fromJson(json)).toList();
+        _state = SocialState.loaded;
+        notifyListeners();
+      } catch (e) {
+        LoggingService.instance.error('SOCIAL', 'Error parsing cached posts', error: e);
+      }
+    }
+  }
+
+  Future<void> _saveToCache() async {
+    final jsonList = _posts.map((post) => post.toJson()).toList();
+    await _localStorage.saveJson(_keySocialPosts, jsonList);
+  }
 
   void setSelectedType(String type) {
     _selectedType = type;
@@ -41,14 +75,15 @@ class SocialProvider with ChangeNotifier {
       if (response.success) {
         _posts = response.data ?? [];
         _posts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        await _saveToCache();
         _state = SocialState.loaded;
       } else {
         _errorMessage = response.message;
-        _state = SocialState.error;
+        if (_posts.isEmpty) _state = SocialState.error;
       }
     } catch (e) {
       _errorMessage = e.toString();
-      _state = SocialState.error;
+      if (_posts.isEmpty) _state = SocialState.error;
     }
     notifyListeners();
   }
@@ -68,7 +103,6 @@ class SocialProvider with ChangeNotifier {
   }
 
   Future<void> toggleLike(String eventId, String userId) async {
-    // 🚀 Optimistic update: Update UI immediately
     final index = _posts.indexWhere((p) => p.id == eventId);
     if (index == -1) return;
 
@@ -82,7 +116,6 @@ class SocialProvider with ChangeNotifier {
       newLikes.add(userId);
     }
 
-    // Update locally first
     _posts[index] = _updatePostLikes(post, newLikes);
     notifyListeners();
 
@@ -91,9 +124,10 @@ class SocialProvider with ChangeNotifier {
       final response = await _socialService.updateEvent(eventId: eventId, body: body);
       
       if (!response.success) {
-        // Revert if API fails
         _posts[index] = _updatePostLikes(post, originalLikes);
         notifyListeners();
+      } else {
+        await _saveToCache();
       }
     } catch (e) {
       _posts[index] = _updatePostLikes(post, originalLikes);
@@ -132,7 +166,6 @@ class SocialProvider with ChangeNotifier {
         content: content,
       );
       if (response.success) {
-        // Refresh without showing full screen loader
         await fetchPosts(showLoader: false);
       }
     } catch (e) {
@@ -161,6 +194,7 @@ class SocialProvider with ChangeNotifier {
       final response = await _socialService.deletePost(eventId);
       if (response.success) {
         _posts.removeWhere((post) => post.id == eventId);
+        await _saveToCache();
         notifyListeners();
         return true;
       }
@@ -175,7 +209,6 @@ class SocialProvider with ChangeNotifier {
     try {
       final response = await _socialService.deleteComment(commentId);
       if (response.success) {
-        // Refresh silently
         await fetchPosts(showLoader: false);
         return true;
       }

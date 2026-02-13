@@ -20,9 +20,12 @@ class _AdminLeaveApprovalScreenState extends State<AdminLeaveApprovalScreen> {
   @override
   void initState() {
     super.initState();
+    // For admin, we fetch when the screen is opened if data is empty,
+    // or rely on user to trigger refresh.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        context.read<LeaveProvider>().fetchAllLeaveRequests();
+      final provider = context.read<LeaveProvider>();
+      if (provider.allLeaveRequests.isEmpty) {
+        provider.fetchAllLeaveRequests();
       }
     });
   }
@@ -65,8 +68,9 @@ class _AdminLeaveApprovalScreenState extends State<AdminLeaveApprovalScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final allRequests = context.select<LeaveProvider, List<dynamic>>((p) => p.allLeaveRequests);
-    final isLoading = context.select<LeaveProvider, bool>((p) => p.isLoading);
+    final provider = context.watch<LeaveProvider>();
+    final allRequests = provider.allLeaveRequests;
+    final isLoading = provider.isLoading;
     
     final query = _searchController.text.toLowerCase().trim();
 
@@ -148,7 +152,7 @@ class _AdminLeaveApprovalScreenState extends State<AdminLeaveApprovalScreen> {
                   clipBehavior: Clip.antiAlias,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   child: RefreshIndicator(
-                    onRefresh: () => context.read<LeaveProvider>().fetchAllLeaveRequests(),
+                    onRefresh: () => provider.fetchAllLeaveRequests(),
                     color: const Color(0xFF26A69A),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),

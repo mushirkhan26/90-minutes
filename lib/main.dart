@@ -15,6 +15,9 @@ import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_provider.dart';
 import 'package:hrtz_hrms/core/socket/socket_service.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/nda_provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/onboarding_provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/profile_provider.dart';
 import 'package:hrtz_hrms/features/employee_directory/provider/employee_directory_provider.dart';
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
@@ -71,6 +74,9 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AppStateProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => NdaProvider()),
+        ChangeNotifierProvider(create: (_) => OnboardingProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => SocketProvider()),
         ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
         ChangeNotifierProvider(create: (_) => MeetProvider()),
