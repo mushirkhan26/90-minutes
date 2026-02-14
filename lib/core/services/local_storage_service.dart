@@ -743,7 +743,3 @@ Future<List<ProjectModel>?> getProjectList() async {
   }
 }
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> 09a15322f243199415b40382033233042bf63af6
