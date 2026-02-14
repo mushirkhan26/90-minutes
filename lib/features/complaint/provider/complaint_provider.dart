@@ -20,6 +20,9 @@ class ComplaintProvider extends ChangeNotifier {
   String loggedInEmployeeId = "";
   bool isManager = false;
 
+  bool isUserLoaded = false;
+
+
   // ================== MASTER DATA ==================
   final List<String> categories = ["IT", "HR", "Facilities"];
   final List<String> mentionPeople = ["Team Lead", "Manager", "CEO"];
@@ -33,7 +36,11 @@ class ComplaintProvider extends ChangeNotifier {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController additionalInfoController = TextEditingController();
-  
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController employeeIdController = TextEditingController();
+
+
   String? selectedCategory;
   String? selectedPerson;
   List<String> attachments = [];
@@ -71,8 +78,25 @@ class ComplaintProvider extends ChangeNotifier {
   Future<void> loadLoginUser() async {
     final userData = await _secureStorage.getUserData();
     loggedInName = userData?['username'] ?? "";
+
     loggedInEmployeeId = userData?['employeeId']?.toString() ?? "";
+
+    // Set controller values
+    nameController.text = loggedInName;
+    employeeIdController.text = loggedInEmployeeId;
+
+
+    print("\x1B[31m🚨 EmployeeId: $loggedInEmployeeId \x1B[0m");
+    print("\x1B[31m👤 Username: $loggedInName \x1B[0m");
+
+
     isManager = userData?['role']?.toString().toLowerCase() == 'manager';
+
+    isUserLoaded = true;
+    print("SETTING CONTROLLERS NOW");
+
+
+
     notifyListeners();
   }
 
@@ -299,6 +323,9 @@ class ComplaintProvider extends ChangeNotifier {
     titleController.dispose();
     descriptionController.dispose();
     additionalInfoController.dispose();
+    nameController.dispose();
+    employeeIdController.dispose();
+
     super.dispose();
   }
 

@@ -7,14 +7,40 @@ class CreateComplaintScreen extends StatefulWidget {
 
   @override
   State<CreateComplaintScreen> createState() => _CreateComplaintScreenState();
+
+
 }
 
 class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   final _formKey = GlobalKey<FormState>();
 
   @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() async {
+      await context.read<ComplaintProvider>().loadLoginUser();
+    });
+  }
+
+
+
+
+  @override
   Widget build(BuildContext context) {
     final provider = context.watch<ComplaintProvider>();
+
+
+    if (!provider.isUserLoaded) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+
+    print("SCREEN BUILD CALLED");
+
+
 
     return Scaffold(
       backgroundColor: Colors.black.withValues(alpha: 0.4),
@@ -64,12 +90,12 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _label("Your Name *"),
-                        _readonly(provider.loggedInName),
+                        _readonly(provider.nameController),
 
                         const SizedBox(height: 12),
 
                         _label("Employee ID *"),
-                        _readonly(provider.loggedInEmployeeId),
+                        _readonly(provider.employeeIdController),
 
                         const SizedBox(height: 16),
 
@@ -98,7 +124,11 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         const SizedBox(height: 16),
 
                         _label("Additional Info"),
-                        _multiline(provider.additionalInfoController, 4, onChanged: (_) => provider.onFieldChanged()),
+                        _multiline(
+                          provider.additionalInfoController,
+                          4,
+                          onChanged: (_) => provider.onFieldChanged(),
+                        ),
 
                         const SizedBox(height: 16),
 
@@ -106,7 +136,9 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         GestureDetector(
                           onTap: () {
                             // TEMP TEST URL
-                            provider.addAttachment("https://task-m.s3.us-east-1.amazonaws.com/sample-test.jpg");
+                            provider.addAttachment(
+                              "https://task-m.s3.us-east-1.amazonaws.com/sample-test.jpg",
+                            );
                           },
                           child: Container(
                             height: 140,
@@ -137,7 +169,9 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       "${provider.attachments.length} file selected",
-                                      style: const TextStyle(color: Colors.grey),
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -149,12 +183,19 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         const SizedBox(height: 16),
 
                         _label("Title of Complaint *"),
-                        _textfield(provider.titleController, onChanged: (_) => provider.onFieldChanged()),
+                        _textfield(
+                          provider.titleController,
+                          onChanged: (_) => provider.onFieldChanged(),
+                        ),
 
                         const SizedBox(height: 16),
 
                         _label("Description *"),
-                        _multiline(provider.descriptionController, 5, onChanged: (_) => provider.onFieldChanged()),
+                        _multiline(
+                          provider.descriptionController,
+                          5,
+                          onChanged: (_) => provider.onFieldChanged(),
+                        ),
                       ],
                     ),
                   ),
@@ -220,20 +261,32 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   Widget _label(String t) =>
       Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(t));
 
-  Widget _readonly(String text) => TextFormField(
-    initialValue: text,
-    enabled: false,
-    decoration: const InputDecoration(border: OutlineInputBorder(), fillColor: Color(0xFFF5F5F5), filled: true),
-  );
+  Widget _readonly(TextEditingController controller) =>
+      TextFormField(
+        controller: controller,
+        // initialValue: text,
+        // enabled: false,
+        readOnly: true,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          fillColor: Color(0xFFF5F5F5),
+          filled: true,
+        ),
+      );
 
-  Widget _textfield(TextEditingController c, {Function(String)? onChanged}) => TextFormField(
-    controller: c,
-    onChanged: onChanged,
-    validator: (v) => v == null || v.isEmpty ? "Required" : null,
-    decoration: const InputDecoration(border: OutlineInputBorder()),
-  );
+  Widget _textfield(TextEditingController c, {Function(String)? onChanged}) =>
+      TextFormField(
+        controller: c,
+        onChanged: onChanged,
+        validator: (v) => v == null || v.isEmpty ? "Required" : null,
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+      );
 
-  Widget _multiline(TextEditingController c, int lines, {Function(String)? onChanged}) => TextFormField(
+  Widget _multiline(
+    TextEditingController c,
+    int lines, {
+    Function(String)? onChanged,
+  }) => TextFormField(
     controller: c,
     maxLines: lines,
     onChanged: onChanged,

@@ -93,11 +93,11 @@ class _CreateComplaintBottomSheetState
                   const SizedBox(height: 16),
 
                   /// 🔹 NAME
-                  _readOnlyField('Your Name *', provider.loggedInName),
+                  _readOnlyField('Your Name *', provider.nameController),
                   const SizedBox(height: 12),
 
                   /// 🔹 EMPLOYEE ID
-                  _readOnlyField('Employee ID *', provider.loggedInEmployeeId),
+                  _readOnlyField('Employee ID *', provider.employeeIdController),
                   const SizedBox(height: 12),
 
                   /// 🔹 CATEGORY + PERSON
@@ -247,14 +247,15 @@ class _CreateComplaintBottomSheetState
   }
 
   /// 🔹 READ-ONLY FIELD
-  Widget _readOnlyField(String label, String value) {
+  Widget _readOnlyField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label),
         const SizedBox(height: 4),
         TextFormField(
-          initialValue: value,
+          // initialValue: value,
+          controller: controller,
           readOnly: true,
           decoration: const InputDecoration(
             filled: true,
