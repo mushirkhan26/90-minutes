@@ -14,10 +14,6 @@ class _ProgressHistoryScreenState extends State<ProgressHistoryScreen> {
   String? selectedDate;
   String? selectedStatus;
 
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   Widget build(BuildContext context) {

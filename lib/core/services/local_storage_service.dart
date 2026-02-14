@@ -720,11 +720,6 @@ class LocalStorageService {
   }
 
   // ================= LOGGED IN EMPLOYEE =================
-
-
-
-
-
 Future<void> clearLoggedInEmployee() async {
   await prefs.remove(_keyEmployeeId);
   await prefs.remove(_keyEmployeeName);
@@ -748,4 +743,3 @@ Future<List<ProjectModel>?> getProjectList() async {
   }
 }
 }
-

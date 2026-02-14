@@ -59,7 +59,12 @@ class Task {
       taskKey: map['taskKey'] ?? '',
       title: map['taskName'] ?? map['title'] ?? '',
       description: map['taskDescription'] ?? map['description'] ?? '',
-      deadline: DateTime.parse(map['deadline'] ?? DateTime.now().toString()),
+      //deadline: DateTime.parse(map['deadline'] ?? DateTime.now().toString()),
+      deadline: map['deadline'] != null
+    ? DateTime.parse(map['deadline'])
+    : map['assignedDate'] != null
+        ? DateTime.parse(map['assignedDate'])
+        : DateTime.now(),
       status: map['status'] ?? 'ToDo',
       priority: map['priority'] ?? 'Medium',
       assignedBy: map['assignedBy'] ?? '',

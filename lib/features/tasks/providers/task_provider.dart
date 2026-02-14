@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/task_service.dart';
 import 'package:hrtz_hrms/core/models/task_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 
 class TasksProvider with ChangeNotifier {
   final TaskService _taskService = TaskService();
   final LoggingService _logger = LoggingService.instance;
+  final LocalStorageService _local = LocalStorageService();
 
   List<Task> _allItems = [];
   List<Task> _standaloneTasks = [];
@@ -23,6 +25,11 @@ class TasksProvider with ChangeNotifier {
   int _totalSubtasks = 0;
   int _totalItems = 0;
 
+  static const String _keyTasks = 'tasks_cache';
+  static const String _keyStandaloneTasks = 'standalone_tasks_cache';
+  static const String _keySubtasksPrefix = 'subtasks_cache_';
+  static const String _keyCommentsPrefix = 'comments_cache_';
+
   List<Task> get allTasksList => _allItems;
   List<Task> get standaloneTasks => _standaloneTasks;
   List<dynamic> get currentSubtasks => _currentSubtasks;
@@ -38,6 +45,43 @@ class TasksProvider with ChangeNotifier {
   int get subtasksCount => _totalSubtasks;
   int get totalItemsCount => _totalItems;
 
+  TasksProvider() {
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final employeeId = await _local.getEmployeeId();
+    if (employeeId != null) {
+      await _loadFromLocal();
+      await fetchTasks(employeeId);
+      await fetchStandaloneTasks();
+    }
+  }
+
+  Future<void> _loadFromLocal() async {
+    try {
+      final cachedTasks = await _local.getJson(_keyTasks);
+      if (cachedTasks != null) {
+        final message = cachedTasks['message'];
+        final summary = message['summary'];
+        _totalItems = summary['totalItems'] ?? 0;
+        _totalTasks = summary['totalTasks'] ?? 0;
+        _totalSubtasks = summary['totalSubtasks'] ?? 0;
+        final List<dynamic> itemsJson = message['allItems'] ?? [];
+        _allItems = itemsJson.map((json) => Task.fromMap(json)).toList();
+      }
+
+      final cachedStandalone = await _local.getJson(_keyStandaloneTasks);
+      if (cachedStandalone != null) {
+        final List<dynamic> itemsJson = cachedStandalone['message'] ?? [];
+        _standaloneTasks = itemsJson.map((json) => Task.fromMap(json)).toList();
+      }
+      notifyListeners();
+    } catch (e) {
+      _logger.error('TASKS_PROVIDER', 'Error loading from cache', error: e);
+    }
+  }
+
   List<Task> get tasks {
     if (_selectedFilter == 'tasks') {
       return _allItems.where((item) => item.itemType == 'task').toList();
@@ -52,19 +96,38 @@ class TasksProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// 📋 Manually set activity logs (e.g. from standalone task object)
-  void setActivityLogs(List<dynamic> logs) {
-    _currentActivityLogs = logs;
+  /// 🚀 Smart logic for Task Details
+  Future<void> loadTaskDetails(Task task) async {
+    _currentSubtasks = [];
+    _currentComments = [];
+    _currentActivityLogs = [];
     notifyListeners();
+
+    await Future.wait([
+      fetchSubtasks(task.id),
+      fetchComments(task.id),
+      _handleActivityLogs(task),
+    ]);
   }
 
-  /// 📋 Fetch All Standalone Tasks (Doc 3.7)
+  Future<void> _handleActivityLogs(Task task) async {
+    if (task.sprintId != null && task.sprintId!.isNotEmpty) {
+      await fetchActivityLogs(task.sprintId!);
+    } else {
+      _currentActivityLogs = task.activityLog;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchStandaloneTasks() async {
     try {
-      _isLoading = true;
-      notifyListeners();
+      if (_standaloneTasks.isEmpty) {
+        _isLoading = true;
+        notifyListeners();
+      }
       final response = await _taskService.getStandaloneTasks();
       if (response.success && response.data != null) {
+        await _local.saveJson(_keyStandaloneTasks, response.data);
         final List<dynamic> itemsJson = response.data!['message'] ?? [];
         _standaloneTasks = itemsJson.map((json) => Task.fromMap(json)).toList();
       }
@@ -74,13 +137,15 @@ class TasksProvider with ChangeNotifier {
     }
   }
 
-  /// 🔄 Fetch dynamic items from API (Doc 8.1)
   Future<void> fetchTasks(String employeeId) async {
     try {
-      _isLoading = true;
-      notifyListeners();
+      if (_allItems.isEmpty) {
+        _isLoading = true;
+        notifyListeners();
+      }
       final response = await _taskService.getAssignedItems(employeeId);
       if (response.success && response.data != null) {
+        await _local.saveJson(_keyTasks, response.data);
         final message = response.data!['message'];
         final summary = message['summary'];
         _totalItems = summary['totalItems'] ?? 0;
@@ -95,14 +160,24 @@ class TasksProvider with ChangeNotifier {
     }
   }
 
-  /// 📋 Fetch Subtasks
-  Future<void> fetchSubtasks(String taskId) async {
+  Future<void> fetchSubtasks(String taskId, {bool forceRefresh = false}) async {
+    final cacheKey = '$_keySubtasksPrefix$taskId';
+    
+    if (!forceRefresh) {
+      final cached = await _local.getJson(cacheKey);
+      if (cached != null) {
+        _currentSubtasks = cached;
+        notifyListeners();
+      }
+    }
+
     try {
       _isSubtaskLoading = true;
       notifyListeners();
       final response = await _taskService.getSubtasks(taskId);
       if (response.success && response.data != null) {
         _currentSubtasks = response.data!['message'] ?? [];
+        await _local.saveJson(cacheKey, _currentSubtasks);
       }
     } finally {
       _isSubtaskLoading = false;
@@ -110,7 +185,6 @@ class TasksProvider with ChangeNotifier {
     }
   }
 
-  /// 📋 Fetch Activity Logs (Using Sprint Tasks API per requirement)
   Future<void> fetchActivityLogs(String sprintId) async {
     if (sprintId.isEmpty) return;
     try {
@@ -126,14 +200,24 @@ class TasksProvider with ChangeNotifier {
     }
   }
 
-  /// 📋 Fetch Comments
-  Future<void> fetchComments(String taskId) async {
+  Future<void> fetchComments(String taskId, {bool forceRefresh = false}) async {
+    final cacheKey = '$_keyCommentsPrefix$taskId';
+
+    if (!forceRefresh) {
+      final cached = await _local.getJson(cacheKey);
+      if (cached != null) {
+        _currentComments = cached;
+        notifyListeners();
+      }
+    }
+
     try {
       _isCommentLoading = true;
       notifyListeners();
       final response = await _taskService.getComments(taskId, 'task');
       if (response.success && response.data != null) {
         _currentComments = response.data!['message'] ?? [];
+        await _local.saveJson(cacheKey, _currentComments);
       }
     } finally {
       _isCommentLoading = false;
@@ -141,7 +225,6 @@ class TasksProvider with ChangeNotifier {
     }
   }
 
-  /// ➕ Task Operations
   Future<void> addTask(Task task, String employeeId) async {
     final response = await _taskService.addTask(task);
     if (response.success) {
@@ -155,49 +238,43 @@ class TasksProvider with ChangeNotifier {
     if (response.success) {
       await fetchStandaloneTasks();
       await fetchTasks(employeeId);
-      // Refresh logs
       final currentTask = _standaloneTasks.followedBy(_allItems).firstWhere((t) => t.id == taskId);
-      if (currentTask.sprintId != null && currentTask.sprintId!.isNotEmpty) {
-        await fetchActivityLogs(currentTask.sprintId!);
-      } else {
-        setActivityLogs(currentTask.activityLog);
-      }
+      await _handleActivityLogs(currentTask);
     }
   }
 
   Future<void> addComment(Map<String, dynamic> data, String taskId) async {
     final response = await _taskService.createComment(data);
     if (response.success) {
-      await fetchComments(taskId);
+      await fetchComments(taskId, forceRefresh: true);
     }
   }
 
-  /// ❤️ Toggle Like
   Future<void> toggleCommentLike(String commentId, String employeeId, String taskId) async {
     final response = await _taskService.toggleLike(commentId, employeeId);
     if (response.success) {
-      await fetchComments(taskId);
+      await fetchComments(taskId, forceRefresh: true);
     }
   }
 
   Future<void> createSubtask(Map<String, dynamic> data, String taskId) async {
     final response = await _taskService.createSubtask(data);
     if (response.success) {
-      await fetchSubtasks(taskId);
+      await fetchSubtasks(taskId, forceRefresh: true);
     }
   }
 
   Future<void> updateSubtaskStatus(String subtaskId, String employeeId, String status, String taskId) async {
     final response = await _taskService.updateSubtaskStatus(subtaskId, employeeId, status);
     if (response.success) {
-      await fetchSubtasks(taskId);
+      await fetchSubtasks(taskId, forceRefresh: true);
     }
   }
 
   Future<void> deleteSubtask(String subtaskId, String taskId) async {
     final response = await _taskService.deleteSubtask(subtaskId);
     if (response.success) {
-      await fetchSubtasks(taskId);
+      await fetchSubtasks(taskId, forceRefresh: true);
     }
   }
 

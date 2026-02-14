@@ -15,9 +15,8 @@ class _SocialHubScreenState extends State<SocialHubScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<SocialProvider>().fetchPosts();
-    });
+    // Logic for fetching posts moved to Provider constructor/bootstrap.
+    // UI simply consumes the current state.
   }
 
   final List<Map<String, dynamic>> _tabs = [

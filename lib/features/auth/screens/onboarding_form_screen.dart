@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/onboarding_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
 
 class OnboardingFormScreen extends StatefulWidget {
   const OnboardingFormScreen({super.key});
@@ -16,45 +16,11 @@ class OnboardingFormScreen extends StatefulWidget {
 
 class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  
-  // Academic Details
-  final _tenthPercentController = TextEditingController();
-  final _twelfthPercentController = TextEditingController();
-  final _ugPercentController = TextEditingController();
-  final _pgPercentController = TextEditingController();
-
-  // Work Details
-  String _modeOfWork = 'Onsite';
-
-  // Document Uploads (File names)
-  String? _ugMarksheetName;
-  String? _photoName;
-  String? _resumeName;
-
-  @override
-  void dispose() {
-    _tenthPercentController.dispose();
-    _twelfthPercentController.dispose();
-    _ugPercentController.dispose();
-    _pgPercentController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickFile(String type) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-    if (result != null) {
-      setState(() {
-        if (type == 'ug') _ugMarksheetName = result.files.single.name;
-        if (type == 'photo') _photoName = result.files.single.name;
-        if (type == 'resume') _resumeName = result.files.single.name;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final onboardingProvider = Provider.of<OnboardingProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -73,13 +39,13 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
               const Text("Academic Details", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const Divider(),
               const SizedBox(height: 10),
-              _buildLabelTextField("10th Percentage *", _tenthPercentController, "Enter percentage"),
+              _buildLabelTextField("10th Percentage *", onboardingProvider.tenthPercentController, "Enter percentage", onboardingProvider),
               const SizedBox(height: 15),
-              _buildLabelTextField("12th Percentage *", _twelfthPercentController, "Enter percentage"),
+              _buildLabelTextField("12th Percentage *", onboardingProvider.twelfthPercentController, "Enter percentage", onboardingProvider),
               const SizedBox(height: 15),
-              _buildLabelTextField("UG Percentage", _ugPercentController, "Enter percentage"),
+              _buildLabelTextField("UG Percentage", onboardingProvider.ugPercentController, "Enter percentage", onboardingProvider),
               const SizedBox(height: 15),
-              _buildLabelTextField("PG Percentage", _pgPercentController, "Enter percentage"),
+              _buildLabelTextField("PG Percentage", onboardingProvider.pgPercentController, "Enter percentage", onboardingProvider),
 
               const SizedBox(height: 25),
               // Work Details Section
@@ -89,7 +55,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
               const Text("Mode of Work *", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                initialValue: _modeOfWork,
+                value: onboardingProvider.modeOfWork,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -101,9 +67,9 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
                   );
                 }).toList(),
                 onChanged: (newValue) {
-                  setState(() {
-                    _modeOfWork = newValue!;
-                  });
+                  if (newValue != null) {
+                    onboardingProvider.setModeOfWork(newValue);
+                  }
                 },
               ),
 
@@ -112,28 +78,26 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
               const Text("Document Uploads", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               const Divider(),
               const SizedBox(height: 10),
-              _buildFileUploadTile("UG Marksheet", _ugMarksheetName, () => _pickFile('ug')),
+              _buildFileUploadTile("UG Marksheet", onboardingProvider.ugMarksheetName, () => onboardingProvider.pickFile('ug')),
               const SizedBox(height: 15),
-              _buildFileUploadTile("Photo *", _photoName, () => _pickFile('photo')),
+              _buildFileUploadTile("Photo *", onboardingProvider.photoName, () => onboardingProvider.pickFile('photo')),
               const SizedBox(height: 15),
-              _buildFileUploadTile("Resume *", _resumeName, () => _pickFile('resume')),
+              _buildFileUploadTile("Resume *", onboardingProvider.resumeName, () => onboardingProvider.pickFile('resume')),
 
               const SizedBox(height: 40),
               SizedBox(
                 width: double.infinity,
                 child: CustomButton(
-                  text: "Submit Onboarding",
-                  onPressed: () async {
+                  text: onboardingProvider.isLoading ? "Submitting..." : "Submit Onboarding",
+                  onPressed: onboardingProvider.isLoading ? null : () async {
                     if (_formKey.currentState!.validate()) {
-                      if (_photoName == null || _resumeName == null) {
+                      final success = await onboardingProvider.submitOnboarding(authProvider);
+                      if (success && context.mounted) {
+                        context.go(AppRoutes.homeRoute);
+                      } else if (!success) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text("Please upload required documents (Photo & Resume)")),
                         );
-                        return;
-                      }
-                      await authProvider.updateOnboardingStatus(true);
-                      if (context.mounted) {
-                        context.go(AppRoutes.homeRoute);
                       }
                     }
                   },
@@ -147,7 +111,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
     );
   }
 
-  Widget _buildLabelTextField(String label, TextEditingController controller, String hint) {
+  Widget _buildLabelTextField(String label, TextEditingController controller, String hint, OnboardingProvider provider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -157,6 +121,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
           controller: controller,
           hintText: hint,
           keyboardType: TextInputType.number,
+          onChanged: (_) => provider.onFieldChanged(),
           validator: (value) {
             if (label.contains('*') && (value == null || value.isEmpty)) {
               return 'Required';

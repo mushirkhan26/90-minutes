@@ -164,6 +164,20 @@ class AuthProvider extends ChangeNotifier {
   /// Update NDA status locally and in storage
   Future<void> updateNdaStatus(bool submitted) async {
     _ndaSubmitted = submitted;
+    
+    // Update local userData map to keep it in sync
+    if (_userData != null) {
+      _userData!['ndaSubmitted'] = submitted;
+      await _secureStorage.saveUserData(
+        token: _userData!['token'],
+        employeeId: _userData!['employeeId'],
+        username: _userData!['username'],
+        email: _userData!['email'],
+        role: _userData!['role'],
+        ndaSubmitted: submitted,
+        onboardingCompleted: _onboardingCompleted,
+      );
+    }
     await _secureStorage.setNdaSubmitted(submitted);
     notifyListeners();
   }
@@ -171,6 +185,20 @@ class AuthProvider extends ChangeNotifier {
   /// Update Onboarding status locally and in storage
   Future<void> updateOnboardingStatus(bool completed) async {
     _onboardingCompleted = completed;
+    
+    // Update local userData map to keep it in sync
+    if (_userData != null) {
+      _userData!['onboardingCompleted'] = completed;
+      await _secureStorage.saveUserData(
+        token: _userData!['token'],
+        employeeId: _userData!['employeeId'],
+        username: _userData!['username'],
+        email: _userData!['email'],
+        role: _userData!['role'],
+        ndaSubmitted: _ndaSubmitted,
+        onboardingCompleted: completed,
+      );
+    }
     await _secureStorage.setOnboardingCompleted(completed);
     notifyListeners();
   }

@@ -206,6 +206,8 @@ class PerformanceProvider extends ChangeNotifier {
 
   Future<bool> addReview({
     required String employeeId,
+    required String employeeName,
+
     required String reviewerId,
     required String reviewerName,
     required double rating,
@@ -213,6 +215,7 @@ class PerformanceProvider extends ChangeNotifier {
   }) async {
     final response = await _performanceService.addReview(
       employeeId: employeeId,
+      employeeName: employeeName,
       reviewerId: reviewerId,
       reviewerName: reviewerName,
       rating: rating,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'leave_request_form_screen.dart';
 import '../../../../core/utils/alert_utils.dart';
@@ -21,19 +20,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   @override
   void initState() {
     super.initState();
-    _loadEmployeeDetails();
-  }
-
-  Future<void> _loadEmployeeDetails() async {
-    final secureStorage = SecureStorageService();
-    final userData = await secureStorage.getUserData();
-    setState(() {
-      _name = userData?['username'] ?? '';
-      _employeeId = userData?['employeeId'] ?? '';
-    });
-    if (_employeeId.isNotEmpty && mounted) {
-      context.read<LeaveProvider>().fetchLeaveInfo(employeeId: _employeeId);
-    }
+    // Logic moved to Provider bootstrap. UI just gets local details for the form.
+    final authProvider = context.read<AuthProvider>();
+    _name = authProvider.userData?['username'] ?? '';
+    _employeeId = authProvider.userData?['employeeId']?.toString() ?? '';
   }
 
   Future<void> _deleteLeave(String leaveId) async {
@@ -77,7 +67,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.read<AuthProvider>();
     final userRole = authProvider.userData?['role']?.toString().toLowerCase() ?? "";
-    final bool isAdmin =  userRole == 'manager' ;
+    final bool isAdmin = userRole == 'manager';
 
     return Scaffold(
       appBar: AppBar(
@@ -85,7 +75,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         foregroundColor: Colors.black,
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'Leave Management',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          'Leave Management',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (isAdmin)
@@ -100,103 +91,109 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         builder: (context, leaveProvider, child) {
           final leaveHistory = leaveProvider.leaveHistory;
           final availableLeave = leaveProvider.availableLeave;
+          final historyData = (leaveHistory?['message']?['data'] as List?) ?? [];
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-                  // Apply for Leave Button
-                  Card(
-                    elevation: 6,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => LeaveRequestFormScreen(
-                              name: _name,
-                              employeeId: _employeeId,
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          gradient: const LinearGradient(
-                            colors: [Color(0xff009990), Color(0xff02A6A6)],
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.calendar_today, color: Colors.white, size: 24),
-                            SizedBox(width: 10),
-                             Text(
-                              'Apply for Leave',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+          return RefreshIndicator(
+            onRefresh: () => leaveProvider.fetchLeaveInfo(employeeId: _employeeId, forceRefresh: true),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Card(
+                      elevation: 6,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => LeaveRequestFormScreen(
+                                name: _name,
+                                employeeId: _employeeId,
                               ),
                             ),
-                          ],
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            gradient: const LinearGradient(
+                              colors: [Color(0xff009990), Color(0xff02A6A6)],
+                            ),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.calendar_today, color: Colors.white, size: 24),
+                              SizedBox(width: 10),
+                              Text(
+                                'Apply for Leave',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  if (leaveProvider.isLoading)
-                    const Center(child: CircularProgressIndicator())
-                  else
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (availableLeave != null) ...[
+                    const SizedBox(height: 20),
+                    if (leaveProvider.isLoading && leaveHistory == null)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (availableLeave != null) ...[
+                            const Text(
+                              'Available Leave',
+                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 12),
+                            Card(
+                              elevation: 4,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  children: [
+                                    _buildLeaveInfoRow('Casual/Sick Leave', '${availableLeave['available']?['casualOrSickLeave'] ?? 0}', Colors.blue),
+                                    const Divider(),
+                                    _buildLeaveInfoRow('Earned Leave', '${availableLeave['available']?['earnedLeave'] ?? 0}', Colors.green),
+                                    const Divider(),
+                                    _buildLeaveInfoRow('Emergency Leave', '${availableLeave['available']?['emergencyLeave'] ?? 0}', Colors.orange),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                          ],
                           const Text(
-                            'Available Leave',
+                            'Leave History',
                             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 12),
-                          Card(
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Column(
-                                children: [
-                                  _buildLeaveInfoRow('Casual/Sick Leave', '${availableLeave['available']?['casualOrSickLeave'] ?? 0}', Colors.blue),
-                                  const Divider(),
-                                  _buildLeaveInfoRow('Earned Leave', '${availableLeave['available']?['earnedLeave'] ?? 0}', Colors.green),
-                                  const Divider(),
-                                  _buildLeaveInfoRow('Emergency Leave', '${availableLeave['available']?['emergencyLeave'] ?? 0}', Colors.orange),
-                                ],
+                          if (historyData.isNotEmpty)
+                            ...historyData.map((leave) => _buildLeaveHistoryCard(leave))
+                          else if (!leaveProvider.isLoading)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: Text('No leave history found'),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
                         ],
-                        const Text(
-                          'Leave History',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 12),
-                        if (leaveHistory?['message']?['data'] != null && (leaveHistory!['message']['data'] as List).isNotEmpty)
-                          ...(leaveHistory['message']['data'] as List).map((leave) => _buildLeaveHistoryCard(leave))
-                        else
-                          const Center(child: Padding(
-                            padding: EdgeInsets.all(20.0),
-                            child: Text('No leave history found'),
-                          )),
-                      ],
-                    ),
-                ],
+                      ),
+                  ],
+                ),
               ),
             ),
           );

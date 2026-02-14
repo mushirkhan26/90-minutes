@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
-
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import '../widgets/complaint_card.dart';
 import 'create_complaint_bottomsheet.dart';
 
@@ -25,36 +23,23 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
   late TabController _tabController;
   int _currentTabIndex = 0;
 
-  bool isManager = false;
-
   @override
   void initState() {
     super.initState();
-
-    final auth = context.read<AuthProvider>();
-    final role = auth.userData?['role']?.toString().toLowerCase() ?? '';
-    isManager = role == 'manager';
-
     _tabController = TabController(length: 2, vsync: this);
-
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) return;
       setState(() {
         _currentTabIndex = _tabController.index;
       });
     });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final provider = context.read<ComplaintProvider>();
-      provider.fetchComplaints();
-      if (isManager) {
-        provider.fetchAllComplaints();
-      }
-    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<ComplaintProvider>();
+    final bool isManager = provider.isManager;
+
     return Scaffold(
       backgroundColor: Colors.white,
 
@@ -68,7 +53,6 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
           style: TextStyle(color: Colors.white),
         ),
 
-        // 🔥 CREATE BUTTON LOGIC (ONLY CHANGE)
         actions: (!isManager || _currentTabIndex == 0)
             ? [
                 Padding(
@@ -86,15 +70,13 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
                       "Create",
                       style: TextStyle(color: Colors.white),
                     ),
-                    onPressed: () async {
-                      await Navigator.push(
+                    onPressed: () {
+                      Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (_) => const CreateComplaintBottomSheet(),
                         ),
                       );
-                      if (!mounted) return;
-                      context.read<ComplaintProvider>().fetchComplaints();
                     },
                   ),
                 )
@@ -111,14 +93,14 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
                   child: TabBarView(
                     controller: _tabController,
                     children: [
-                      _myComplaintsView(),   // 🔒 unchanged
-                      _teamComplaintsView(), // ✅ UI added
+                      _myComplaintsView(provider, isManager),
+                      _teamComplaintsView(provider),
                     ],
                   ),
                 ),
               ],
             )
-          : _myComplaintsView(),
+          : _myComplaintsView(provider, isManager),
     );
   }
 
@@ -151,8 +133,8 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
     );
   }
 
-  // ================== MY COMPLAINTS (NO CHANGE) ==================
-  Widget _myComplaintsView() {
+  // ================== MY COMPLAINTS ==================
+  Widget _myComplaintsView(ComplaintProvider provider, bool isManager) {
     return Column(
       children: [
         Padding(
@@ -177,9 +159,9 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
           ),
         ),
         Expanded(
-          child: Consumer<ComplaintProvider>(
-            builder: (context, provider, _) {
-              if (provider.isLoading) {
+          child: Builder(
+            builder: (context) {
+              if (provider.isLoading && provider.complaints.isEmpty) {
                 return const Center(child: CircularProgressIndicator());
               }
 
@@ -190,22 +172,26 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
                     c.id.toLowerCase().contains(_searchText);
               }).toList();
 
-              return ListView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
-                itemCount: filteredComplaints.length,
-                itemBuilder: (context, index) {
-                  return ComplaintCard(
-                    complaint: filteredComplaints[index],
-                    isManagerView: isManager,
-                    onUpdateStatus: isManager ? (status) async {
-                      await provider.updateComplaintStatus(
+              if (filteredComplaints.isEmpty && !provider.isLoading) {
+                return const Center(child: Text("No complaints found"));
+              }
+
+              return RefreshIndicator(
+                onRefresh: () => provider.fetchComplaints(),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                  itemCount: filteredComplaints.length,
+                  itemBuilder: (context, index) {
+                    return ComplaintCard(
+                      complaint: filteredComplaints[index],
+                      isManagerView: isManager,
+                      onUpdateStatus: isManager ? (status) => provider.updateComplaintStatus(
                         complaintId: filteredComplaints[index].id,
                         status: status,
-                      );
-                    }
-                    :null,
-                  );
-                },
+                      ) : null,
+                    );
+                  },
+                ),
               );
             },
           ),
@@ -214,136 +200,112 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
     );
   }
 
-  // ================== TEAM COMPLAINTS (UI ONLY) ==================
-  Widget _teamComplaintsView() {
-  return Consumer<ComplaintProvider>(
-    builder: (context, provider, _) {
-      if (provider.isLoading) {
-        return const Center(child: CircularProgressIndicator());
-      }
+  // ================== TEAM COMPLAINTS ==================
+  Widget _teamComplaintsView(ComplaintProvider provider) {
+    if (provider.isLoading && provider.teamComplaints.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-      final filtered = provider.teamComplaints.where((c) {
-        final textMatch = _teamSearchText.isEmpty ||
-            c.title.toLowerCase().contains(_teamSearchText) ||
-            c.id.toLowerCase().contains(_teamSearchText);
+    final filtered = provider.teamComplaints.where((c) {
+      final textMatch = _teamSearchText.isEmpty ||
+          c.title.toLowerCase().contains(_teamSearchText) ||
+          c.id.toLowerCase().contains(_teamSearchText);
 
-        final statusMatch = _selectedStatus == 'All' ||
-            c.status.toLowerCase() ==
-                _selectedStatus.toLowerCase();
+      final statusMatch = _selectedStatus == 'All' ||
+          c.status.toLowerCase() == _selectedStatus.toLowerCase();
 
-        return textMatch && statusMatch;
-      }).toList();
+      return textMatch && statusMatch;
+    }).toList();
 
-      return Column(
-        children: [
-          // 🔍 SEARCH + STATUS (unchanged UI)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _teamSearchController,
-                    onChanged: (value) {
-                      setState(() {
-                        _teamSearchText =
-                            value.toLowerCase().trim();
-                      });
-                    },
-                    decoration: InputDecoration(
-                      hintText: "Search by ID, Title",
-                      prefixIcon: const Icon(Icons.search),
-                      filled: true,
-                      fillColor: Colors.white,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _teamSearchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _teamSearchText = value.toLowerCase().trim();
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: "Search by ID, Title",
+                    prefixIcon: const Icon(Icons.search),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
-                SizedBox(
-                  width: 140,
-                  child: DropdownButtonFormField<String>(
-                    value: _selectedStatus,
-                    items: const [
-                      DropdownMenuItem(
-                          value: 'All',
-                          child: Text('All Status')),
-                      DropdownMenuItem(
-                          value: 'Pending',
-                          child: Text('Pending')),
-                      DropdownMenuItem(
-                          value: 'Investigating',
-                          child: Text('Investigating')),
-                      DropdownMenuItem(
-                          value: 'Resolved',
-                          child: Text('Resolved')),
-                    ],
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedStatus = value!;
-                      });
-                    },
-                    decoration: InputDecoration(
-                      contentPadding:
-                          const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 14),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: Colors.black),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide:
-                            const BorderSide(color: Colors.black),
-                      ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 140,
+                child: DropdownButtonFormField<String>(
+                  value: _selectedStatus,
+                  items: const [
+                    DropdownMenuItem(value: 'All', child: Text('All Status')),
+                    DropdownMenuItem(value: 'Pending', child: Text('Pending')),
+                    DropdownMenuItem(value: 'Investigating', child: Text('Investigating')),
+                    DropdownMenuItem(value: 'Resolved', child: Text('Resolved')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedStatus = value!;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.black),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: Colors.black),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
 
-          // 📋 LIST
-          Expanded(
-            child: filtered.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No Team Complaints',
-                      style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black54),
-                    ),
-                  )
-                : ListView.builder(
-                    padding:
-                        const EdgeInsets.fromLTRB(12, 0, 12, 16),
+        Expanded(
+          child: filtered.isEmpty && !provider.isLoading
+              ? const Center(
+                  child: Text(
+                    'No Team Complaints',
+                    style: TextStyle(fontSize: 16, color: Colors.black54),
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: () => provider.fetchAllComplaints(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       return ComplaintCard(
                         complaint: filtered[index],
                         isManagerView: true,
-                        
-                        onUpdateStatus: isManager ? (status) async {
-                          await provider.updateComplaintStatus(
-                            complaintId: filtered[index].id,
-                            status: status,
-                          );
-                        }
-                        :null,
+                        onUpdateStatus: (status) => provider.updateComplaintStatus(
+                          complaintId: filtered[index].id,
+                          status: status,
+                        ),
                       );
                     },
                   ),
-          ),
-        ],
-      );
-    },
-  );
-}
+                ),
+        ),
+      ],
+    );
+  }
+
   @override
   void dispose() {
     _tabController.dispose();

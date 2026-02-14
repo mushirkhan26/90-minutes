@@ -16,13 +16,6 @@ class _NewRegistrationsScreenState extends State<NewRegistrationsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    // Millgate Pattern: initState() should NOT call APIs directly.
-    // Logic is handled in Provider Constructor or background sync.
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,

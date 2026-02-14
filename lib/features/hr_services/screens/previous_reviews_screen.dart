@@ -20,11 +20,6 @@ class PreviousReviewsScreen extends StatefulWidget {
 }
 
 class _PreviousReviewsScreenState extends State<PreviousReviewsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // API call trigger moved to navigation point or handled by Provider (Millgate pattern)
-  }
 
   @override
   Widget build(BuildContext context) {

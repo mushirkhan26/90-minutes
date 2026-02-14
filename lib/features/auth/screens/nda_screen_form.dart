@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/auth/providers/nda_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:provider/provider.dart';
-import 'package:file_picker/file_picker.dart';
 
 class NdaScreen extends StatefulWidget {
   const NdaScreen({super.key});
@@ -15,59 +15,12 @@ class NdaScreen extends StatefulWidget {
 }
 
 class _NdaScreenState extends State<NdaScreen> {
-  bool _isAccepted = false;
   final _formKey = GlobalKey<FormState>();
-
-  // Employee Details Controllers
-  late TextEditingController _fullNameController;
-  late TextEditingController _employeeIdController;
-  late TextEditingController _emailController;
-  final _positionController = TextEditingController();
-  final _departmentController = TextEditingController();
-  final _joiningDateController = TextEditingController();
-  final _signatureDateController = TextEditingController();
-
-  String? _signatureFileName;
-
-  @override
-  void initState() {
-    super.initState();
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final userData = authProvider.userData;
-
-    _fullNameController = TextEditingController(text: userData?['username'] ?? '');
-    _employeeIdController = TextEditingController(text: userData?['employeeId'] ?? '');
-    _emailController = TextEditingController(text: userData?['email'] ?? '');
-
-    // Prefill signature date with today's date
-    final now = DateTime.now();
-    _signatureDateController.text = "${now.day.toString().padLeft(2, '0')}-${now.month.toString().padLeft(2, '0')}-${now.year}";
-  }
-
-  @override
-  void dispose() {
-    _fullNameController.dispose();
-    _employeeIdController.dispose();
-    _emailController.dispose();
-    _positionController.dispose();
-    _departmentController.dispose();
-    _joiningDateController.dispose();
-    _signatureDateController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickSignature() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
-    if (result != null) {
-      setState(() {
-        _signatureFileName = result.files.single.name;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final ndaProvider = Provider.of<NdaProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -95,17 +48,17 @@ class _NdaScreenState extends State<NdaScreen> {
               const Text("Employee Details", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               const Divider(),
               const SizedBox(height: 15),
-              _buildLabelTextField("Full Name *", _fullNameController, "Full Name", enabled: false),
+              _buildLabelTextField("Full Name *", ndaProvider.fullNameController, "Full Name", enabled: false),
               const SizedBox(height: 15),
-              _buildLabelTextField("Employee ID *", _employeeIdController, "Employee ID", enabled: false),
+              _buildLabelTextField("Employee ID *", ndaProvider.employeeIdController, "Employee ID", enabled: false),
               const SizedBox(height: 15),
-              _buildLabelTextField("Email *", _emailController, "Email", enabled: false),
+              _buildLabelTextField("Email *", ndaProvider.emailController, "Email", enabled: false),
               const SizedBox(height: 15),
-              _buildLabelTextField("Position *", _positionController, "Position"),
+              _buildLabelTextField("Position *", ndaProvider.positionController, "Position", onChanged: (_) => ndaProvider.onFieldChanged()),
               const SizedBox(height: 15),
-              _buildLabelTextField("Department *", _departmentController, "Department"),
+              _buildLabelTextField("Department *", ndaProvider.departmentController, "Department", onChanged: (_) => ndaProvider.onFieldChanged()),
               const SizedBox(height: 15),
-              _buildDatePickerField("Date of Joining *", _joiningDateController),
+              _buildDatePickerField(context, "Date of Joining *", ndaProvider.joiningDateController, onDatePicked: (date) => ndaProvider.updateJoiningDate(date)),
 
               const SizedBox(height: 30),
               // NDA Acknowledgement Section
@@ -117,9 +70,9 @@ class _NdaScreenState extends State<NdaScreen> {
                 style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 20),
-              _buildSignatureUploadField(),
+              _buildSignatureUploadField(ndaProvider),
               const SizedBox(height: 15),
-              _buildDatePickerField("Employee Signature Date *", _signatureDateController, enabled: false),
+              _buildLabelTextField("Employee Signature Date *", ndaProvider.signatureDateController, "DD-MM-YYYY", enabled: false),
               const SizedBox(height: 8),
               const Text(
                 "Instructions: Sign on a white sheet using a dark pen. Scan or photograph the signature ensuring the background is clean and well-lit. Avoid shadows; crop tightly around the signature.",
@@ -130,8 +83,8 @@ class _NdaScreenState extends State<NdaScreen> {
               Row(
                 children: [
                   Checkbox(
-                    value: _isAccepted,
-                    onChanged: (value) => setState(() => _isAccepted = value ?? false),
+                    value: ndaProvider.isAccepted,
+                    onChanged: (value) => ndaProvider.setAccepted(value ?? false),
                   ),
                   const Expanded(
                     child: Text(
@@ -145,22 +98,22 @@ class _NdaScreenState extends State<NdaScreen> {
               SizedBox(
                 width: double.infinity,
                 child: CustomButton(
-                  text: "Submit NDA",
-                  onPressed: _isAccepted
+                  text: ndaProvider.isLoading ? "Submitting..." : "Submit NDA",
+                  onPressed: (ndaProvider.isAccepted && !ndaProvider.isLoading)
                       ? () async {
-                    if (_formKey.currentState!.validate() && _signatureFileName != null) {
-                      await authProvider.updateNdaStatus(true);
-                      if (context.mounted) {
+                    if (_formKey.currentState!.validate()) {
+                      final success = await ndaProvider.submitNda(authProvider);
+                      if (success && context.mounted) {
                         if (!authProvider.onboardingCompleted) {
                           context.go(AppRoutes.onboardingRoute);
                         } else {
                           context.go(AppRoutes.homeRoute);
                         }
+                      } else if (!success && ndaProvider.signatureFileName == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Please upload your signature")),
+                        );
                       }
-                    } else if (_signatureFileName == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text("Please upload your signature")),
-                      );
                     }
                   }
                       : null,
@@ -191,7 +144,7 @@ class _NdaScreenState extends State<NdaScreen> {
     );
   }
 
-  Widget _buildLabelTextField(String label, TextEditingController controller, String hint, {bool enabled = true}) {
+  Widget _buildLabelTextField(String label, TextEditingController controller, String hint, {bool enabled = true, Function(String)? onChanged}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -201,6 +154,7 @@ class _NdaScreenState extends State<NdaScreen> {
           controller: controller,
           hintText: hint,
           enabled: enabled,
+          onChanged: onChanged,
           backgroundColor: enabled ? Colors.white : Colors.grey.shade100,
           validator: (value) {
             if (!enabled) return null;
@@ -211,7 +165,7 @@ class _NdaScreenState extends State<NdaScreen> {
     );
   }
 
-  Widget _buildDatePickerField(String label, TextEditingController controller, {bool enabled = true}) {
+  Widget _buildDatePickerField(BuildContext context, String label, TextEditingController controller, {required Function(DateTime) onDatePicked, bool enabled = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -232,9 +186,7 @@ class _NdaScreenState extends State<NdaScreen> {
               lastDate: DateTime(2101),
             );
             if (pickedDate != null) {
-              setState(() {
-                controller.text = "${pickedDate.day.toString().padLeft(2, '0')}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.year}";
-              });
+              onDatePicked(pickedDate);
             }
           } : null,
           validator: (value) {
@@ -246,14 +198,14 @@ class _NdaScreenState extends State<NdaScreen> {
     );
   }
 
-  Widget _buildSignatureUploadField() {
+  Widget _buildSignatureUploadField(NdaProvider ndaProvider) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text("Employee Signature *", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
         const SizedBox(height: 6),
         InkWell(
-          onTap: _pickSignature,
+          onTap: ndaProvider.pickSignature,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             decoration: BoxDecoration(
@@ -274,8 +226,8 @@ class _NdaScreenState extends State<NdaScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _signatureFileName ?? "No file chosen",
-                    style: TextStyle(color: _signatureFileName == null ? Colors.grey : Colors.black, fontSize: 12),
+                    ndaProvider.signatureFileName ?? "No file chosen",
+                    style: TextStyle(color: ndaProvider.signatureFileName == null ? Colors.grey : Colors.black, fontSize: 12),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

@@ -26,8 +26,9 @@ class _MeetScreenState extends State<MeetScreen> {
   void initState() {
     super.initState();
     _loadUserId();
+    // Logic for fetching meetings is now in the Provider constructor.
+    // UI just handles positioning.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MeetProvider>().fetchUpcomingMeetings();
       _scrollToSelectedDate();
     });
   }
@@ -90,9 +91,13 @@ class _MeetScreenState extends State<MeetScreen> {
           _buildHeader(meetProvider),
           _buildDatePicker(),
           Expanded(
-            child: meetProvider.state == MeetState.loading
-                ? const Center(child: CircularProgressIndicator())
-                : _buildMeetingTimeline(meetProvider.meetList),
+            child: RefreshIndicator(
+              onRefresh: () => meetProvider.fetchUpcomingMeetings(forceRefresh: true),
+              color: AppColors.primary,
+              child: meetProvider.state == MeetState.loading && meetProvider.meetList.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildMeetingTimeline(meetProvider.meetList),
+            ),
           ),
         ],
       ),
@@ -141,12 +146,9 @@ class _MeetScreenState extends State<MeetScreen> {
                         Text(
                           '${provider.meetList.where((m) {
                             final isCreator = m.createdBy['employeeId'] == _currentUserId;
-
                             final isParticipant = m.participants.any((p) => p['employeeId'] == _currentUserId);
-
                             return isCreator || isParticipant;
                           }).length} meetings total',
-                          // '${provider.meetList.length} meetings total',
                           style: const TextStyle(
                             color: Colors.white70,
                             fontSize: 10,
@@ -199,16 +201,11 @@ class _MeetScreenState extends State<MeetScreen> {
   }
 
   void _showMyCreatedMeetings(MeetProvider provider) {
-    // final myMeets = provider.meetList
-    //     .where((m) => m.createdBy['employeeId'] == _currentUserId)
-    //     .toList();
     final myMeets = provider.meetList.where((m) {
       final isCreator = m.createdBy['employeeId'] == _currentUserId;
-
       final isParticipant = m.participants.any(
         (p) => p['employeeId'] == _currentUserId,
       );
-
       return isCreator || isParticipant;
     }).toList();
 
@@ -413,23 +410,16 @@ class _MeetScreenState extends State<MeetScreen> {
     );
   }
 
-  // ✅ Updated logic to handle Recurrence (Daily/Weekly) in UI
   Widget _buildMeetingTimeline(List<Meet> meets) {
     if (_currentUserId == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Filter meetings to only those created by current user
-    // final userMeets = meets.where((m) {
-    //   return m.createdBy['employeeId'] == _currentUserId;
-    // }).toList();
     final userMeets = meets.where((m) {
       final isCreator = m.createdBy['employeeId'] == _currentUserId;
-
       final isParticipant = m.participants.any(
         (p) => p['employeeId'] == _currentUserId,
       );
-
       return isCreator || isParticipant;
     }).toList();
 
@@ -437,7 +427,6 @@ class _MeetScreenState extends State<MeetScreen> {
       final mDate = DateTime.parse(m.time).toLocal();
       final String recurrence = m.recurrence ?? "One-time meeting";
 
-      // Basic check: Is the meeting on the selected date?
       bool isSameDay =
           mDate.day == _selectedDate.day &&
           mDate.month == _selectedDate.month &&
@@ -445,12 +434,10 @@ class _MeetScreenState extends State<MeetScreen> {
 
       if (isSameDay) return true;
 
-      // Handle Daily: Show if selected date is after meeting start date
       if (recurrence == "Daily") {
         return _selectedDate.isAfter(mDate);
       }
 
-      // Handle Weekly: Show if selected date is after start date AND same day of week
       if (recurrence == "Weekly") {
         return _selectedDate.isAfter(mDate) &&
             _selectedDate.weekday == mDate.weekday;
@@ -461,6 +448,7 @@ class _MeetScreenState extends State<MeetScreen> {
 
     return ListView.builder(
       controller: _timelineScrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
       itemCount: 16,
       itemBuilder: (context, index) {
         int hour = 9 + index;
@@ -468,15 +456,13 @@ class _MeetScreenState extends State<MeetScreen> {
 
         if (hour < 12) {
           timeStr = '$hour AM';
-          // ignore: curly_braces_in_flow_control_structures
-        } else if (hour == 12)
+        } else if (hour == 12) {
           timeStr = '12 PM';
-        // ignore: curly_braces_in_flow_control_structures
-        else if (hour < 24)
+        } else if (hour < 24) {
           timeStr = '${hour - 12} PM';
-        // ignore: curly_braces_in_flow_control_structures
-        else
+        } else {
           timeStr = '12 AM';
+        }
 
         final hourMeets = dailyMeets
             .where((m) => DateTime.parse(m.time).toLocal().hour == hour)
@@ -531,7 +517,7 @@ class _MeetScreenState extends State<MeetScreen> {
         decoration: BoxDecoration(
           color: const Color(0xFFFF4081),
           borderRadius: BorderRadius.circular(8),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)],
+          boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

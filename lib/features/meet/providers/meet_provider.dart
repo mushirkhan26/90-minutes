@@ -24,30 +24,45 @@ class MeetProvider extends ChangeNotifier {
 
   static const cacheValidity = Duration(minutes: 10);
 
+  MeetProvider() {
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    // Initial fetch when provider is created
+    await fetchUpcomingMeetings();
+  }
+
   Future<void> fetchUpcomingMeetings({bool forceRefresh = false}) async {
-    _state = MeetState.loading;
-    notifyListeners();
-
-    try {
+    // 1. Load from local storage first for instant UI
+    if (!forceRefresh) {
       final cachedMeets = await _localStorage.getMeetList();
-      final lastCacheTime = await _localStorage.getMeetListTimestamp();
-      final now = DateTime.now();
-
       if (cachedMeets != null && cachedMeets.isNotEmpty) {
         _meetList = cachedMeets;
         _state = MeetState.success;
         notifyListeners();
       }
+    }
 
-      final shouldRefresh =
-          forceRefresh || lastCacheTime == null || now.difference(lastCacheTime) > cacheValidity;
+    // 2. Decide if we need to fetch from network
+    final lastCacheTime = await _localStorage.getMeetListTimestamp();
+    final now = DateTime.now();
+    final shouldRefresh = forceRefresh ||
+        _meetList.isEmpty ||
+        lastCacheTime == null ||
+        now.difference(lastCacheTime) > cacheValidity;
 
-      if (!shouldRefresh && cachedMeets != null && cachedMeets.isNotEmpty) {
-        _logger.logStorage('🟢 Meet cache still valid, skipping API call');
-        return;
-      }
+    if (!shouldRefresh) {
+      _logger.logStorage('🟢 Meet cache still valid, skipping API call');
+      return;
+    }
 
-      // ✅ Now using the new user-centric endpoint
+    if (_meetList.isEmpty) {
+      _state = MeetState.loading;
+      notifyListeners();
+    }
+
+    try {
       final response = await _meetService.getUpcomingMeetings();
 
       if (response.success) {
