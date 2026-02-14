@@ -12,6 +12,7 @@ import 'package:hrtz_hrms/core/models/project_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 class LocalStorageService {
   static final LocalStorageService _instance = LocalStorageService._internal();
   factory LocalStorageService() => _instance;
@@ -742,3 +743,7 @@ Future<List<ProjectModel>?> getProjectList() async {
   }
 }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> 09a15322f243199415b40382033233042bf63af6

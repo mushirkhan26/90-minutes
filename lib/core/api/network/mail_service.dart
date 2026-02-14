@@ -108,11 +108,16 @@ class MailService {
 
   /// ❌ Delete mail permanently by ID
   Future<ApiResponse<Map<String, dynamic>>> deleteMail({
-    required String mailId,
-  }) async {
-    _logger.logNetwork('Deleting mail permanently with id: $mailId');
-    return await _apiHelper.delete<Map<String, dynamic>>('mail/$mailId');
-  }
+  required String mailId,
+  required String employeeId,
+}) async {
+  _logger.logNetwork('Deleting mail permanently with id: $mailId');
+
+  return await _apiHelper.delete<Map<String, dynamic>>(
+    'mail/$mailId',
+    body: {"employeeId": employeeId},
+  );
+}
 
   Future<ApiResponse<Map<String, dynamic>>> toggleStarMail({
     required String mailId,

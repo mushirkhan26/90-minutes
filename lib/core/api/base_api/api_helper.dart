@@ -52,9 +52,18 @@ class ApiHelper {
     return _request<T>('PATCH', endpoint, body: body, headers: headers);
   }
 
-  Future<ApiResponse<T>> delete<T>(String endpoint, {Map<String, String>? headers}) async {
-    return _request<T>('DELETE', endpoint, headers: headers);
-  }
+  Future<ApiResponse<T>> delete<T>(
+  String endpoint, {
+  dynamic body,
+  Map<String, String>? headers,
+}) async {
+  return _request<T>(
+    'DELETE',
+    endpoint,
+    body: body,
+    headers: headers,
+  );
+}
   
 
   Future<ApiResponse<T>> _request<T>(
@@ -96,7 +105,7 @@ class ApiHelper {
           );
           break;
         case 'DELETE':
-          response = await http.delete(url, headers: defaultHeaders);
+          response = await http.delete(url, headers: defaultHeaders, body: body != null ? jsonEncode(body) : null,);
           break;
         default:
           throw BadRequestException('Invalid HTTP method');
