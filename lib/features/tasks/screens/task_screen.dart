@@ -169,9 +169,13 @@ class _TasksScreenState extends State<TasksScreen> {
                           context: context,
                           builder: (context) => AddEditTaskDialog(
                             task: task,
-                            onSave: (updatedTask) {
-                              tasksProvider.updateTaskStatus(updatedTask.id, employeeId, updatedTask.status);
-                            },
+                            onSave: (updatedTask) async {
+                              await tasksProvider.updateTask(
+                               updatedTask.id,
+                               updatedTask.toMap(),
+                               employeeId,
+                               );
+                             },
                           ),
                         );
                       },

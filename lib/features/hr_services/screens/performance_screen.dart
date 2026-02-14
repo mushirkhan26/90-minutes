@@ -1011,6 +1011,7 @@ class _AddReviewDialogState extends State<AddReviewDialog> {
                   final authProvider = Provider.of<AuthProvider>(context, listen: false);
                   Provider.of<PerformanceProvider>(context, listen: false).addReview(
                     employeeId: widget.employeeId,
+                    employeeName: widget.employeeName,
                     reviewerId: authProvider.userData?['employeeId'] ?? '',
                     reviewerName: authProvider.userData?['username'] ?? '',
                     rating: _selectedRating.toDouble(),

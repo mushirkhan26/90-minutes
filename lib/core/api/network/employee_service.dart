@@ -4,7 +4,12 @@ import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class EmployeeService {
-  final ApiHelper _apiHelper = ApiHelper();
+  static const String employeeBaseUrl =
+      "https://3qhglx2bhd.execute-api.us-east-1.amazonaws.com/";
+
+  final ApiHelper _apiHelper =
+      ApiHelper(baseUrl: employeeBaseUrl);
+
   final LoggingService _logger = LoggingService.instance;
 
   /// 👥 Get all employees list

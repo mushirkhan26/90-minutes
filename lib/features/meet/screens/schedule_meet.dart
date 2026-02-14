@@ -198,33 +198,37 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   // }
 
   Future<void> _pickFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
+  if (_attachments.length >= 5) {
+    AlertHelper.snackBarWarning(
+      context,
+      "You can upload maximum 5 files only",
     );
-
-    if (result == null) return;
-
-    final pickedFiles = result.paths
-        .where((p) => p != null)
-        .map((p) => File(p!))
-        .toList();
-
-    setState(() {
-      _attachments.addAll(pickedFiles);
-    });
-    // ✅ HARD LIMIT CHECK (most important)
-    if (_attachments.length + pickedFiles.length > 5) {
-      AlertHelper.snackBarWarning(
-        context,
-        "You can upload maximum 5 files only",
-      );
-      return;
-    }
-
-    setState(() {
-      _attachments.addAll(pickedFiles);
-    });
+    return;
   }
+
+  FilePickerResult? result = await FilePicker.platform.pickFiles(
+    allowMultiple: true,
+  );
+
+  if (result == null) return;
+
+  final pickedFiles = result.paths
+      .where((p) => p != null)
+      .map((p) => File(p!))
+      .toList();
+
+  if (_attachments.length + pickedFiles.length > 5) {
+    AlertHelper.snackBarWarning(
+      context,
+      "You can upload maximum 5 files only",
+    );
+    return;
+  }
+
+  setState(() {
+    _attachments.addAll(pickedFiles);
+  });
+}
 
   List<DateTime> _calculateRecurrenceDates() {
     List<DateTime> dates = [];
