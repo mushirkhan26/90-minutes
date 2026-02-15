@@ -9,7 +9,6 @@ import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/mail/widgets/attachments_chips.dart';
-import 'package:hrtz_hrms/features/mail/widgets/cc_bcc_filds.dart';
 import 'package:hrtz_hrms/features/mail/widgets/reciepient_selector.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
@@ -27,8 +26,6 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
 
   final TextEditingController _subjectController = TextEditingController();
   final TextEditingController _bodyController = TextEditingController();
-  final TextEditingController _ccController = TextEditingController();
-  final TextEditingController _bccController = TextEditingController();
 
   final FileUploadService _fileUploadService = FileUploadService();
   final SecureStorageService _secureStorage = SecureStorageService();
@@ -37,15 +34,21 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
   List<EmployeeModel> _filteredEmployees = [];
   final List<EmployeeModel> _selectedReceivers = [];
 
-  List<String> _ccList = [];
-  List<String> _bccList = [];
   final List<String> _attachmentUrls = [];
 
-  bool _showDropdown = false;
-  bool _showCcBcc = false;
   bool _isSending = false;
   bool _isUploading = false;
   double _uploadProgress = 0;
+
+  // Change state variables module
+  List<EmployeeModel> _selectedCc = []; // for Cc
+  List<EmployeeModel> _selectedBcc = []; // for Bcc
+
+  bool _showToDropdown = false;
+  bool _showCcDropdown = false;
+  bool _showBccDropdown = false;
+
+  bool _showCcBccToggle = false;
 
   @override
   void initState() {
@@ -92,7 +95,9 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
 
       for (var file in result.files) {
         if (file.path != null) {
-          final uploadedUrl = await _fileUploadService.uploadFile(File(file.path!));
+          final uploadedUrl = await _fileUploadService.uploadFile(
+            File(file.path!),
+          );
           if (uploadedUrl != null) {
             _attachmentUrls.add(uploadedUrl);
           }
@@ -111,7 +116,10 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
   Future<void> _sendMail() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedReceivers.isEmpty) {
-      AlertHelper.snackBarError(context, 'Please select at least one recipient.');
+      AlertHelper.snackBarError(
+        context,
+        'Please select at least one recipient.',
+      );
       return;
     }
 
@@ -120,7 +128,7 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     try {
       final senderId = await _secureStorage.getEmployeeId() ?? '';
       final senderName = await _secureStorage.getUserName() ?? '';
-      
+
       // ignore: use_build_context_synchronously
       final mailProvider = context.read<MailProvider>();
 
@@ -129,8 +137,8 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
         senderName: senderName,
         receiver: _selectedReceivers.map((e) => e.employeeID).toList(),
         receiverName: _selectedReceivers.map((e) => e.name).toList(),
-        cc: _ccList,
-        bcc: _bccList,
+        cc: _selectedCc.map((e) => e.employeeID).toList(),
+        bcc: _selectedBcc.map((e) => e.employeeID).toList(),
         subject: _subjectController.text.trim(),
         body: _bodyController.text.trim(),
         attachmentUrls: _attachmentUrls,
@@ -157,16 +165,30 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
     }
   }
 
+  void _openDropdown(String type) {
+    setState(() {
+      _showToDropdown = type == 'to' ? !_showToDropdown : false;
+      _showCcDropdown = type == 'cc' ? !_showCcDropdown : false;
+      _showBccDropdown = type == 'bcc' ? !_showBccDropdown : false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Compose Mail'),
         actions: [
-          IconButton(icon: const Icon(Icons.attach_file), onPressed: _pickFiles),
+          IconButton(
+            icon: const Icon(Icons.attach_file),
+            onPressed: _pickFiles,
+          ),
           IconButton(
             icon: _isSending
-                ? LoadingAnimationWidget.staggeredDotsWave(color: AppColors.primary, size: 22)
+                ? LoadingAnimationWidget.staggeredDotsWave(
+                    color: AppColors.primary,
+                    size: 22,
+                  )
                 : const Icon(Icons.send),
             onPressed: _isSending ? null : _sendMail,
           ),
@@ -180,42 +202,77 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               RecipientSelector(
-                showDropdown: _showDropdown,
+                label: 'To',
+                showDropdown: _showToDropdown,
                 employees: _filteredEmployees,
                 selectedReceivers: _selectedReceivers,
-                onToggleDropdown: () => setState(() => _showDropdown = !_showDropdown),
+                onToggleDropdown: () => _openDropdown('to'),
+
                 onFilter: _filterEmployees,
-                onAdd: (emp){
+                onAdd: (emp) {
                   setState(() {
-                    if(!_selectedReceivers.contains(emp)){
+                    if (!_selectedReceivers.contains(emp)) {
                       _selectedReceivers.add(emp);
                     }
                   });
                 },
-                onRemove: (emp){
+                onRemove: (emp) {
                   setState(() {
                     _selectedReceivers.remove(emp);
                   });
-                }
+                },
               ),
 
               const SizedBox(height: 10),
 
-              CcBccFields(
-                showCcBcc: _showCcBcc,
-                ccController: _ccController,
-                bccController: _bccController,
-                onToggle: () => setState(() => _showCcBcc = !_showCcBcc),
-                onCcChanged: (v) => _ccList = v.split(',').map((e) => e.trim()).toList(),
-                onBccChanged: (v) => _bccList = v.split(',').map((e) => e.trim()).toList(),
+              TextButton(
+                onPressed: () =>
+                    setState(() => _showCcBccToggle = !_showCcBccToggle),
+                child: Text(_showCcBccToggle ? "Hide Cc/Bcc" : "Add Cc/Bcc"),
               ),
+
+              if (_showCcBccToggle) ...[
+                // CC FIELD
+                RecipientSelector(
+                  label: 'Cc',
+                  showDropdown: _showCcDropdown,
+                  employees: _filteredEmployees,
+                  selectedReceivers: _selectedCc,
+                  onToggleDropdown: () => _openDropdown('cc'),
+
+                  onFilter: _filterEmployees,
+                  onAdd: (emp) => setState(() {
+                    if (!_selectedCc.contains(emp)) _selectedCc.add(emp);
+                  }),
+                  onRemove: (emp) => setState(() => _selectedCc.remove(emp)),
+                ),
+
+                const SizedBox(height: 10),
+
+                // BCC FIELD
+                RecipientSelector(
+                  label: 'Bcc',
+                  showDropdown: _showBccDropdown,
+                  employees: _filteredEmployees,
+                  selectedReceivers: _selectedBcc,
+                  onToggleDropdown: () => _openDropdown('bcc'),
+
+                  onFilter: _filterEmployees,
+                  onAdd: (emp) => setState(() {
+                    if (!_selectedBcc.contains(emp)) _selectedBcc.add(emp);
+                  }),
+                  onRemove: (emp) => setState(() => _selectedBcc.remove(emp)),
+                ),
+              ],
 
               const SizedBox(height: 20),
 
               CustomTextField(
                 controller: _subjectController,
                 hintText: 'Subject',
-                validator: (v) => v == null || v.trim().isEmpty ? 'Subject cannot be empty' : null,
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Subject cannot be empty'
+                    : null,
               ),
               const SizedBox(height: 16),
 
@@ -224,7 +281,9 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
                 hintText: 'Compose your mail...',
                 minLines: 10,
                 maxLines: 20,
-                validator: (v) => v == null || v.trim().isEmpty ? 'Body cannot be empty' : null,
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Body cannot be empty'
+                    : null,
               ),
               const SizedBox(height: 16),
 

@@ -4,16 +4,18 @@ import 'package:flutter_initicon/flutter_initicon.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 
 class RecipientSelector extends StatelessWidget {
+  final String label;
   final bool showDropdown;
   final List<EmployeeModel> employees;
   final List<EmployeeModel> selectedReceivers;
   final VoidCallback onToggleDropdown;
   final ValueChanged<EmployeeModel> onAdd;
-   final ValueChanged<EmployeeModel> onRemove;
+  final ValueChanged<EmployeeModel> onRemove;
   final ValueChanged<String> onFilter;
 
   const RecipientSelector({
     super.key,
+    required this.label,
     required this.showDropdown,
     required this.employees,
     required this.selectedReceivers,
@@ -30,7 +32,6 @@ class RecipientSelector extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        /// 📬 TO field with selected chips
         GestureDetector(
           onTap: showDropdown ? null : onToggleDropdown,
           child: Container(
@@ -43,35 +44,43 @@ class RecipientSelector extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (!hasRecipients)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('To', style: TextStyle(color: Colors.grey, fontSize: 16)),
+                // Label display logic
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: hasRecipients ? 12 : 16,
+                      ),
+                    ),
+                    if (!hasRecipients)
                       Icon(Icons.keyboard_arrow_down, color: Colors.grey.shade700),
-                    ],
-                  )
-                else
+                  ],
+                ),
+
+                if (hasRecipients) ...[
+                  const SizedBox(height: 2),
                   Wrap(
                     spacing: 8,
-                    runSpacing: 6,
+                    runSpacing: -5,
                     children: [
                       ...selectedReceivers.map(
-                        (emp) => Chip(
+                            (emp) => Chip(
                           label: Text(emp.name),
                           avatar: Initicon(text: emp.name, size: 22),
                           onDeleted: () => onRemove(emp),
                         ),
                       ),
-                      
                     ],
                   ),
+                ],
               ],
             ),
           ),
         ),
 
-        /// 📜 Dropdown employee selector
         AnimatedCrossFade(
           duration: const Duration(milliseconds: 300),
           crossFadeState: showDropdown ? CrossFadeState.showFirst : CrossFadeState.showSecond,
@@ -98,6 +107,7 @@ class RecipientSelector extends StatelessWidget {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -114,6 +124,7 @@ class RecipientSelector extends StatelessWidget {
           SizedBox(
             height: 250,
             child: ListView.builder(
+              padding: EdgeInsets.zero,
               itemCount: employees.length,
               itemBuilder: (context, index) {
                 final emp = employees[index];
@@ -127,24 +138,21 @@ class RecipientSelector extends StatelessWidget {
                     isSelected ? Icons.check_circle : Icons.circle_outlined,
                     color: isSelected ? Colors.green : Colors.grey,
                   ),
-                  onTap: () {
-                    isSelected ? onRemove(emp) : onAdd(emp);
-                    
-                  },
+                  onTap: () => isSelected ? onRemove(emp) : onAdd(emp),
                 );
               },
             ),
           ),
           Padding(
-  padding: const EdgeInsets.all(12),
-  child: SizedBox(
-    width: double.infinity,
-    child: ElevatedButton(
-      onPressed: onToggleDropdown, // dropdown close
-      child: const Text('Done'),
-    ),
-  ),
-),
+            padding: const EdgeInsets.all(12),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onToggleDropdown,
+                child: const Text('Done'),
+              ),
+            ),
+          ),
         ],
       ),
     );

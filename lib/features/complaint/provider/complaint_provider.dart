@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/complaint_service.dart';
 import 'package:hrtz_hrms/core/models/complaint_model.dart';
@@ -43,6 +44,7 @@ class ComplaintProvider extends ChangeNotifier {
 
   String? selectedCategory;
   String? selectedPerson;
+  List<PlatformFile> selectedFiles = [];
   List<String> attachments = [];
 
   // ================== LIST STATE ==================
@@ -59,6 +61,7 @@ class ComplaintProvider extends ChangeNotifier {
 
   bool get isLoading => _state == ComplaintState.loading;
   bool isUpdatingStatus = false;
+
 
   ComplaintProvider() {
     _init();
@@ -171,8 +174,16 @@ class ComplaintProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addAttachment(String url) {
+  void addAttachment(PlatformFile file, String url) {
+    selectedFiles.add(file);
     attachments.add(url);
+    _saveDraft();
+    notifyListeners();
+  }
+
+  void removeAttachment(int index) {
+    selectedFiles.removeAt(index);
+    attachments.removeAt(index);
     _saveDraft();
     notifyListeners();
   }
@@ -248,6 +259,7 @@ class ComplaintProvider extends ChangeNotifier {
     additionalInfoController.clear();
     selectedCategory = null;
     selectedPerson = null;
+    selectedFiles = [];
     attachments = [];
     _localStorage.removeString(_draftKey);
   }
