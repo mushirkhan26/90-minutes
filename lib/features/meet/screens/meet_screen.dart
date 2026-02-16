@@ -92,9 +92,12 @@ class _MeetScreenState extends State<MeetScreen> {
           _buildDatePicker(),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => meetProvider.fetchUpcomingMeetings(forceRefresh: true),
+              onRefresh: () =>
+                  meetProvider.fetchUpcomingMeetings(forceRefresh: true),
               color: AppColors.primary,
-              child: meetProvider.state == MeetState.loading && meetProvider.meetList.isEmpty
+              child:
+                  meetProvider.state == MeetState.loading &&
+                      meetProvider.meetList.isEmpty
                   ? const Center(child: CircularProgressIndicator())
                   : _buildMeetingTimeline(meetProvider.meetList),
             ),
@@ -432,7 +435,16 @@ class _MeetScreenState extends State<MeetScreen> {
           mDate.month == _selectedDate.month &&
           mDate.year == _selectedDate.year;
 
-      if (isSameDay) return true;
+      //if (isSameDay) return true;
+      if (isSameDay) {
+        final now = DateTime.now();
+        final endTime = mDate.add(Duration(minutes: m.duration ?? 30));
+
+        if (endTime.isBefore(now)) {
+          return false; // hide expired meeting
+        }
+        return true;
+      }
 
       if (recurrence == "Daily") {
         return _selectedDate.isAfter(mDate);
