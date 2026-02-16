@@ -308,7 +308,8 @@ class _SocialPostCardState extends State<SocialPostCard> {
                     const Icon(Icons.event, size: 16, color: Colors.orange),
                     const SizedBox(width: 6),
                     Text(
-                      'Scheduled for: ${DateFormat('MMM dd, yyyy • hh:mm a').format(widget.post.eventDate!)}',
+                      'Scheduled for: ${DateFormat('MMM dd, yyyy • hh:mm a').format(widget.post.eventDate!.toLocal())}',
+
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
