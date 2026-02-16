@@ -73,6 +73,7 @@ class _RequestDetailScreenState
       final response =
           await Dio().get(imageUrl,
               options: Options(responseType: ResponseType.bytes));
+              if(!mounted) return;
 
       final image = pw.MemoryImage(response.data);
 
@@ -88,12 +89,17 @@ class _RequestDetailScreenState
 
       final directory =
           await getApplicationDocumentsDirectory();
+          if(!mounted) return;
       final file = File(
           "${directory.path}/attachment_${DateTime.now().millisecondsSinceEpoch}.pdf");
 
       await file.writeAsBytes(await pdf.save());
+                if(!mounted) return;
+
 
       await OpenFile.open(file.path);
+                if(!mounted) return;
+
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -307,7 +313,7 @@ class _RequestDetailScreenState
                                   widget.request.type,
                             );
 
-                            if (!mounted) return;
+                            if (!context.mounted) return;
 
                             Navigator.pop(context);
 
@@ -422,7 +428,7 @@ class _RequestDetailScreenState
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black
-                        .withOpacity(0.05),
+                        .withValues(alpha:  0.05),
                     blurRadius: 10,
                   )
                 ],
@@ -711,18 +717,24 @@ SizedBox(
       "Send Video",
       style: TextStyle(fontSize: 15),
     ),
-    onPressed: selectedVideo == null
+   onPressed: selectedVideo == null
     ? null
     : () async {
 
+        
+        final provider = context.read<ServiceRequestProvider>();
+        final messenger = ScaffoldMessenger.of(context);
+
         final uploadService = FileUploadService();
 
-        // 🔵 Step 1: Upload to S3
+        // 🔹 Upload to S3
         final uploadedUrl =
             await uploadService.uploadFile(selectedVideo!);
 
+        if (!mounted) return;
+
         if (uploadedUrl == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(
               content: Text("S3 Upload Failed"),
             ),
@@ -730,10 +742,7 @@ SizedBox(
           return;
         }
 
-        // 🔵 Step 2: Call API to save video URL
-        final provider =
-            context.read<ServiceRequestProvider>();
-
+        // 🔹 Save video URL in backend
         final success = await provider.addVideoToRequest(
           requestId: widget.request.requestId,
           videoUrl: uploadedUrl,
@@ -747,13 +756,13 @@ SizedBox(
             uploadedVideoUrl = uploadedUrl;
           });
 
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(
               content: Text("Video Uploaded Successfully"),
             ),
           );
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(
               content: Text("Video Save Failed"),
             ),
@@ -807,7 +816,7 @@ SizedBox(
     ),
   );
 }
-  void _openRejectDialog() {
+ void _openRejectDialog() {
   final reasonController = TextEditingController();
 
   showDialog(
@@ -824,7 +833,6 @@ SizedBox(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
 
-            /// Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -880,6 +888,7 @@ SizedBox(
                   icon: const Icon(Icons.close),
                   label: const Text("Reject Request"),
                   onPressed: () async {
+
                     if (reasonController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -889,8 +898,11 @@ SizedBox(
                       return;
                     }
 
+                    
                     final provider =
                         context.read<ServiceRequestProvider>();
+                    final navigator = Navigator.of(context);
+                    final messenger = ScaffoldMessenger.of(context);
 
                     final success =
                         await provider.updateRequestStatus(
@@ -899,15 +911,17 @@ SizedBox(
                       rejectionReason: reasonController.text.trim(),
                     );
 
+                    if (!mounted) return;
+
                     if (success) {
                       setState(() {
                         status = "Rejected";
                         rejectionReason = reasonController.text.trim();
                       });
 
-                      Navigator.pop(context);
+                      navigator.pop();
 
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      messenger.showSnackBar(
                         const SnackBar(
                           content: Text("Request Rejected Successfully"),
                         ),

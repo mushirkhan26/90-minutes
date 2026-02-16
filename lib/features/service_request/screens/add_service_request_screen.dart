@@ -92,11 +92,13 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
     setState(() => _submitting = true);
 
     try {
-      // 🔹 Upload file to S3 (if exists)
+      // Upload file to S3 
       if (_selectedFile != null) {
         _uploadedFileUrl =
             await _uploadService.uploadFile(_selectedFile!);
+            if(!mounted) return;
       }
+      
 
       final provider = context.read<ServiceRequestProvider>();
 
@@ -226,7 +228,7 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
     }
 
    return DropdownButtonFormField<String>(
-  value: _selectedDepartment,
+  initialValue: _selectedDepartment,
   decoration: InputDecoration(
     label: RichText(
       text: const TextSpan(
@@ -331,7 +333,7 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
               Row(
   mainAxisAlignment: MainAxisAlignment.end,
   children: [
-    // ❌ CANCEL BUTTON
+    //  CANCEL BUTTON
     TextButton(
       onPressed: _submitting
           ? null

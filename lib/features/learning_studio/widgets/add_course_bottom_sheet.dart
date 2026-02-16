@@ -363,7 +363,6 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
     required String hint,
     required TextEditingController controller,
     int maxLines = 1,
-    bool onlyLetters   = false,
     bool blockNumbers = false,
     Function(String)? onChanged,
   }) {
@@ -379,11 +378,11 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
             maxLines: maxLines,
             onChanged: onChanged,
 
-            // ✅ ONLY CHANGE HERE
+          
             inputFormatters: blockNumbers
                 ? [
               FilteringTextInputFormatter.deny(
-                RegExp(r'[0-9]'), // ✅ Numbers block instantly
+                RegExp(r'[0-9]'), 
               ),
             ]
                 : [],
@@ -471,6 +470,8 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
       'wmv',
       'webm',
     ].contains(extension?.toLowerCase())) {
+       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Only video files are allowed'),

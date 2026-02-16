@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 class CreateComplaintScreen extends StatefulWidget {
   const CreateComplaintScreen({super.key});
@@ -13,15 +16,57 @@ class CreateComplaintScreen extends StatefulWidget {
 
 class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   final _formKey = GlobalKey<FormState>();
+  final FileUploadService _uploadService = FileUploadService();
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
 
     Future.microtask(() async {
+      if (!mounted) return;
+
       await context.read<ComplaintProvider>().loadLoginUser();
     });
   }
+
+  Future<void> _pickAndUploadFile() async {
+  final result = await FilePicker.platform.pickFiles(
+    allowMultiple: false,
+  );
+
+  if (result != null && result.files.single.path != null) {
+    setState(() => _isUploading = true);
+
+    try {
+      final platformFile = result.files.single; 
+
+      final uploadedUrl = await _uploadService.uploadFile(
+        File(platformFile.path!),          
+      );
+      if(uploadedUrl == null){
+        throw Exception("Upload returned null");
+      }
+
+      if (!mounted) return;
+
+      context.read<ComplaintProvider>().addAttachment(
+        platformFile,   
+        uploadedUrl,       
+      );
+    } catch (e) {
+            if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Upload failed: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+}
 
 
 
@@ -38,7 +83,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     }
 
 
-    print("SCREEN BUILD CALLED");
+  
 
 
 
@@ -134,12 +179,9 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
 
                         _label("Attach Here"),
                         GestureDetector(
-                          onTap: () {
-                            // TEMP TEST URL
-                            provider.addAttachment(
-                              "https://task-m.s3.us-east-1.amazonaws.com/sample-test.jpg",
-                            );
-                          },
+                          onTap: _isUploading ? null : _pickAndUploadFile,
+                           
+                          
                           child: Container(
                             height: 140,
                             decoration: BoxDecoration(
@@ -306,7 +348,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     children: [
       _label(label),
       DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         items: items
             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
             .toList(),

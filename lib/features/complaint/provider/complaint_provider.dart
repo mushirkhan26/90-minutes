@@ -89,14 +89,14 @@ class ComplaintProvider extends ChangeNotifier {
     employeeIdController.text = loggedInEmployeeId;
 
 
-    print("\x1B[31m🚨 EmployeeId: $loggedInEmployeeId \x1B[0m");
-    print("\x1B[31m👤 Username: $loggedInName \x1B[0m");
+    ("\x1B[31m🚨 EmployeeId: $loggedInEmployeeId \x1B[0m");
+    ("\x1B[31m👤 Username: $loggedInName \x1B[0m");
 
 
     isManager = userData?['role']?.toString().toLowerCase() == 'manager';
 
     isUserLoaded = true;
-    print("SETTING CONTROLLERS NOW");
+    ("SETTING CONTROLLERS NOW");
 
 
 
