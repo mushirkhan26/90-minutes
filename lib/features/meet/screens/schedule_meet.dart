@@ -198,37 +198,37 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   // }
 
   Future<void> _pickFiles() async {
-  if (_attachments.length >= 5) {
-    AlertHelper.snackBarWarning(
-      context,
-      "You can upload maximum 5 files only",
+    if (_attachments.length >= 5) {
+      AlertHelper.snackBarWarning(
+        context,
+        "You can upload maximum 5 files only",
+      );
+      return;
+    }
+
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      allowMultiple: true,
     );
-    return;
+
+    if (result == null) return;
+
+    final pickedFiles = result.paths
+        .where((p) => p != null)
+        .map((p) => File(p!))
+        .toList();
+
+    if (_attachments.length + pickedFiles.length > 5) {
+      AlertHelper.snackBarWarning(
+        context,
+        "You can upload maximum 5 files only",
+      );
+      return;
+    }
+
+    setState(() {
+      _attachments.addAll(pickedFiles);
+    });
   }
-
-  FilePickerResult? result = await FilePicker.platform.pickFiles(
-    allowMultiple: true,
-  );
-
-  if (result == null) return;
-
-  final pickedFiles = result.paths
-      .where((p) => p != null)
-      .map((p) => File(p!))
-      .toList();
-
-  if (_attachments.length + pickedFiles.length > 5) {
-    AlertHelper.snackBarWarning(
-      context,
-      "You can upload maximum 5 files only",
-    );
-    return;
-  }
-
-  setState(() {
-    _attachments.addAll(pickedFiles);
-  });
-}
 
   List<DateTime> _calculateRecurrenceDates() {
     List<DateTime> dates = [];
@@ -617,6 +617,26 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
                 hintText: "30",
                 keyboardType: TextInputType.number,
               ),
+              // _buildLabel("Duration (min) *", Icons.timer_outlined),
+              // CustomTextField(
+              //   controller: _durationController,
+              //   hintText: "Enter duration in minutes",
+              //   keyboardType: TextInputType.number,
+              //   validator: (value) {
+              //     if (value == null || value.trim().isEmpty) {
+              //       return "Duration is required";
+              //     }
+              //     final duration = int.tryParse(value);
+              //     if (duration == null || duration <= 0) {
+              //       return "Please enter a valid duration";
+              //     }
+              //     if (duration > 480) {
+              //       // Max 8 hours
+              //       return "Duration cannot exceed 480 minutes (8 hours)";
+              //     }
+              //     return null;
+              //   },
+              // ),
               const SizedBox(height: 15),
 
               if (_calculateRecurrenceDates().length > 1) ...[
