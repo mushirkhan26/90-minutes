@@ -64,15 +64,24 @@ class EmployeeService {
   }
 
   /// 🎭 Change Employee Role
-  Future<ApiResponse<Map<String, dynamic>>> changeRole({
-    required String employeeId,
-    required String newRole,
-    required String changedBy,
-  }) async {
-    final body = {
-      "newRole": newRole,
-      "changedBy": changedBy
-    };
-    return await _apiHelper.put<Map<String, dynamic>>('employee/changeRole/$employeeId', body);
-  }
+ Future<ApiResponse<Map<String, dynamic>>> changeRole({
+  required String employeeId,
+  required String newRole,
+  required String changedBy,
+}) async {
+
+  final body = {
+    "newRole": newRole,
+    "changedBy": changedBy
+  };
+
+  final ApiHelper roleApiHelper = ApiHelper(
+    baseUrl: "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/",
+  );
+
+  return await roleApiHelper.put(
+    'employee/changeRole/$employeeId',
+    body,
+  );
+}
 }

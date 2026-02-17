@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
+import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
 
 class BenefitsScreen extends StatefulWidget {
   const BenefitsScreen({Key? key}) : super(key: key);
@@ -28,9 +30,9 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
 
-      // ✅ PRIMARY COLOR APP BAR
+      // ✅ AppBar (Title Only)
       appBar: AppBar(
-        backgroundColor: Theme.of(context).primaryColor,
+        backgroundColor: AppColors.primary,
         elevation: 0,
         title: const Text(
           "BENEFITS",
@@ -45,10 +47,11 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
       body: Column(
         children: [
 
-          // ✅ SEARCH BAR
+          // ✅ Search Bar Below AppBar
           Container(
-            color: Theme.of(context).primaryColor,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            width: double.infinity,
+            color: Colors.white,
+            padding: const EdgeInsets.all(16),
             child: TextField(
               controller: _searchController,
               onChanged: (value) {
@@ -58,38 +61,43 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
               },
               decoration: InputDecoration(
                 hintText: "Search benefits",
-                filled: true,
-                fillColor: Colors.white,
                 prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.grey.shade100,
                 contentPadding:
                     const EdgeInsets.symmetric(vertical: 0),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(10),
                   borderSide: BorderSide.none,
                 ),
               ),
             ),
           ),
 
-          // ✅ CONTENT AREA
+          // ✅ Content Area
           Expanded(
             child: Builder(
               builder: (_) {
 
-                // 🔄 Loading state
+                // 🔄 Loading → Shimmer
                 if (authProvider.isFetchingProfile) {
-                  return const Center(
-                    child: CircularProgressIndicator(),
+                  return ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: 4,
+                    itemBuilder: (_, __) => const Padding(
+                      padding: EdgeInsets.only(bottom: 16),
+                      child: ShimmerTile(),
+                    ),
                   );
                 }
 
-                // ❌ No employee data
-                if (employee == null) {
-                  return const Center(
-                    child: Text("Unable to load benefits"),
-                  );
-                }
+                
 
+if (employee == null) {
+  return const Center(
+    child: Text("Profile not loaded"),
+  );
+}
                 final benefits = employee.benefit;
 
                 final filteredBenefits = benefits.where((b) {
@@ -126,14 +134,15 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
     );
   }
 
-  // ✅ CLEAN CARD UI
   Widget _benefitCard(EmployeeBenefit benefit) {
-    return Container(
+  return GestureDetector(
+    onTap: () => _showBenefitDialog(context, benefit),
+    child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -143,25 +152,16 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
         ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // LEFT ICON
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: Colors.green.shade50,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              Icons.volunteer_activism,
-              color: Colors.green.shade600,
-              size: 20,
-            ),
+            
           ),
-
           const SizedBox(width: 12),
-
           Expanded(
             child: Text(
               benefit.benefitName,
@@ -173,6 +173,92 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
+
+void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+
+              /// 🔹 Dynamic Heading
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      benefit.benefitName.toUpperCase(),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.visibility),
+                  label: const Text("View Previous Claims"),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              /// ✅ Apply For New Claim Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white, // 👈 TEXT WHITE
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  icon: const Icon(Icons.add),
+                  label: const Text("Apply For New Claim"),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
 }
