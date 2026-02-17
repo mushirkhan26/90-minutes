@@ -407,6 +407,7 @@ class AuthProvider extends ChangeNotifier {
             alterMobile: profileData['alterMobile'],
             gender: profileData['gender'],
             address: profileData['address'],
+            benefit: [],
           );
           _logger.logAuth('ℹ️ Using cached profile data as fallback');
         }
@@ -430,6 +431,7 @@ class AuthProvider extends ChangeNotifier {
           alterMobile: profileData['alterMobile'],
           gender: profileData['gender'],
           address: profileData['address'],
+          benefit: _profileData?.benefit ?? [],
         );
         _logger.logAuth('ℹ️ Using cached profile data as fallback');
       }
@@ -481,6 +483,7 @@ class AuthProvider extends ChangeNotifier {
           gender: gender,
           address: address,
           profileImage: profileImage ?? _profileData?.profileImage,
+          benefit: _profileData?.benefit ?? [],
         );
 
         // Save updated profile data to secure storage

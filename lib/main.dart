@@ -18,6 +18,7 @@ import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/nda_provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/onboarding_provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/profile_provider.dart';
+import 'package:hrtz_hrms/features/employee_benefits/provider/benefits_provider.dart';
 import 'package:hrtz_hrms/features/employee_directory/provider/employee_directory_provider.dart';
 import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
@@ -91,6 +92,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => EmployeeDirectoryProvider()),
         ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
         ChangeNotifierProvider(create: (_) => ServiceRequestProvider()),
+        ChangeNotifierProvider(create: (_) => BenefitsProvider()),
 
 
         ChangeNotifierProvider(create: (_) => ProjectProvider()),
