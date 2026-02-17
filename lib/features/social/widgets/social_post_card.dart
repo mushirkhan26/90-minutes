@@ -125,6 +125,13 @@ class _SocialPostCardState extends State<SocialPostCard> {
                           color: Colors.grey.shade500,
                         ),
                       ),
+
+                      // Text(
+                      //   "Raw: ${widget.post.createdAt.toString()} \nLocal: ${DateFormat('hh:mm a').format(widget.post.createdAt.toLocal())}",
+                      //   style: TextStyle(fontSize: 10, color: Colors.red),
+                      // ),
+
+
                     ],
                   ),
                 ),
