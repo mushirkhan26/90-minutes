@@ -162,7 +162,7 @@ class _AddSubtaskDialogState extends State<AddSubtaskDialog> {
                           _buildLabel("PRIORITY"),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: _priority,
+                            initialValue: _priority,
                             decoration: _buildInputDecoration(""),
                             items: _priorities.map((e) => DropdownMenuItem(value: e, child: Text(e, style: const TextStyle(fontSize: 13)))).toList(),
                             onChanged: (v) => setState(() => _priority = v!),

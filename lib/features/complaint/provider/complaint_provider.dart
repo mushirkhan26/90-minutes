@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/complaint_service.dart';
 import 'package:hrtz_hrms/core/models/complaint_model.dart';
@@ -20,6 +21,9 @@ class ComplaintProvider extends ChangeNotifier {
   String loggedInEmployeeId = "";
   bool isManager = false;
 
+  bool isUserLoaded = false;
+
+
   // ================== MASTER DATA ==================
   final List<String> categories = ["IT", "HR", "Facilities"];
   final List<String> mentionPeople = ["Team Lead", "Manager", "CEO"];
@@ -33,9 +37,14 @@ class ComplaintProvider extends ChangeNotifier {
   final TextEditingController titleController = TextEditingController();
   final TextEditingController descriptionController = TextEditingController();
   final TextEditingController additionalInfoController = TextEditingController();
-  
+
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController employeeIdController = TextEditingController();
+
+
   String? selectedCategory;
   String? selectedPerson;
+  List<PlatformFile> selectedFiles = [];
   List<String> attachments = [];
 
   // ================== LIST STATE ==================
@@ -52,6 +61,7 @@ class ComplaintProvider extends ChangeNotifier {
 
   bool get isLoading => _state == ComplaintState.loading;
   bool isUpdatingStatus = false;
+
 
   ComplaintProvider() {
     _init();
@@ -71,8 +81,25 @@ class ComplaintProvider extends ChangeNotifier {
   Future<void> loadLoginUser() async {
     final userData = await _secureStorage.getUserData();
     loggedInName = userData?['username'] ?? "";
+
     loggedInEmployeeId = userData?['employeeId']?.toString() ?? "";
+
+    // Set controller values
+    nameController.text = loggedInName;
+    employeeIdController.text = loggedInEmployeeId;
+
+
+    ("\x1B[31m🚨 EmployeeId: $loggedInEmployeeId \x1B[0m");
+    ("\x1B[31m👤 Username: $loggedInName \x1B[0m");
+
+
     isManager = userData?['role']?.toString().toLowerCase() == 'manager';
+
+    isUserLoaded = true;
+    ("SETTING CONTROLLERS NOW");
+
+
+
     notifyListeners();
   }
 
@@ -147,8 +174,16 @@ class ComplaintProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addAttachment(String url) {
+  void addAttachment(PlatformFile file, String url) {
+    selectedFiles.add(file);
     attachments.add(url);
+    _saveDraft();
+    notifyListeners();
+  }
+
+  void removeAttachment(int index) {
+    selectedFiles.removeAt(index);
+    attachments.removeAt(index);
     _saveDraft();
     notifyListeners();
   }
@@ -224,6 +259,7 @@ class ComplaintProvider extends ChangeNotifier {
     additionalInfoController.clear();
     selectedCategory = null;
     selectedPerson = null;
+    selectedFiles = [];
     attachments = [];
     _localStorage.removeString(_draftKey);
   }
@@ -299,6 +335,9 @@ class ComplaintProvider extends ChangeNotifier {
     titleController.dispose();
     descriptionController.dispose();
     additionalInfoController.dispose();
+    nameController.dispose();
+    employeeIdController.dispose();
+
     super.dispose();
   }
 

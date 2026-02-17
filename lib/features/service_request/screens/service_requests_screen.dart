@@ -121,7 +121,7 @@ Future<void> _loadData() async {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha:  0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),
@@ -200,7 +200,7 @@ Future<void> _loadData() async {
             .where((e) => e.key != 'Total Requests')
             .toList();
 
-        IconData _getIcon(String type) {
+        IconData getIcon(String type) {
           switch (type.toLowerCase()) {
             case 'hardware':
               return Icons.build;
@@ -257,7 +257,7 @@ Future<void> _loadData() async {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _getIcon(category.key),
+                        getIcon(category.key),
                         size: 36,
                         color: AppColors.primary,
                       ),
@@ -911,11 +911,13 @@ Future<void> _exportToExcel() async {
     await file.writeAsBytes(bytes, flush: true);
 
     await OpenFile.open(filePath);
+    if(!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Excel Downloaded Successfully")),
     );
   } catch (e) {
+    if(!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Export failed: $e")),
     );

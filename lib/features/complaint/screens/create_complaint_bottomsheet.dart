@@ -19,6 +19,8 @@ class _CreateComplaintBottomSheetState
   final _formKey = GlobalKey<FormState>();
   final FileUploadService _uploader = FileUploadService();
 
+
+
   Future<void> _pickFile(ComplaintProvider provider) async {
     final result = await FilePicker.platform.pickFiles(
       allowMultiple: true,
@@ -26,12 +28,17 @@ class _CreateComplaintBottomSheetState
 
     if (result == null) return;
 
+    // If files are selected, Show loading Loading
     for (final file in result.files) {
       if (file.path == null) continue;
 
+      // Check if file already exists
+      bool alreadyExists = provider.selectedFiles.any((e) => e.name == file.name);
+      if (alreadyExists) continue;
+
       final s3Url = await _uploader.uploadFile(File(file.path!));
       if (s3Url != null) {
-        provider.addAttachment(s3Url);
+        provider.addAttachment(file, s3Url);
       }
     }
   }
@@ -93,11 +100,11 @@ class _CreateComplaintBottomSheetState
                   const SizedBox(height: 16),
 
                   /// 🔹 NAME
-                  _readOnlyField('Your Name *', provider.loggedInName),
+                  _readOnlyField('Your Name *', provider.nameController),
                   const SizedBox(height: 12),
 
                   /// 🔹 EMPLOYEE ID
-                  _readOnlyField('Employee ID *', provider.loggedInEmployeeId),
+                  _readOnlyField('Employee ID *', provider.employeeIdController),
                   const SizedBox(height: 12),
 
                   /// 🔹 CATEGORY + PERSON
@@ -157,13 +164,36 @@ class _CreateComplaintBottomSheetState
                     ),
                   ),
 
-                  if (provider.attachments.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        '${provider.attachments.length} file(s) selected',
-                        style: const TextStyle(color: Colors.grey),
-                      ),
+
+
+                  // Show attachments if any
+                  if (provider.selectedFiles.isNotEmpty)
+                    ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: provider.selectedFiles.length,
+                      itemBuilder: (context, index) {
+                        final file = provider.selectedFiles[index];
+
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: const Icon(Icons.attach_file, size: 20, color: AppColors.primary),
+                          title: Text(
+                            file.name,
+                            style: const TextStyle(fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          subtitle: Text(
+                            '${(file.size / 1024).toStringAsFixed(1)} KB',
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close, size: 18, color: Colors.red),
+                            onPressed: () => provider.removeAttachment(index),
+                          ),
+                        );
+                      },
                     ),
 
                   const SizedBox(height: 12),
@@ -247,14 +277,15 @@ class _CreateComplaintBottomSheetState
   }
 
   /// 🔹 READ-ONLY FIELD
-  Widget _readOnlyField(String label, String value) {
+  Widget _readOnlyField(String label, TextEditingController controller) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(label),
         const SizedBox(height: 4),
         TextFormField(
-          initialValue: value,
+          // initialValue: value,
+          controller: controller,
           readOnly: true,
           decoration: const InputDecoration(
             filled: true,
@@ -304,7 +335,7 @@ class _CreateComplaintBottomSheetState
         Text(label),
         const SizedBox(height: 4),
         DropdownButtonFormField<String>(
-          value: initialValue,
+          initialValue: initialValue,
           hint: Text(hintText),
           style: const TextStyle(color: Colors.black, fontSize: 14),
           items: items

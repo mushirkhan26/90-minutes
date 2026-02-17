@@ -247,7 +247,7 @@ class _MyComplaintsScreenState extends State<MyComplaintsScreen>
               SizedBox(
                 width: 140,
                 child: DropdownButtonFormField<String>(
-                  value: _selectedStatus,
+                  initialValue: _selectedStatus,
                   items: const [
                     DropdownMenuItem(value: 'All', child: Text('All Status')),
                     DropdownMenuItem(value: 'Pending', child: Text('Pending')),

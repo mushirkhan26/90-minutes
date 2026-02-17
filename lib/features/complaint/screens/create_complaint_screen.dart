@@ -1,20 +1,91 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/services/file_upload_service.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
+import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 
 class CreateComplaintScreen extends StatefulWidget {
   const CreateComplaintScreen({super.key});
 
   @override
   State<CreateComplaintScreen> createState() => _CreateComplaintScreenState();
+
+
 }
 
 class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   final _formKey = GlobalKey<FormState>();
+  final FileUploadService _uploadService = FileUploadService();
+  bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    Future.microtask(() async {
+      if (!mounted) return;
+
+      await context.read<ComplaintProvider>().loadLoginUser();
+    });
+  }
+
+  Future<void> _pickAndUploadFile() async {
+  final result = await FilePicker.platform.pickFiles(
+    allowMultiple: false,
+  );
+
+  if (result != null && result.files.single.path != null) {
+    setState(() => _isUploading = true);
+
+    try {
+      final platformFile = result.files.single; 
+
+      final uploadedUrl = await _uploadService.uploadFile(
+        File(platformFile.path!),          
+      );
+      if(uploadedUrl == null){
+        throw Exception("Upload returned null");
+      }
+
+      if (!mounted) return;
+
+      context.read<ComplaintProvider>().addAttachment(
+        platformFile,   
+        uploadedUrl,       
+      );
+    } catch (e) {
+            if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Upload failed: $e")),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isUploading = false);
+      }
+    }
+  }
+}
+
+
+
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<ComplaintProvider>();
+
+
+    if (!provider.isUserLoaded) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+
+  
+
+
 
     return Scaffold(
       backgroundColor: Colors.black.withValues(alpha: 0.4),
@@ -64,12 +135,12 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _label("Your Name *"),
-                        _readonly(provider.loggedInName),
+                        _readonly(provider.nameController),
 
                         const SizedBox(height: 12),
 
                         _label("Employee ID *"),
-                        _readonly(provider.loggedInEmployeeId),
+                        _readonly(provider.employeeIdController),
 
                         const SizedBox(height: 16),
 
@@ -98,16 +169,19 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         const SizedBox(height: 16),
 
                         _label("Additional Info"),
-                        _multiline(provider.additionalInfoController, 4, onChanged: (_) => provider.onFieldChanged()),
+                        _multiline(
+                          provider.additionalInfoController,
+                          4,
+                          onChanged: (_) => provider.onFieldChanged(),
+                        ),
 
                         const SizedBox(height: 16),
 
                         _label("Attach Here"),
                         GestureDetector(
-                          onTap: () {
-                            // TEMP TEST URL
-                            provider.addAttachment("https://task-m.s3.us-east-1.amazonaws.com/sample-test.jpg");
-                          },
+                          onTap: _isUploading ? null : _pickAndUploadFile,
+                           
+                          
                           child: Container(
                             height: 140,
                             decoration: BoxDecoration(
@@ -137,7 +211,9 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                                     const SizedBox(height: 8),
                                     Text(
                                       "${provider.attachments.length} file selected",
-                                      style: const TextStyle(color: Colors.grey),
+                                      style: const TextStyle(
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ],
@@ -149,12 +225,19 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
                         const SizedBox(height: 16),
 
                         _label("Title of Complaint *"),
-                        _textfield(provider.titleController, onChanged: (_) => provider.onFieldChanged()),
+                        _textfield(
+                          provider.titleController,
+                          onChanged: (_) => provider.onFieldChanged(),
+                        ),
 
                         const SizedBox(height: 16),
 
                         _label("Description *"),
-                        _multiline(provider.descriptionController, 5, onChanged: (_) => provider.onFieldChanged()),
+                        _multiline(
+                          provider.descriptionController,
+                          5,
+                          onChanged: (_) => provider.onFieldChanged(),
+                        ),
                       ],
                     ),
                   ),
@@ -220,20 +303,32 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
   Widget _label(String t) =>
       Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(t));
 
-  Widget _readonly(String text) => TextFormField(
-    initialValue: text,
-    enabled: false,
-    decoration: const InputDecoration(border: OutlineInputBorder(), fillColor: Color(0xFFF5F5F5), filled: true),
-  );
+  Widget _readonly(TextEditingController controller) =>
+      TextFormField(
+        controller: controller,
+        // initialValue: text,
+        // enabled: false,
+        readOnly: true,
+        decoration: const InputDecoration(
+          border: OutlineInputBorder(),
+          fillColor: Color(0xFFF5F5F5),
+          filled: true,
+        ),
+      );
 
-  Widget _textfield(TextEditingController c, {Function(String)? onChanged}) => TextFormField(
-    controller: c,
-    onChanged: onChanged,
-    validator: (v) => v == null || v.isEmpty ? "Required" : null,
-    decoration: const InputDecoration(border: OutlineInputBorder()),
-  );
+  Widget _textfield(TextEditingController c, {Function(String)? onChanged}) =>
+      TextFormField(
+        controller: c,
+        onChanged: onChanged,
+        validator: (v) => v == null || v.isEmpty ? "Required" : null,
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+      );
 
-  Widget _multiline(TextEditingController c, int lines, {Function(String)? onChanged}) => TextFormField(
+  Widget _multiline(
+    TextEditingController c,
+    int lines, {
+    Function(String)? onChanged,
+  }) => TextFormField(
     controller: c,
     maxLines: lines,
     onChanged: onChanged,
@@ -253,7 +348,7 @@ class _CreateComplaintScreenState extends State<CreateComplaintScreen> {
     children: [
       _label(label),
       DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         items: items
             .map((e) => DropdownMenuItem(value: e, child: Text(e)))
             .toList(),
