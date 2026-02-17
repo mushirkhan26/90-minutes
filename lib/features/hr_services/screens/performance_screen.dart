@@ -674,29 +674,35 @@ class TeamPerformanceView extends StatelessWidget {
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: performanceProvider.teamFilterType,
-                          isDense: true,
-                          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black),
-                          onChanged: (String? newValue) {
-                            if (newValue != null) {
-                              performanceProvider.setTeamFilter(newValue);
-                            }
-                          },
-                          items: <String>[
-                            'All Ratings',
-                            '5 Stars',
-                            '4 Stars',
-                            '3 Stars',
-                            '2 Stars',
-                            '1 Star'
-                          ].map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value, style: const TextStyle(color: Colors.black, fontSize: 14)),
-                            );
-                          }).toList(),
+                      child: Tooltip(
+                        message: "Filter performance ratings",
+                        child: Semantics(
+                          label: "Filter Ratings Dropdown",
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: performanceProvider.teamFilterType,
+                              isDense: true,
+                              icon: const Icon(Icons.keyboard_arrow_down, color: Colors.black),
+                              onChanged: (String? newValue) {
+                                if (newValue != null) {
+                                  performanceProvider.setTeamFilter(newValue);
+                                }
+                              },
+                              items: <String>[
+                                'All Ratings',
+                                '5 Stars',
+                                '4 Stars',
+                                '3 Stars',
+                                '2 Stars',
+                                '1 Star'
+                              ].map<DropdownMenuItem<String>>((String value) {
+                                return DropdownMenuItem<String>(
+                                  value: value,
+                                  child: Text(value, style: const TextStyle(color: Colors.black, fontSize: 14)),
+                                );
+                              }).toList(),
+                            ),
+                          ),
                         ),
                       ),
                     ),
