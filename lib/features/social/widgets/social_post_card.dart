@@ -131,6 +131,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
                       //   style: TextStyle(fontSize: 10, color: Colors.red),
                       // ),
 
+                      //fix
 
                     ],
                   ),
