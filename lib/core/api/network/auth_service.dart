@@ -2,7 +2,7 @@ import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'dart:io';
+
 
 class AuthService {
   final ApiHelper _apiHelper = ApiHelper();
@@ -90,30 +90,54 @@ class AuthService {
   }
 
   /// ✏️ Update Employee Profile API
-  Future<ApiResponse<Map<String, dynamic>>> updateEmployeeProfile({
-    required String employeeId,
-    required String name,
-    required String email,
-    required String mobile,
-    required String alterMobile,
-    required String gender,
-    required String address,
-    String? profileImage,
-  }) async {
-    _logger.logAuth('Updating profile for employeeId: $employeeId');
-    final endpoint = 'employee/profile/$employeeId';
-    final body = {
-      "name": name,
-      "email": email,
-      "mobile": int.tryParse(mobile) ?? mobile,
-      "alterMobile": int.tryParse(alterMobile) ?? alterMobile,
-      "gender": gender,
-      "address": address,
-      if (profileImage != null) "profileImage": profileImage,
-    };
-    return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
-  }
+ Future<ApiResponse<Map<String, dynamic>>> updateEmployeeProfile({
+  required String employeeId,
+  required String name,
+  required String email,
+  required String mobile,
+  required String alterMobile,
+  required String gender,
+  required String address,
+  String? profileImage,
+}) async {
+  final endpoint = 'employee/profile/$employeeId';
 
+final parsedMobile = int.tryParse(mobile.trim());
+final parsedAltMobile = int.tryParse(alterMobile.trim());
+
+final body = {
+  "name": name.trim(),
+  "email": email.trim(),
+  "mobile": parsedMobile,
+  "gender": gender,
+  "address": address.trim(),
+
+  //  Only if alternate number valid
+  if (parsedAltMobile != null)
+    "alterMobile": parsedAltMobile,
+
+  if (profileImage != null)
+    "profileImage": profileImage,
+};
+
+  
+  _logger.logNetwork("======= PROFILE UPDATE REQUEST =======");
+  _logger.logNetwork("Endpoint: $endpoint");
+  _logger.logNetwork("Body: $body");
+  _logger.logNetwork("=======================================");
+
+  final response =
+      await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
+
+
+  _logger.logNetwork("======= PROFILE UPDATE RESPONSE =======");
+  _logger.logNetwork("Status Code: ${response.statusCode}");
+  _logger.logNetwork("Success: ${response.success}");
+  _logger.logNetwork("Message: ${response.message}");
+  _logger.logNetwork("=======================================");
+
+  return response;
+}
   ///  Update FCM Token (appToken)
   Future<ApiResponse<Map<String, dynamic>>> updateFCMToken({
     required String employeeId,

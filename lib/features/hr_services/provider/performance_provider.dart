@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/performance_service.dart';
+import 'package:hrtz_hrms/core/api/network/employee_service.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
@@ -9,6 +10,7 @@ enum PerformanceState { idle, loading, success, error }
 
 class PerformanceProvider extends ChangeNotifier {
   final PerformanceService _performanceService = PerformanceService();
+  final EmployeeService _employeeService = EmployeeService();
   final LoggingService _logger = LoggingService.instance;
   final LocalStorageService _local = LocalStorageService();
   final SecureStorageService _secureStorage = SecureStorageService();
@@ -153,16 +155,58 @@ class PerformanceProvider extends ChangeNotifier {
     _teamState = PerformanceState.loading;
     notifyListeners();
     try {
-      final response = await _performanceService.getTeamPerformance();
-      if (response.success && response.data != null) {
-        _allRatings = response.data!;
+      // 1. Fetch all employees first to ensure we have everyone
+      final employeeResponse = await _employeeService.getEmployeeList();
+      final List<PerformanceModel> mergedRatings = [];
+      
+      // 2. Fetch existing reviews
+      final reviewResponse = await _performanceService.getTeamPerformance();
+      
+      if (employeeResponse.success && employeeResponse.data != null) {
+        final allEmployees = employeeResponse.data!;
+        final allReviews = reviewResponse.success ? (reviewResponse.data ?? []) : <PerformanceModel>[];
+
+        for (var emp in allEmployees) {
+          // Find if this employee has any reviews
+          final empReviews = allReviews.where((r) => r.employeeId == emp.employeeID).toList();
+          
+          if (empReviews.isNotEmpty) {
+            // Add all existing reviews for this employee
+            mergedRatings.addAll(empReviews);
+          } else {
+            // Create a dummy/empty rating for employees with no reviews so they show up in UI
+            mergedRatings.add(PerformanceModel(
+              reviewId: 'none_${emp.employeeID}',
+              employeeName: emp.name,
+              employeeId: emp.employeeID,
+              rating: 0.0,
+              status: 'N/A',
+              reviewPersonName: 'N/A',
+              reviewPersonId: 'N/A',
+              reviewText: 'No reviews yet.',
+              createdAt: DateTime.now().toIso8601String(),
+            ));
+          }
+        }
+        
+        _allRatings = mergedRatings;
+        // Sort by employee name or recent
+        _allRatings.sort((a, b) => a.employeeName.compareTo(b.employeeName));
+        
         await _local.savePerformanceRatings(LocalStorageService.keyTeamRatings, _allRatings);
         _teamState = PerformanceState.success;
       } else {
-        _teamState = _allRatings.isNotEmpty ? PerformanceState.success : PerformanceState.error;
-        _errorMessage = response.message;
+        // Fallback to just reviews if employee list fails
+        if (reviewResponse.success && reviewResponse.data != null) {
+          _allRatings = reviewResponse.data!;
+          _teamState = PerformanceState.success;
+        } else {
+          _teamState = _allRatings.isNotEmpty ? PerformanceState.success : PerformanceState.error;
+          _errorMessage = reviewResponse.message;
+        }
       }
     } catch (e) {
+      _logger.error('PERFORMANCE_PROVIDER', 'Error fetching team performance', error: e);
       _teamState = _allRatings.isNotEmpty ? PerformanceState.success : PerformanceState.error;
       _errorMessage = e.toString();
     }
@@ -179,7 +223,7 @@ class PerformanceProvider extends ChangeNotifier {
       
       // Get all from team ratings if available (History)
       if (_allRatings.isNotEmpty) {
-        _selectedEmployeeReviews = _allRatings.where((r) => r.employeeId == employeeId).toList();
+        _selectedEmployeeReviews = _allRatings.where((r) => r.employeeId == employeeId && !r.reviewId.startsWith('none_')).toList();
       }
 
       final response = await _performanceService.getMyPerformance(employeeId);

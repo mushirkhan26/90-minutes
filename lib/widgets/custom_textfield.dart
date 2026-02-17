@@ -112,7 +112,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             maxLines: widget.maxLines,
             maxLength: widget.maxLength,
             validator: widget.validator, // ✅ added validator
-            onTap: widget.readOnly ? widget.onTap : null,
+            onTap: widget.onTap,
             inputFormatters: widget.inputFormatters,
             onChanged: widget.onChanged,
             decoration: InputDecoration(

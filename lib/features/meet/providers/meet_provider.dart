@@ -162,6 +162,7 @@ class MeetProvider extends ChangeNotifier {
             participants: _meetList[index].participants,
             time: time,
             description: _meetList[index].description,
+            duration: _meetList[index].duration,//modify
             createdAt: _meetList[index].createdAt,
             updatedAt: DateTime.now().toIso8601String(),
           );

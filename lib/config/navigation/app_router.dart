@@ -15,6 +15,7 @@ import 'package:hrtz_hrms/features/chat/screens/chat_list_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/chat_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
+import 'package:hrtz_hrms/features/employee_benefits/screens/benefits_screen.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
 import 'package:hrtz_hrms/features/leaderboard/screens/admin_leaderboard_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/new_registrations_screen.dart';
@@ -40,6 +41,7 @@ import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
 import 'package:hrtz_hrms/features/employee_directory/screens/employee_directory_screen.dart';
 
+
 import 'package:hrtz_hrms/splash_screen.dart';
 
 import 'package:provider/provider.dart';
@@ -54,6 +56,7 @@ import 'package:hrtz_hrms/features/service_request/screens/service_requests_scre
 import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
 import 'package:hrtz_hrms/features/tasks/screens/manage_tasks_screen.dart';
 import 'package:hrtz_hrms/features/tasks/screens/add_project_screen.dart';
+import 'package:hrtz_hrms/payroll_documents/screens/payroll_documents_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -325,6 +328,11 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => buildTransitionPage(const LearningStudioScreen()),
     ),
     GoRoute(
+      path: AppRoutes.employeeBenefits,
+      name: 'employee-benefits',
+      pageBuilder: (context, state) => buildTransitionPage(const BenefitsScreen()),
+    ),
+    GoRoute(
       path: AppRoutes.newRegistrations,
       name: '/new-registrations',
       builder: (context, state) => const NewRegistrationsScreen(),
@@ -369,6 +377,11 @@ final GoRouter appRouter = GoRouter(
       path: AppRoutes.addProject,
       name: 'add-project',
       builder: (context, state) => const AddProjectScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.payrollDocuments,
+      name: 'payroll-documents',
+      builder: (context, state) => const PayrollDocumentsScreen(),
     ),
   ],
 );
@@ -451,6 +464,7 @@ extension AuthNavigation on BuildContext {
   void goToLeaderboard() => push(AppRoutes.leaderboard);
   void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
   void goToManageTasks() => push(AppRoutes.manageTasks);
+  void goToPayrollDocuments() => push(AppRoutes.payrollDocuments);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {
