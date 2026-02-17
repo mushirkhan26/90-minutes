@@ -284,6 +284,15 @@ class HomeScreen extends StatelessWidget {
           context.push(AppRoutes.complaint);
         },
       ),
+      ListTile(
+        leading: const Icon(Icons.description_outlined,
+            color: Colors.black87),
+        title: const Text('Payroll Documents'),
+        onTap: () {
+          Navigator.pop(context);
+          context.goToPayrollDocuments();
+        },
+      ),
     ],
   ),
 ),

@@ -56,6 +56,7 @@ import 'package:hrtz_hrms/features/service_request/screens/service_requests_scre
 import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
 import 'package:hrtz_hrms/features/tasks/screens/manage_tasks_screen.dart';
 import 'package:hrtz_hrms/features/tasks/screens/add_project_screen.dart';
+import 'package:hrtz_hrms/payroll_documents/screens/payroll_documents_screen.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -377,6 +378,11 @@ final GoRouter appRouter = GoRouter(
       name: 'add-project',
       builder: (context, state) => const AddProjectScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.payrollDocuments,
+      name: 'payroll-documents',
+      builder: (context, state) => const PayrollDocumentsScreen(),
+    ),
   ],
 );
 
@@ -458,6 +464,7 @@ extension AuthNavigation on BuildContext {
   void goToLeaderboard() => push(AppRoutes.leaderboard);
   void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
   void goToManageTasks() => push(AppRoutes.manageTasks);
+  void goToPayrollDocuments() => push(AppRoutes.payrollDocuments);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {

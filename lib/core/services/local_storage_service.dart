@@ -9,6 +9,7 @@ import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
 import 'package:hrtz_hrms/core/models/project_model.dart';
+import 'package:hrtz_hrms/core/models/payroll_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hrtz_hrms/core/models/benefits_claim_model.dart';
@@ -51,6 +52,9 @@ class LocalStorageService {
 
   // 📁 Project caching related keys
   static const String keyProjectList = 'project_list';
+
+  // 💰 Payroll caching related keys
+  static const String _keyPayrollPrefix = 'payroll_';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -843,4 +847,40 @@ Future<DateTime?> getAllClaimsTimestamp() async {
       ? DateTime.fromMillisecondsSinceEpoch(ts)
       : null;
 }
+  // 💰 Payroll caching methods
+  Future<void> savePayroll(PayrollModel payroll) async {
+    final key = '$_keyPayrollPrefix${payroll.employeeId}_${payroll.year}_${payroll.month}';
+    await prefs.setString(key, jsonEncode(payroll.toJson()));
+    _logger.logStorage('Saved payroll for ${payroll.employeeId} - ${payroll.month} ${payroll.year}');
+  }
+
+  Future<PayrollModel?> getPayroll(String employeeId, String year, String month) async {
+    final key = '$_keyPayrollPrefix${employeeId}_${year}_${month}';
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    try {
+      final Map<String, dynamic> json = jsonDecode(jsonString);
+      // Note: the toJson/fromJson might need adjustment if the API structure is complex, 
+      // but let's assume PayrollModel.fromJson can handle its own toJson output.
+      // Wait, PayrollModel.fromJson expects 'packageDetails'. 
+      // Let's check PayrollModel again.
+      return PayrollModel(
+        employeeId: json['employeeId'],
+        packageName: json['packageName'],
+        basicSalary: json['basicSalary'],
+        allowances: json['allowances'],
+        bonus: json['bonus'],
+        grossSalary: json['grossSalary'],
+        providentFund: json['providentFund'],
+        tax: json['tax'],
+        netSalary: json['netSalary'],
+        lastUpdated: json['lastUpdated'],
+        month: json['month'],
+        year: json['year'],
+      );
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse cached payroll', error: e);
+      return null;
+    }
+  }
 }
