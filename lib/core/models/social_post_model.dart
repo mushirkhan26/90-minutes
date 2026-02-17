@@ -41,26 +41,70 @@ class SocialPostModel {
     this.eventDate,
   });
 
-  factory SocialPostModel.fromJson(Map<String, dynamic> json) {
-    //   // Helper to parse date and ensure it's local
-    //   DateTime parseDate(dynamic value) {
-    //     if (value == null) return DateTime.now().toUtc();
-    //     try {
-    //       return DateTime.parse(value.toString()).toUtc();
-    //     } catch (e) {
-    //       return DateTime.now().toUtc();
-    //     }
-    //   }
+  // factory SocialPostModel.fromJson(Map<String, dynamic> json) {
+  //   //   // Helper to parse date and ensure it's local
+  //   //   DateTime parseDate(dynamic value) {
+  //   //     if (value == null) return DateTime.now().toUtc();
+  //   //     try {
+  //   //       return DateTime.parse(value.toString()).toUtc();
+  //   //     } catch (e) {
+  //   //       return DateTime.now().toUtc();
+  //   //     }
+  //   //   }
+  //
+  //   //   // Helper to try parse date and ensure it's local
+  //   //   DateTime? tryParseDate(dynamic value) {
+  //   //     if (value == null) return null;
+  //   //     try {
+  //   //       return DateTime.parse(value.toString()).toUtc();
+  //   //     } catch (e) {
+  //   //       return null;
+  //   //     }
+  //   //   }
+  //
+  //   return SocialPostModel(
+  //     id: json['eventId'] ?? json['_id'] ?? '',
+  //     type: json['eventType'] ?? json['type'] ?? 'post',
+  //     title: json['title'] ?? '',
+  //     userName: json['UserName'],
+  //     userId: json['UserId'],
+  //     employeeName: json['employeeName'],
+  //     message: json['description'] ?? json['message'] ?? '',
+  //     imageUrl: json['imageUrl'],
+  //     createdBy: json['UserId'] ?? json['createdBy'] ?? '',
+  //     // createdAt: parseDate(json['createdAt']),
+  //     createdAt: DateTime.parse(json['createdAt']),
+  //     // API uses likeMembers for the list of user IDs
+  //     likes: List<String>.from(json['likeMembers'] ?? json['likes'] ?? []),
+  //     comments: (json['comments'] as List? ?? [])
+  //         .map((x) => SocialComment.fromJson(x))
+  //         .toList(),
+  //     question: json['question'],
+  //     // expiry: tryParseDate(json['expiry']),
+  //     expiry: json['expiry'] != null
+  //         ? DateTime.parse(json['expiry']) // ✅ UTC
+  //         : null,
+  //     options: (json['options'] as List? ?? [])
+  //         .map((x) => PollOption.fromJson(x))
+  //         .toList(),
+  //     // eventDate: tryParseDate(json['eventDate']),
+  //     eventDate: json['eventDate'] != null
+  //         ? DateTime.parse(json['eventDate']) // ✅ UTC
+  //         : null,
+  //   );
+  // }
 
-    //   // Helper to try parse date and ensure it's local
-    //   DateTime? tryParseDate(dynamic value) {
-    //     if (value == null) return null;
-    //     try {
-    //       return DateTime.parse(value.toString()).toUtc();
-    //     } catch (e) {
-    //       return null;
-    //     }
-    //   }
+  factory SocialPostModel.fromJson(Map<String, dynamic> json) {
+    // 1. Helper function banva jo UTC parse karun Local madhe convert karel
+    DateTime parseToLocal(dynamic value) {
+      if (value == null) return DateTime.now();
+      try {
+        // Parse kara ani to UTC aahe he confirm karun Local madhe convert kara
+        return DateTime.parse(value.toString()).toUtc().toLocal();
+      } catch (e) {
+        return DateTime.now();
+      }
+    }
 
     return SocialPostModel(
       id: json['eventId'] ?? json['_id'] ?? '',
@@ -72,24 +116,30 @@ class SocialPostModel {
       message: json['description'] ?? json['message'] ?? '',
       imageUrl: json['imageUrl'],
       createdBy: json['UserId'] ?? json['createdBy'] ?? '',
-      // createdAt: parseDate(json['createdAt']),
-      createdAt: DateTime.parse(json['createdAt']),
-      // API uses likeMembers for the list of user IDs
+
+      // ✅ YETHE BADAL KARA:
+      // createdAt: parseToLocal(json['createdAt']),
+
+      createdAt: DateTime.parse(json['createdAt'].toString()).toUtc().toLocal(),
+
       likes: List<String>.from(json['likeMembers'] ?? json['likes'] ?? []),
       comments: (json['comments'] as List? ?? [])
           .map((x) => SocialComment.fromJson(x))
           .toList(),
       question: json['question'],
-      // expiry: tryParseDate(json['expiry']),
+
+      // ✅ EXPIREY SATHI PAN SAME:
       expiry: json['expiry'] != null
-          ? DateTime.parse(json['expiry']) // ✅ UTC
+          ? parseToLocal(json['expiry'])
           : null,
+
       options: (json['options'] as List? ?? [])
           .map((x) => PollOption.fromJson(x))
           .toList(),
-      // eventDate: tryParseDate(json['eventDate']),
+
+      // ✅ EVENT DATE SATHI PAN SAME:
       eventDate: json['eventDate'] != null
-          ? DateTime.parse(json['eventDate']) // ✅ UTC
+          ? parseToLocal(json['eventDate'])
           : null,
     );
   }
@@ -102,6 +152,7 @@ class SocialPostModel {
       'title': title,
       'description': message,
       'imageUrl': imageUrl ?? '',
+      'createdAt': DateTime.now().toUtc().toIso8601String(),
     };
 
     if (employeeName != null) {
@@ -176,7 +227,7 @@ class SocialComment {
       userId: json['userId'] ?? '',
       userName: json['userName'] ?? '',
       comment: json['content'] ?? json['comment'] ?? '',
-      createdAt: parseDate(json['createdAt']),
+      createdAt: parseDate(json['createdAt'].toString()).toUtc().toLocal(),
     );
   }
 }
