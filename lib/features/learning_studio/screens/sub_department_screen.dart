@@ -123,7 +123,7 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
         crossAxisCount: 3,
         mainAxisSpacing: 16,
         crossAxisSpacing: 16,
-        childAspectRatio: 1,
+        childAspectRatio: 0.85,
       ),
       itemCount: filteredSubDepartments.length,
       itemBuilder: (context, index) {
@@ -155,7 +155,21 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
                   child: const Icon(Icons.folder, color: Color(0xFF26A69A), size: 32),
                 ),
                 const SizedBox(height: 10),
-                Text(subDept, textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w500)),
+                Expanded(
+  child: Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 6),
+    child: Text(
+      subDept,
+      textAlign: TextAlign.center,
+      maxLines: 2,                   
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 13,
+      ),
+    ),
+  ),
+),
               ],
             ),
           ),

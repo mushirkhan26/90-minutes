@@ -10,6 +10,7 @@ class EmployeeModel {
   final String? role;
   final String? teamLead;
   final String? teamMembers;
+  final  List<EmployeeBenefit> benefit;
 
   EmployeeModel({
     required this.name,
@@ -23,6 +24,7 @@ class EmployeeModel {
     this.role,
     this.teamLead,
     this.teamMembers,
+    this.benefit = const[],
   });
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
@@ -40,6 +42,12 @@ class EmployeeModel {
       teamMembers: json['teamMembers'] is List
           ? (json['teamMembers'] as List).join(', ')
           : json['teamMembers']?.toString(),
+      benefit: (json['benefit'] as List<dynamic>?)
+            ?.map((e) => EmployeeBenefit.fromJson(e))
+            .toList() ??
+            [],
+        
+      
     );
   }
 
@@ -56,6 +64,30 @@ class EmployeeModel {
       'role': role,
       'teamLead': teamLead,
       'teamMembers': teamMembers,
+      'benefit' : benefit.map((e) => e.toJson()).toList(),
+    };
+  }
+}
+class EmployeeBenefit {
+  final String benefitName;
+  final String id;
+
+  EmployeeBenefit({
+    required this.benefitName,
+    required this.id,
+  });
+
+  factory EmployeeBenefit.fromJson(Map<String, dynamic> json) {
+    return EmployeeBenefit(
+      benefitName: json['benefitName'] ?? '',
+      id: json['id'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'benefitName': benefitName,
+      'id': id,
     };
   }
 }

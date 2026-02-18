@@ -40,23 +40,20 @@ Future<void> _loadData() async {
   final auth = context.read<AuthProvider>();
   final provider = context.read<ServiceRequestProvider>();
 
-  // 🔁 Wait until userData is available
-  while (auth.userData == null) {
-    await Future.delayed(const Duration(milliseconds: 100));
-  }
+  final userData = auth.userData;
 
-  final role =
-      auth.userData?['role']?.toString().toLowerCase();
-  final employeeId =
-      auth.userData?['employeeId']?.toString();
+  if (userData == null) return;
+
+  final role = userData['role']?.toString().toLowerCase();
+  final employeeId = userData['employeeId']?.toString();
 
   if (role == 'user' && employeeId != null) {
-    await provider.fetchRequestsByEmployee(employeeId);
+    provider.fetchRequestsByEmployee(employeeId);
   }
 
   if (role == 'manager') {
-    await provider.fetchServiceRequests(forceRefresh: true);
-    await provider.fetchRequestCounts(forceRefresh: true);
+    provider.fetchServiceRequests(forceRefresh: true);
+    provider.fetchRequestCounts(forceRefresh: true);
   }
 }
   @override
