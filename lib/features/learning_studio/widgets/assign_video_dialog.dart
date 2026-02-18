@@ -177,20 +177,22 @@ class _AssignVideoDialogState extends State<AssignVideoDialog> {
             const SizedBox(height: 6),
             InkWell(
               onTap: () async {
-                final BuildContext safeContext = context;
+          
                 final pickedDate = await showDatePicker(
-                  context: safeContext,
+                  context: context,
                   initialDate: DateTime.now(),
                   firstDate: DateTime(2024),
                   lastDate: DateTime(2035),
                 );
+          
 
-                if ( pickedDate == null) return;
-                if(!mounted) return;
+                if ( !context.mounted || pickedDate == null) return;
+                
 
                 final pickedTime = await showTimePicker(
+                  
                 
-                  context: safeContext,
+                  context: context,
                   initialTime: TimeOfDay.now(),
                 );
 
@@ -244,8 +246,8 @@ class _AssignVideoDialogState extends State<AssignVideoDialog> {
                   ),
                   onPressed: _canAssign()
                       ? () async {
-                        final ctx = context;
-                        final provider = ctx.read<LearningStudioProvider>();
+                      
+                        final provider = context.read<LearningStudioProvider>();
                           final success =
                               await provider.assignCourseToEmployee(
                                   
@@ -258,10 +260,10 @@ class _AssignVideoDialogState extends State<AssignVideoDialog> {
                                 _employeeIdController.text,
                             startDate: selectedStartDate,
                           );
-                          if(!mounted) return;
+                          if(!context.mounted) return;
 
                           if (success) {
-                            Navigator.pop(ctx);
+                            Navigator.of(context).pop();
                           }
                         }
                       : null,

@@ -274,6 +274,7 @@ sheet.getRangeByIndex(row + 2, 14).setText(r.videoUrl);
     await file.writeAsBytes(bytes, flush: true);
 
     await OpenFile.open(filePath);
+    if(!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Excel Downloaded Successfully")),

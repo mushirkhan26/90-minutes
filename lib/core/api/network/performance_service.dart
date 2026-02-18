@@ -39,18 +39,20 @@ class PerformanceService {
   /// 📝 Add a performance review
   Future<ApiResponse<Map<String, dynamic>>> addReview({
     required String employeeId,
+    required String employeeName,
     required String reviewerId,
     required String reviewerName,
     required double rating,
     required String comment,
   }) async {
-    final body = {
-      "employeeId": employeeId,
-      "reviewerId": reviewerId,
-      "reviewerName": reviewerName,
-      "rating": rating,
-      "comment": comment,
-    };
+   final body = {
+    "employeeId": employeeId,
+    "employeeName": employeeName,
+    "rating": rating,
+    "reviewPersonId": reviewerId,
+    "reviewPersonName": reviewerName,
+    "reviewText": comment,
+  };
     return await _apiHelper.post<Map<String, dynamic>>('review/add', body);
   }
 

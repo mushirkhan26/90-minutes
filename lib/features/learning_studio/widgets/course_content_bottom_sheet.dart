@@ -9,7 +9,7 @@ class CourseContentBottomSheet extends StatefulWidget {
   final String videoUrl;
   final List<String> tags;
 
-  // 🔥 ONLY CHANGE: nullable
+
   final String? department;
   final String? subDepartment;
 
@@ -162,7 +162,7 @@ class _CourseContentBottomSheetState
                           videoUrl: widget.videoUrl,
                           tags: widget.tags,
 
-                          // 🔥 NULL SAFE PASS
+                        
                           department:
                               widget.department ?? '',
                           subDepartment:
@@ -171,7 +171,7 @@ class _CourseContentBottomSheetState
                           createdOn:
                               DateTime.now().toIso8601String(),
                         );
-                        if(!mounted) return;
+                        if(!context.mounted) return;
 
                         setState(() => _saving = false);
 

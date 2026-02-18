@@ -318,6 +318,17 @@ class HomeScreen extends StatelessWidget {
           context.push(AppRoutes.learningStudio);
         },
       ),
+      ListTile(
+        leading: const Icon(
+          Icons.card_giftcard,
+          color: Colors.black87,
+        ),
+        title: const Text('Employee Benefits'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.employeeBenefits);
+        },
+      ),
     ],
   ),
 ),

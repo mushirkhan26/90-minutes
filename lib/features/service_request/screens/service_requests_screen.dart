@@ -40,23 +40,20 @@ Future<void> _loadData() async {
   final auth = context.read<AuthProvider>();
   final provider = context.read<ServiceRequestProvider>();
 
-  // 🔁 Wait until userData is available
-  while (auth.userData == null) {
-    await Future.delayed(const Duration(milliseconds: 100));
-  }
+  final userData = auth.userData;
 
-  final role =
-      auth.userData?['role']?.toString().toLowerCase();
-  final employeeId =
-      auth.userData?['employeeId']?.toString();
+  if (userData == null) return;
+
+  final role = userData['role']?.toString().toLowerCase();
+  final employeeId = userData['employeeId']?.toString();
 
   if (role == 'user' && employeeId != null) {
-    await provider.fetchRequestsByEmployee(employeeId);
+    provider.fetchRequestsByEmployee(employeeId);
   }
 
   if (role == 'manager') {
-    await provider.fetchServiceRequests(forceRefresh: true);
-    await provider.fetchRequestCounts(forceRefresh: true);
+    provider.fetchServiceRequests(forceRefresh: true);
+    provider.fetchRequestCounts(forceRefresh: true);
   }
 }
   @override
@@ -121,7 +118,7 @@ Future<void> _loadData() async {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
+                    color: Colors.black.withValues(alpha:  0.08),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   ),
@@ -200,7 +197,7 @@ Future<void> _loadData() async {
             .where((e) => e.key != 'Total Requests')
             .toList();
 
-        IconData _getIcon(String type) {
+        IconData getIcon(String type) {
           switch (type.toLowerCase()) {
             case 'hardware':
               return Icons.build;
@@ -257,7 +254,7 @@ Future<void> _loadData() async {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
-                        _getIcon(category.key),
+                        getIcon(category.key),
                         size: 36,
                         color: AppColors.primary,
                       ),
@@ -911,11 +908,13 @@ Future<void> _exportToExcel() async {
     await file.writeAsBytes(bytes, flush: true);
 
     await OpenFile.open(filePath);
+    if(!mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Excel Downloaded Successfully")),
     );
   } catch (e) {
+    if(!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text("Export failed: $e")),
     );

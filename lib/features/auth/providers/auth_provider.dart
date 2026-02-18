@@ -100,6 +100,7 @@ class AuthProvider extends ChangeNotifier {
         employeeId: data['employeeId'].toString(),
         date: DateTime.now().toUtc().toIso8601String(),
       );
+      await fetchAndCacheProfileData(employeeId: data['employeeId'].toString());
     } else {
       _state = AuthState.error;
       _errorMessage = response.message;
@@ -149,11 +150,17 @@ class AuthProvider extends ChangeNotifier {
 
       // Fetch attendance if authenticated
       if (_userData != null) {
-        fetchAttendance(
-          employeeId: _userData!['employeeId'].toString(),
-          date: DateTime.now().toUtc().toIso8601String(),
-        );
-      }
+  final employeeId = _userData!['employeeId'].toString();
+
+  await fetchAttendance(
+    employeeId: employeeId,
+    date: DateTime.now().toUtc().toIso8601String(),
+  );
+
+  await fetchAndCacheProfileData(
+    employeeId: employeeId,
+  );
+}
     } else {
       _state = AuthState.unauthenticated;
       _logger.logAuth('No user session found, unauthenticated');
@@ -407,8 +414,10 @@ class AuthProvider extends ChangeNotifier {
             alterMobile: profileData['alterMobile'],
             gender: profileData['gender'],
             address: profileData['address'],
+            benefit: [],
           );
           _logger.logAuth('ℹ️ Using cached profile data as fallback');
+          _logger.logAuth("Benefits Count: ${_profileData?.benefit.length}");
         }
       }
     } catch (e, s) {
@@ -430,6 +439,7 @@ class AuthProvider extends ChangeNotifier {
           alterMobile: profileData['alterMobile'],
           gender: profileData['gender'],
           address: profileData['address'],
+          benefit: _profileData?.benefit ?? [],
         );
         _logger.logAuth('ℹ️ Using cached profile data as fallback');
       }
@@ -481,6 +491,7 @@ class AuthProvider extends ChangeNotifier {
           gender: gender,
           address: address,
           profileImage: profileImage ?? _profileData?.profileImage,
+          benefit: _profileData?.benefit ?? [],
         );
 
         // Save updated profile data to secure storage

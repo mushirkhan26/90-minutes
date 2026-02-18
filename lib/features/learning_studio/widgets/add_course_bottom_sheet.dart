@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
@@ -12,11 +13,7 @@ class AddCourseBottomSheet extends StatefulWidget {
   final String? department;
   final String? subDepartment;
 
-  const AddCourseBottomSheet({
-    super.key,
-    this.department,
-    this.subDepartment,
-  });
+  const AddCourseBottomSheet({super.key, this.department, this.subDepartment});
 
   @override
   State<AddCourseBottomSheet> createState() => _AddCourseBottomSheetState();
@@ -58,14 +55,14 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
     final provider = context.watch<LearningStudioProvider>();
 
     // ✅ ONLY CHANGE HERE
-    final deptText =
-        widget.department ?? _departmentController.text.trim();
+    final deptText = widget.department ?? _departmentController.text.trim();
 
     final isExistingDepartment =
         deptText.isNotEmpty && provider.departments.contains(deptText);
 
-    final subDepartments =
-        isExistingDepartment ? provider.getSubDepartments(deptText) : <String>[];
+    final subDepartments = isExistingDepartment
+        ? provider.getSubDepartments(deptText)
+        : <String>[];
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
@@ -107,6 +104,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                     label: 'Course Name *',
                     hint: 'Enter course name',
                     controller: _courseName,
+                    blockNumbers : true,
                   ),
 
                   // ===== Department =====
@@ -123,10 +121,8 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                             _selectedSubDepartment = null;
                             _subDepartmentController.clear();
 
-                            if (provider.departments
-                                .contains(val.trim())) {
-                              await provider
-                                  .loadSubDepartments(val.trim());
+                            if (provider.departments.contains(val.trim())) {
+                              await provider.loadSubDepartments(val.trim());
                             }
                             setState(() {});
                           },
@@ -139,38 +135,36 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                           value: widget.subDepartment!,
                         )
                       : isExistingDepartment
-                          ? Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: 16),
-                              child: DropdownButtonFormField<String>(
-                                initialValue: _selectedSubDepartment,
-                                items: subDepartments
-                                    .map(
-                                      (e) => DropdownMenuItem(
-                                        value: e,
-                                        child: Text(e),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (val) {
-                                  setState(() {
-                                    _selectedSubDepartment = val;
-                                  });
-                                },
-                                decoration: InputDecoration(
-                                  labelText: 'SubDepartment *',
-                                  border: OutlineInputBorder(
-                                    borderRadius:
-                                        BorderRadius.circular(10),
+                      ? Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _selectedSubDepartment,
+                            items: subDepartments
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e,
+                                    child: Text(e),
                                   ),
-                                ),
+                                )
+                                .toList(),
+                            onChanged: (val) {
+                              setState(() {
+                                _selectedSubDepartment = val;
+                              });
+                            },
+                            decoration: InputDecoration(
+                              labelText: 'SubDepartment *',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            )
-                          : _input(
-                              label: 'SubDepartment *',
-                              hint: 'Enter sub department',
-                              controller: _subDepartmentController,
                             ),
+                          ),
+                        )
+                      : _input(
+                          label: 'SubDepartment *',
+                          hint: 'Enter sub department',
+                          controller: _subDepartmentController,
+                        ),
 
                   _input(
                     label: 'Tags (comma separated)',
@@ -205,8 +199,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(12),
-                      border:
-                          Border.all(color: Colors.grey.shade400),
+                      border: Border.all(color: Colors.grey.shade400),
                     ),
                     child: Column(
                       children: [
@@ -222,36 +215,70 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                         const SizedBox(height: 4),
                         const Text('Or'),
                         const SizedBox(height: 10),
+                        // ElevatedButton(
+                        //   onPressed: _uploading ? null : _pickAndUploadVideo,
+                        //   style: ElevatedButton.styleFrom(
+                        //     backgroundColor: const Color(0xFF5DBBB3),
+                        //     shape: RoundedRectangleBorder(
+                        //       borderRadius: BorderRadius.circular(20),
+                        //     ),
+                        //   ),
+                        //   child: const Text(
+                        //     'Browse Files',
+                        //     style: TextStyle(color: Colors.white),
+                        //   ),
+                        // ),
+
                         ElevatedButton(
-                          onPressed:
-                              _uploading ? null : _pickAndUploadVideo,
+                          onPressed: _uploading ? null : _pickAndUploadVideo,
                           style: ElevatedButton.styleFrom(
                             backgroundColor:
-                                const Color(0xFF5DBBB3),
+                            _uploading ? Colors.blue : const Color(0xFF5DBBB3),
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                                  BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
-                          child: const Text(
+                          child: _uploading
+                              ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                              : const Text(
                             'Browse Files',
                             style: TextStyle(color: Colors.white),
                           ),
                         ),
+
                         const SizedBox(height: 12),
                         const Text('Or enter video URL directly:'),
                         const SizedBox(height: 8),
+                        // TextField(
+                        //   controller: _videoUrl,
+                        //   decoration: InputDecoration(
+                        //     hintText:
+                        //         'https://example-bucket.s3.amazonaws.com/video.mp4',
+                        //     border: OutlineInputBorder(
+                        //       borderRadius: BorderRadius.circular(10),
+                        //     ),
+                        //   ),
+                        // ),
+
                         TextField(
                           controller: _videoUrl,
+                          enabled: !_uploading,
+                          readOnly: _videoUrl.text.isNotEmpty,
                           decoration: InputDecoration(
-                            hintText:
-                                'https://example-bucket.s3.amazonaws.com/video.mp4',
+                            hintText: 'https://example-bucket.s3.amazonaws.com/video.mp4',
                             border: OutlineInputBorder(
-                              borderRadius:
-                                  BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
+
                       ],
                     ),
                   ),
@@ -277,19 +304,16 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                 ),
-                onPressed: () {
+                onPressed: _uploading
+                    ? null
+                    : () {
                   setState(() {
-                    _courseNameError =
-                        _courseName.text.trim().isEmpty;
-                    _durationError =
-                        _duration.text.trim().isEmpty;
-                    _detailsError =
-                        _details.text.trim().isEmpty;
+                    _courseNameError = _courseName.text.trim().isEmpty;
+                    _durationError = _duration.text.trim().isEmpty;
+                    _detailsError = _details.text.trim().isEmpty;
                   });
 
-                  if (_courseNameError ||
-                      _durationError ||
-                      _detailsError) {
+                  if (_courseNameError || _durationError || _detailsError) {
                     return;
                   }
 
@@ -309,13 +333,14 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                           .map((e) => e.trim())
                           .where((e) => e.isNotEmpty)
                           .toList(),
-                      department: widget.department ??
+                      department:
+                          widget.department ??
                           _departmentController.text.trim(),
-                      subDepartment: widget.subDepartment ??
+                      subDepartment:
+                          widget.subDepartment ??
                           (isExistingDepartment
                               ? _selectedSubDepartment!
-                              : _subDepartmentController.text
-                                  .trim()),
+                              : _subDepartmentController.text.trim()),
                     ),
                   );
                 },
@@ -338,6 +363,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
     required String hint,
     required TextEditingController controller,
     int maxLines = 1,
+    bool blockNumbers = false,
     Function(String)? onChanged,
   }) {
     return Padding(
@@ -351,6 +377,16 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
             controller: controller,
             maxLines: maxLines,
             onChanged: onChanged,
+
+          
+            inputFormatters: blockNumbers
+                ? [
+              FilteringTextInputFormatter.deny(
+                RegExp(r'[0-9]'), 
+              ),
+            ]
+                : [],
+
             decoration: InputDecoration(
               hintText: hint,
               border: OutlineInputBorder(
@@ -363,10 +399,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
     );
   }
 
-  Widget _readonly({
-    required String label,
-    required String value,
-  }) {
+  Widget _readonly({required String label, required String value}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -390,21 +423,80 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
     );
   }
 
+  // Future<void> _pickAndUploadVideo() async {
+  //   final result =
+  //       await FilePicker.platform.pickFiles(type: FileType.video);
+  //   if (result == null) return;
+  //
+  //   final file = File(result.files.single.path!);
+  //   setState(() => _uploading = true);
+  //
+  //   final url = await _uploadService.uploadFile(file);
+  //   if(!mounted) return;
+  //
+  //   setState(() => _uploading = false);
+  //
+  //   if (url != null) {
+  //     _videoUrl.text = url;
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       const SnackBar(content: Text('Video uploaded successfully')),
+  //     );
+  //   }
+  // }
+
   Future<void> _pickAndUploadVideo() async {
-    final result =
-        await FilePicker.platform.pickFiles(type: FileType.video);
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: [
+        'mp4',
+        'mov',
+        'avi',
+        'mkv',
+        'wmv',
+        'webm',
+      ],
+    );
+
     if (result == null) return;
 
+    final extension = result.files.single.extension?.toLowerCase();
+
+    // Extra safety validation
+    if (![
+      'mp4',
+      'mov',
+      'avi',
+      'mkv',
+      'wmv',
+      'webm',
+    ].contains(extension?.toLowerCase())) {
+       if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Only video files are allowed'),
+        ),
+      );
+      return;
+    }
+
+
     final file = File(result.files.single.path!);
+
     setState(() => _uploading = true);
 
     final url = await _uploadService.uploadFile(file);
-    if(!mounted) return;
+
+    if (!mounted) return;
 
     setState(() => _uploading = false);
 
     if (url != null) {
-      _videoUrl.text = url;
+      // _videoUrl.text = url;
+      setState(() {
+        _videoUrl.text = url;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Video uploaded successfully')),
       );

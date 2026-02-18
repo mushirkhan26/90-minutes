@@ -240,7 +240,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedType,
+                  initialValue: _selectedType,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -405,7 +405,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                                 date.day,
                                 time.hour,
                                 time.minute,
-                              ).toUtc();
+                              );
                             });
                           }
                         }
@@ -421,7 +421,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                       child: Text(
                         _eventDate == null
                             ? 'Select Event Date & Time'
-                            : _eventDate.toString().substring(0, 16),
+                            : _eventDate!.toLocal().toString().substring(0, 16),
                       ),
                     ),
                   ),

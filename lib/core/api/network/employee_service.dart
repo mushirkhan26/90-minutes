@@ -4,7 +4,12 @@ import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class EmployeeService {
-  final ApiHelper _apiHelper = ApiHelper();
+  static const String employeeBaseUrl =
+      "https://3qhglx2bhd.execute-api.us-east-1.amazonaws.com/";
+
+  final ApiHelper _apiHelper =
+      ApiHelper(baseUrl: employeeBaseUrl);
+
   final LoggingService _logger = LoggingService.instance;
 
   /// 👥 Get all employees list
@@ -59,15 +64,24 @@ class EmployeeService {
   }
 
   /// 🎭 Change Employee Role
-  Future<ApiResponse<Map<String, dynamic>>> changeRole({
-    required String employeeId,
-    required String newRole,
-    required String changedBy,
-  }) async {
-    final body = {
-      "newRole": newRole,
-      "changedBy": changedBy
-    };
-    return await _apiHelper.put<Map<String, dynamic>>('employee/changeRole/$employeeId', body);
-  }
+ Future<ApiResponse<Map<String, dynamic>>> changeRole({
+  required String employeeId,
+  required String newRole,
+  required String changedBy,
+}) async {
+
+  final body = {
+    "newRole": newRole,
+    "changedBy": changedBy
+  };
+
+  final ApiHelper roleApiHelper = ApiHelper(
+    baseUrl: "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/",
+  );
+
+  return await roleApiHelper.put(
+    'employee/changeRole/$employeeId',
+    body,
+  );
+}
 }
