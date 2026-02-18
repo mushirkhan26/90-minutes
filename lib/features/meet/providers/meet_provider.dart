@@ -24,14 +24,15 @@ class MeetProvider extends ChangeNotifier {
 
   static const cacheValidity = Duration(minutes: 10);
 
-  MeetProvider() {
+  MeetProvider(){
     _bootstrap();
   }
-
   Future<void> _bootstrap() async {
-    // Initial fetch when provider is created
+  // Initial fetch when provider is created
     await fetchUpcomingMeetings();
+  
   }
+  
 
   Future<void> fetchUpcomingMeetings({bool forceRefresh = false}) async {
     // 1. Load from local storage first for instant UI
@@ -129,13 +130,13 @@ class MeetProvider extends ChangeNotifier {
     if (response.success) {
       _logger.logGeneral('✅ Meeting added successfully');
       
-      if (response.data is Map<String, dynamic> && response.data['data'] != null) {
-        final newMeet = Meet.fromJson(response.data['data']);
+      if (response.data is Map<String, dynamic> && response.data['meeting'] != null) {
+        final newMeet = Meet.fromJson(response.data['meeting']);
         _meetList.insert(0, newMeet);
         await _localStorage.saveMeetList(_meetList);
       }
       
-      await fetchUpcomingMeetings(forceRefresh: true); 
+  
       return true;
     } else {
       _errorMessage = response.message;
@@ -145,47 +146,38 @@ class MeetProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updateMeeting({required String id, required String time}) async {
-    _state = MeetState.loading;
-    notifyListeners();
+  Future<bool> updateMeeting({
+  required String id,
+  required String time,
+}) async {
+  _state = MeetState.loading;
+  notifyListeners();
 
-    try {
-      final response = await _meetService.updateMeet(id: id, time: time);
+  try {
+    final response =
+        await _meetService.updateMeet(id: id, time: time);
 
-      if (response.success) {
-        final index = _meetList.indexWhere((m) => m.id == id);
-        if (index != -1) {
-          final updatedMeet = Meet(
-            id: _meetList[index].id,
-            meetLink: _meetList[index].meetLink,
-            createdBy: _meetList[index].createdBy,
-            participants: _meetList[index].participants,
-            time: time,
-            description: _meetList[index].description,
-            duration: _meetList[index].duration,//modify
-            createdAt: _meetList[index].createdAt,
-            updatedAt: DateTime.now().toIso8601String(),
-          );
-          _meetList[index] = updatedMeet;
-          await _localStorage.saveMeetList(_meetList);
-        }
-        
-        _state = MeetState.success;
-        notifyListeners();
-        return true;
-      } else {
-        _errorMessage = response.message;
-        _state = MeetState.error;
-        notifyListeners();
-        return false;
-      }
-    } catch (e) {
-      _errorMessage = e.toString();
+    if (response.success) {
+
+      
+      await fetchUpcomingMeetings(forceRefresh: true);
+
+      _state = MeetState.success;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = response.message;
       _state = MeetState.error;
       notifyListeners();
       return false;
     }
+  } catch (e) {
+    _errorMessage = e.toString();
+    _state = MeetState.error;
+    notifyListeners();
+    return false;
   }
+}
 
   Future<bool> deleteMeeting(String id) async {
     _state = MeetState.loading;

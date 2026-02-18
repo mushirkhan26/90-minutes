@@ -237,6 +237,56 @@ class BenefitsProvider extends ChangeNotifier {
     }
   }
 
+  //  ADD CLAIM
+Future<bool> addClaim(BenefitsClaimModel model) async {
+  try {
+    _state = BenefitsState.loading;
+    notifyListeners();
+
+    _logger.logNetwork("📤 Adding new claim...");
+
+    final response = await _service.addClaim(model.toAddClaimJson());
+
+    if (response.success) {
+      _logger.logNetwork("✅ Claim added successfully");
+
+      // If backend returns created object
+      if (response.data != null) {
+        final newClaim =
+            BenefitsClaimModel.fromJson(response.data!);
+
+        _myClaims.insert(0, newClaim);
+
+        if (_currentEmployeeId != null) {
+          await _local.saveClaims(
+              _currentEmployeeId!, _myClaims);
+        }
+      }
+
+      _errorMessage = null;
+      _state = BenefitsState.success;
+      notifyListeners();
+      return true;
+    } else {
+      _errorMessage = response.message;
+      _state = BenefitsState.error;
+      notifyListeners();
+      return false;
+    }
+  } catch (e) {
+    _logger.error(
+      "BENEFITS_PROVIDER",
+      "Add claim failed",
+      error: e,
+    );
+
+    _errorMessage = e.toString();
+    _state = BenefitsState.error;
+    notifyListeners();
+    return false;
+  }
+}
+
   //  FORCE REFRESH
   Future<void> refresh() async {
     if (_currentEmployeeId != null) {

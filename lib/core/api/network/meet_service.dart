@@ -8,29 +8,50 @@ class MeetService {
 
   // Add Meeting with all dynamic fields
   Future<ApiResponse<dynamic>> addMeet({
-    required String meetLink,
-    required String description,
-    required String time,
-    required Map<String, String> createdBy,
-    required List<Map<String, String>> participants,
-    String? agenda,
-    int? duration,
-    String? recurrence,
-  }) async {
-    final body = {
-      "meetLink": meetLink,
-      "createdBy": createdBy,
-      "participants": participants,
-      "time": time,
-      "description": description,
-      "agenda": agenda ?? "",
-      "duration": duration ?? 30,
-      "recurrence": recurrence ?? "One-time meeting",
-    };
-    _logger.logGeneral('Adding dynamic meeting: $description');
-    return await _apiHelper.post<dynamic>('meet', body);
-  }
+  required String meetLink,
+  required String description,
+  required String time,
+  required Map<String, String> createdBy,
+  required List<Map<String, String>> participants,
+  String? agenda,
+  int? duration,
+  String? recurrence,
+}) async {
 
+  final dateTime = DateTime.parse(time).toLocal();
+
+  final meetingDate =
+      "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
+
+  final meetingTime =
+      "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
+
+  final body = {
+    "meetingTitle": description.trim(),
+    "organizer": createdBy['employeeId'],
+    "joiners": participants.map((p) => p['employeeId']).toList(),
+    "meetingSummary": agenda ?? "",
+    "meetingLink": meetLink,
+    "meetingDate": meetingDate,
+    "meetingTime": meetingTime,
+    "duration": duration ?? 30,
+    "attachments": [],
+    "isRecurring": false,
+    "recurrencePattern": "",
+    "startDate": "",
+    "endDate": ""
+  };
+
+  _logger.logGeneral('Adding new meeting: $description');
+
+  // 🔥 DIRECT FULL URL (No baseUrl confusion)
+  return await ApiHelper(
+    baseUrl: "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/",
+  ).post<dynamic>(
+    "meeting/create",
+    body,
+  );
+}
   Future<ApiResponse<dynamic>> getUpcomingMeetings() async {
     _logger.logGeneral('Fetching dynamic meetings via /me');
     return await _apiHelper.get<dynamic>('meet/employee/me');

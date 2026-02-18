@@ -428,7 +428,7 @@ class _MeetScreenState extends State<MeetScreen> {
 
     final dailyMeets = userMeets.where((m) {
       final mDate = DateTime.parse(m.time).toLocal();
-      final String recurrence = m.recurrence ?? "One-time meeting";
+      final String recurrence = m.reccurrencePattern ?? "One-time meeting";
 
       bool isSameDay =
           mDate.day == _selectedDate.day &&
