@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/features/employee_benefits/screens/previous_claims_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
+import 'package:hrtz_hrms/features/employee_benefits/screens/new_claim_screen.dart';
 
 class BenefitsScreen extends StatefulWidget {
   const BenefitsScreen({Key? key}) : super(key: key);
@@ -145,7 +147,7 @@ if (employee == null) {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -228,7 +230,11 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
                   icon: const Icon(Icons.visibility),
                   label: const Text("View Previous Claims"),
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PreviousClaimsScreen() ),
+                      );
                   },
                 ),
               ),
@@ -251,6 +257,12 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
                   label: const Text("Apply For New Claim"),
                   onPressed: () {
                     Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NewClaimScreen(benefitName: benefit.benefitName),
+                      )
+                      );
                   },
                 ),
               ),
