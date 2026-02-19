@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/models/social_post_model.dart';
 import 'package:hrtz_hrms/core/services/file_upload_service.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/social/provider/social_provider.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class CreateSocialPostScreen extends StatefulWidget {
@@ -357,7 +359,31 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                         firstDate: DateTime.now(),
                         lastDate: DateTime.now().add(const Duration(days: 30)),
                       );
-                      if (date != null) setState(() => _pollExpiry = date);
+                      if (date != null) {
+                        final time = await showTimePicker(
+                          context: context,
+                          initialTime: TimeOfDay.now(),
+                        );
+                        if (time != null) {
+                          final selected = DateTime(
+                            date.year,
+                            date.month,
+                            date.day,
+                            time.hour,
+                            time.minute,
+                          );
+                          if (selected.isBefore(DateTime.now())) {
+                            AlertHelper.snackBarWarning(
+                              context,
+                              "Selected time is already passed. Please choose a future time.",
+                            );
+                            return;
+                          }
+                          setState(() => _pollExpiry = selected);
+                        } else {
+                          return;
+                        }
+                      }
                     },
                     child: Container(
                       padding: const EdgeInsets.all(12),
@@ -369,7 +395,10 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                       child: Text(
                         _pollExpiry == null
                             ? 'Select Expiry Date'
-                            : _pollExpiry.toString().split(' ')[0],
+                            // : _pollExpiry.toString().split(' ')[0],
+                            : DateFormat(
+                                'MMM dd, yyyy • hh:mm a',
+                              ).format(_pollExpiry!),
                       ),
                     ),
                   ),
@@ -398,14 +427,22 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                           );
                           if (!mounted) return;
                           if (time != null) {
-                            setState(() {
-                              _eventDate = DateTime(
-                                date.year,
-                                date.month,
-                                date.day,
-                                time.hour,
-                                time.minute,
+                            final selected = DateTime(
+                              date.year,
+                              date.month,
+                              date.day,
+                              time.hour,
+                              time.minute,
+                            );
+                            if (selected.isBefore(DateTime.now())) {
+                              AlertHelper.snackBarWarning(
+                                context,
+                                "Selected time is already passed. Please choose a future time.",
                               );
+                              return;
+                            }
+                            setState(() {
+                              _eventDate = selected.toUtc();
                             });
                           }
                         }
@@ -648,14 +685,15 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         comments: [],
         question: _selectedType == 'Poll' ? _questionController.text : null,
         expiry: _selectedType == 'Poll' && _pollExpiry != null
-            ? DateTime(
-                _pollExpiry!.year,
-                _pollExpiry!.month,
-                _pollExpiry!.day,
-                23,
-                59,
-                59,
-              ).toUtc()
+            ? _pollExpiry!.toUtc()
+            // DateTime(
+            //     _pollExpiry!.year,
+            //     _pollExpiry!.month,
+            //     _pollExpiry!.day,
+            //     23,
+            //     59,
+            //     59,
+            //   ).toUtc()
             : null,
 
         options: _selectedType == 'Poll'

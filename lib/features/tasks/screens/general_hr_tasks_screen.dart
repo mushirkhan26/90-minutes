@@ -199,7 +199,9 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
   }
 
   Widget _buildFilteredTaskList(TasksProvider provider, String status) {
-    final filteredTasks = provider.standaloneTasks.where((t) => t.status == status).toList();
+    final filteredTasks = provider.standaloneTasks.where((t) => t.status == status).toList()
+    ..sort((a,b)=> b.deadline.compareTo(a.deadline)); // Sort by deadline descending
+    
 
     if (filteredTasks.isEmpty) {
       return ListView(
