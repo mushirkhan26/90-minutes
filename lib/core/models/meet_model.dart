@@ -29,37 +29,37 @@ class Meet {
 
   factory Meet.fromJson(Map<String, dynamic> json) {
 
-    // 🔹 Combine meetingDate + meetingTime → time
-    final meetingDate = json['meetingDate'] ?? '';
-    final meetingTime = json['meetingTime'] ?? '';
-    final combinedTime = "$meetingDate $meetingTime";
+  final meetingDate = json['meetingDate'] ?? '';
+  final meetingTime = json['meetingTime'] ?? '';
 
-    return Meet(
-      id: json['meetingId']?.toString(),
-      meetLink: json['meetingLink'] ?? '',
-      createdBy: {
-        'employeeId': (json['organizer'] ?? '').toString(),
-        'name': (json['organizerName'] ?? '').toString(),
-      },
-      participants: (json['joinerDetails'] as List<dynamic>?)
-              ?.map((p) => {
-                    'employeeId': (p['employeeId'] ?? '').toString(),
-                    'name': (p['name'] ?? '').toString(),
-                  })
-              .toList()
-              .cast<Map<String, String>>() ??
-          [],
-      time: combinedTime,
-      description: (json['meetingTitle'] ?? '').toString(),
-      agenda: json['meetingSummary']?.toString(),
-      duration: int.tryParse(json['duration']?.toString() ?? '30') ?? 30,
-      isRecurring: json['isRecurring'] ?? false,
-      reccurrencePattern: json['recurrencePattern'],
-      status: json['status']?.toString(),
-      createdAt: json['createdOn']?.toString(),
-    );
-  }
+  // ✅ Proper ISO format
+  final combinedTime = "${meetingDate}T${meetingTime}:00";
 
+  return Meet(
+    id: json['meetingId']?.toString(),
+    meetLink: json['meetingLink'] ?? '',
+    createdBy: {
+      'employeeId': (json['organizer'] ?? '').toString(),
+      'name': (json['organizerName'] ?? '').toString(),
+    },
+    participants: (json['joinerDetails'] as List<dynamic>?)
+            ?.map((p) => {
+                  'employeeId': (p['employeeId'] ?? '').toString(),
+                  'name': (p['name'] ?? '').toString(),
+                })
+            .toList()
+            .cast<Map<String, String>>() ??
+        [],
+    time: combinedTime,
+    description: (json['meetingTitle'] ?? '').toString(),
+    agenda: json['meetingSummary']?.toString(),
+    duration: int.tryParse(json['duration']?.toString() ?? '30') ?? 30,
+    isRecurring: json['isRecurring'] ?? false,
+    reccurrencePattern: json['recurrencePattern'],
+    status: json['status']?.toString(),
+    createdAt: json['createdOn']?.toString(),
+  );
+}
   Map<String, dynamic> toJson() {
     return {
       'meetingId': id,

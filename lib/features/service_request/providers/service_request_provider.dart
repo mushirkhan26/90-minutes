@@ -93,7 +93,7 @@ Future<void> _loadDepartmentsFromCache() async {
 
     if (!shouldRefresh && _allRequests.isNotEmpty) {
       _logger.logStorage(
-        "🟢 ServiceRequest cache valid, skipping API",
+        "ServiceRequest cache valid, skipping API",
       );
       _state = ServiceRequestState.success;
       notifyListeners();
@@ -127,7 +127,6 @@ Future<void> _loadDepartmentsFromCache() async {
       }
     }
 
-    // ❌ only if structure is wrong
     throw Exception("Invalid API response structure");
 
   } catch (e, s) {
@@ -236,17 +235,22 @@ Future<void> fetchRequestsByEmployee(String employeeId) async {
         await _service.getRequestsByEmployee(employeeId);
 
     if (response.success && response.data is Map<String, dynamic>) {
-      final List list = response.data['message'] as List;
 
-      _allRequests =
-          list.map((e) => ServiceRequest.fromJson(e)).toList();
+      final Map<String, dynamic> data = response.data;
 
-      // ✅ IMPORTANT: SAVE TO CACHE
-      await _localStorage.saveServiceRequests(
-        _allRequests.map((e) => e.toJson()).toList(),
-      );
+      if (data['message'] is List) {
 
-      _state = ServiceRequestState.success;
+        final List list = data['message'];
+
+        _allRequests =
+            list.map((e) => ServiceRequest.fromJson(e)).toList();
+
+        await _localStorage.saveServiceRequests(
+          _allRequests.map((e) => e.toJson()).toList(),
+        );
+
+        _state = ServiceRequestState.success;
+      }
     }
   } catch (e, s) {
     _logger.error(

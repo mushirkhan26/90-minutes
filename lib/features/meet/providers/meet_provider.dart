@@ -35,62 +35,114 @@ class MeetProvider extends ChangeNotifier {
   
 
   Future<void> fetchUpcomingMeetings({bool forceRefresh = false}) async {
-    // 1. Load from local storage first for instant UI
-    if (!forceRefresh) {
-      final cachedMeets = await _localStorage.getMeetList();
-      if (cachedMeets != null && cachedMeets.isNotEmpty) {
-        _meetList = cachedMeets;
-        _state = MeetState.success;
-        notifyListeners();
-      }
-    }
 
-    // 2. Decide if we need to fetch from network
-    final lastCacheTime = await _localStorage.getMeetListTimestamp();
-    final now = DateTime.now();
-    final shouldRefresh = forceRefresh ||
-        _meetList.isEmpty ||
-        lastCacheTime == null ||
-        now.difference(lastCacheTime) > cacheValidity;
+  _logger.logGeneral("🔄 fetchUpcomingMeetings started");
 
-    if (!shouldRefresh) {
-      _logger.logStorage('🟢 Meet cache still valid, skipping API call');
-      return;
-    }
+  // 1️⃣ Load from cache first (instant UI)
+  if (!forceRefresh) {
+    final cachedMeets = await _localStorage.getMeetList();
 
-    if (_meetList.isEmpty) {
-      _state = MeetState.loading;
+    if (cachedMeets != null && cachedMeets.isNotEmpty) {
+      _meetList = cachedMeets;
+      _state = MeetState.success;
       notifyListeners();
-    }
 
-    try {
-      final response = await _meetService.getUpcomingMeetings();
-
-      if (response.success) {
-        if (response.data is Map<String, dynamic> && response.data['data'] is List) {
-          final List<dynamic> meetsJson = response.data['data'] as List<dynamic>;
-          _meetList = meetsJson.map((json) => Meet.fromJson(json)).toList();
-          await _localStorage.saveMeetList(_meetList);
-          _state = MeetState.success;
-          _logger.logNetwork('✅ Meets refreshed (${_meetList.length} meets)');
-        } else if (response.data is String && response.data == "Api is working") {
-          _state = MeetState.success;
-        } else {
-          _meetList = [];
-          await _localStorage.saveMeetList(_meetList);
-          _state = MeetState.success;
-        }
-      } else {
-        throw Exception(response.message);
-      }
-    } catch (e, s) {
-      _errorMessage = 'Failed to fetch meets: $e';
-      _logger.error('MEET_PROVIDER', 'fetchUpcomingMeetings failed', error: e, stackTrace: s);
-      if (_meetList.isEmpty) _state = MeetState.error;
+      _logger.logStorage(
+        "🟢 Loaded ${_meetList.length} meets from cache",
+      );
     }
+  }
+
+  // 2️⃣ Check if refresh needed
+  final lastCacheTime =
+      await _localStorage.getMeetListTimestamp();
+
+  final now = DateTime.now();
+
+  final shouldRefresh = forceRefresh ||
+      _meetList.isEmpty ||
+      lastCacheTime == null ||
+      now.difference(lastCacheTime) > cacheValidity;
+
+  if (!shouldRefresh) {
+    _logger.logStorage(
+      "🟢 Meet cache still valid, skipping API call",
+    );
+    return;
+  }
+
+  if (_meetList.isEmpty) {
+    _state = MeetState.loading;
     notifyListeners();
   }
 
+  try {
+
+    _logger.logNetwork(
+      "📡 Calling meeting API (view=week, month=${now.month}, year=${now.year})",
+    );
+
+    final response =
+        await _meetService.getUpcomingMeetings(
+      month: now.month,
+      year: now.year,
+      view: "week", // 🔥 Use week as backend suggested
+    );
+
+    if (response.success) {
+
+      if (response.data is List) {
+
+        final List<dynamic> meetsJson =
+            response.data as List<dynamic>;
+
+        _logger.logNetwork(
+          "✅ API returned ${meetsJson.length} meetings",
+        );
+
+        _meetList = meetsJson
+            .map((json) => Meet.fromJson(json))
+            .toList();
+
+        await _localStorage.saveMeetList(_meetList);
+
+        _logger.logStorage(
+          "💾 Saved ${_meetList.length} meets to local storage",
+        );
+
+      } else {
+
+        _logger.logGeneral(
+          "⚠️ Unexpected response format — keeping old data",
+        );
+
+        // ❌ DO NOT CLEAR EXISTING LIST
+      }
+
+      _state = MeetState.success;
+
+    } else {
+      throw Exception(response.message);
+    }
+
+  } catch (e, s) {
+
+    _errorMessage = 'Failed to fetch meets: $e';
+
+    _logger.error(
+      'MEET_PROVIDER',
+      'fetchUpcomingMeetings failed',
+      error: e,
+      stackTrace: s,
+    );
+
+    if (_meetList.isEmpty) {
+      _state = MeetState.error;
+    }
+  }
+
+  notifyListeners();
+}
   void searchMeets(String query) {
     if (query.isEmpty) {
       _filteredMeetList = [];
