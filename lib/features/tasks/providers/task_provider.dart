@@ -238,8 +238,9 @@ class TasksProvider with ChangeNotifier {
     if (response.success) {
       await fetchStandaloneTasks();
       await fetchTasks(employeeId);
-      final currentTask = _standaloneTasks.followedBy(_allItems).firstWhere((t) => t.id == taskId);
+      final currentTask = _standaloneTasks.followedBy(_allItems).firstWhere((t) => t.id == taskId, orElse: () => _allItems.first);
       await _handleActivityLogs(currentTask);
+      notifyListeners();
     }
   }
 
