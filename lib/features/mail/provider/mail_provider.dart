@@ -85,36 +85,34 @@ class MailProvider extends ChangeNotifier {
   }
 
   Future<void> fetchInbox({bool forceRefresh = false}) async {
-  _state = MailState.loading;
-  notifyListeners();
+    _state = MailState.loading;
+    notifyListeners();
 
-  try {
-    await _ensureUserId();
-    if (_currentUserId == null) return;
+    try {
+      await _ensureUserId();
+      if (_currentUserId == null) return;
 
-    final response =
-        await _mailService.getInbox(employeeId: _currentUserId!);
+      final response = await _mailService.getInbox(employeeId: _currentUserId!);
 
-    if (response.success && response.data != null) {
-      final List<dynamic> mailsJson =
-          response.data!['data'] ?? [];
+      if (response.success && response.data != null) {
+        final List<dynamic> mailsJson = response.data!['data'] ?? [];
 
-      _inboxMails =
-          mailsJson.map((json) => MailModel.fromJson(json)).toList();
+        _inboxMails = mailsJson
+            .map((json) => MailModel.fromJson(json))
+            .toList();
 
-      await _local.saveMails(
-          LocalStorageService.keyInboxMails, _inboxMails);
+        await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
 
-      _state = MailState.loaded;
+        _state = MailState.loaded;
+      }
+    } catch (e) {
+      _logger.error('MAIL_PROVIDER', 'Error fetching inbox', error: e);
+      _state = MailState.error;
     }
-  } catch (e) {
-    _logger.error('MAIL_PROVIDER',
-        'Error fetching inbox', error: e);
-    _state = MailState.error;
+
+    notifyListeners();
   }
 
-  notifyListeners();
-}
   Future<void> fetchSent({bool forceRefresh = false}) async {
     _state = MailState.loading;
     notifyListeners();
@@ -262,28 +260,50 @@ class MailProvider extends ChangeNotifier {
     if (mails.isEmpty) return;
     final List<MailModel> listToRestore = List.from(mails);
     try {
-       for (var m in listToRestore) {
+      // remove from trash
+      for (var m in listToRestore) {
         _trashMails.removeWhere((x) => x.id == m.id);
-       }
+      }
       notifyListeners();
+
       await _ensureUserId();
-      await _mailService.restoreManyFromTrash(
+
+      final response = await _mailService.restoreManyFromTrash(
         mailIds: listToRestore.map((e) => e.id).toList(),
         employeeId: _currentUserId!,
       );
 
-      await fetchTrash(forceRefresh: true);
-      
-        await fetchSent(forceRefresh: true);
-      _activeFolder = 'Sent';
-      notifyListeners();
+      if (response.success) {
+        // update trash local storage
+        await _saveTrashLocally();
+
+
+        await Future.wait([
+          fetchInbox(forceRefresh: true),
+          fetchSent(forceRefresh: true),
+          fetchTrash(forceRefresh: true),
+        ]);
+      }
+
+      // await _mailService.restoreManyFromTrash(
+      //   mailIds: listToRestore.map((e) => e.id).toList(),
+      //   employeeId: _currentUserId!,
+      // );
+
+      // await fetchTrash(forceRefresh: true);
+      //
+      // await fetchSent(forceRefresh: true);
+      // _activeFolder = 'Sent';
+      // notifyListeners();
 
       // Refresh to put them back in correct places (Inbox or Sent)
       // await Future.wait([fetchInbox(), fetchSent(), fetchTrash()]);
       // await _saveAllLocally();
     } catch (e) {
-      fetchInbox();
-      fetchSent();
+      // fetchInbox();
+      // fetchSent();
+
+      _logger.error('MAIL_PROVIDER', 'Error restoring mails', error: e);
       fetchTrash();
     }
   }
@@ -292,7 +312,10 @@ class MailProvider extends ChangeNotifier {
     try {
       _trashMails.removeWhere((m) => m.id == mail.id);
       notifyListeners();
-      await _mailService.deleteMail(mailId: mail.id, employeeId: _currentUserId!);
+      await _mailService.deleteMail(
+        mailId: mail.id,
+        employeeId: _currentUserId!,
+      );
       await _saveTrashLocally();
     } catch (e) {
       fetchTrash();
@@ -300,16 +323,35 @@ class MailProvider extends ChangeNotifier {
   }
 
   Future<void> deleteAllTrash() async {
+    final backup = List<MailModel>.from(_trashMails);
+
     try {
+      await _ensureUserId();
+      if (_currentUserId == null) return;
+
+      // Optimistic UI update
       _trashMails.clear();
       notifyListeners();
-      await _ensureUserId();
-      await _mailService.emptyTrash(_currentUserId!);
-      await _saveTrashLocally();
+
+      final response = await _mailService.emptyTrash(_currentUserId!);
+
+      if (response.success) {
+        await _local.saveMails(LocalStorageService.keyTrashMails, []);
+        await fetchTrash(forceRefresh: true);
+      } else {
+        // rollback if backend failed
+        _trashMails = backup;
+        notifyListeners();
+      }
     } catch (e) {
-      fetchTrash();
+      _logger.error('MAIL_PROVIDER', 'Error emptying trash', error: e);
+
+      // rollback on error
+      _trashMails = backup;
+      notifyListeners();
     }
   }
+
 
   Future<void> _saveAllLocally() async {
     await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
