@@ -97,6 +97,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     final TextEditingController nameController = TextEditingController(
       text: _group.name,
     );
+
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -110,6 +111,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
           TextButton(
             onPressed: () async {
               final newName = nameController.text.trim();
+
               if (newName.isEmpty) {
                 AlertHelper.snackBarWarning(
                   context,
@@ -117,19 +119,35 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 );
                 return;
               }
+
+              // 🔥 SAVE OLD NAME (for rollback if API fails)
+              final oldName = _group.name;
+
+              // 🚀 OPTIMISTIC UI UPDATE
+              setState(() {
+                _isLoading = true;
+                _group = _group.copyWith(name: newName);
+              });
+
+              Navigator.pop(context);
+
               try {
-                setState(() => _isLoading = true);
                 await _groupSocketProvider.editGroupName(
                   _group.groupId,
                   newName,
                   _currentUserId ?? '',
                 );
-                if (context.mounted) {
+
+                if (mounted) {
                   AlertHelper.snackBarSuccess(context, 'Group name updated!');
-                  Navigator.pop(context);
                 }
               } catch (e) {
-                if (context.mounted) {
+                // ❌ rollback if failed
+                if (mounted) {
+                  setState(() {
+                    _group = _group.copyWith(name: oldName);
+                  });
+
                   AlertHelper.snackBarError(
                     context,
                     'Failed to update group name: $e',
