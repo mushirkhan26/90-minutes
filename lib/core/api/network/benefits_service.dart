@@ -56,19 +56,18 @@ class BenefitsService {
 
   if (response.success && response.data != null) {
 
-    final message = response.data!['message'];
+    final data = response.data!['data'];
 
-    if (message is Map<String, dynamic>) {
-      return ApiResponse.success(message);
+    if (data is Map<String, dynamic>) {
+      return ApiResponse.success(data);
     }
 
-    return ApiResponse.success({});
+    return ApiResponse.error("Invalid response format");
   }
 
   return ApiResponse.error(
       response.message ?? "Failed to add claim");
 }
-
   ///  Update Claim Status
   Future<ApiResponse<Map<String, dynamic>>> updateClaimStatus(
       String id, String status) async {

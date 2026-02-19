@@ -86,7 +86,7 @@ class BenefitsClaimModel {
 
   factory BenefitsClaimModel.fromJson(Map<String, dynamic> json) {
     return BenefitsClaimModel(
-      id: json['_id'] ?? '',
+      id: json['claimId'] ?? json['_id'] ?? '',
       employeeId: json['employeeId'] ?? '',
       beneficiaryName: json['beneficiaryName'] ?? '',
       relationWithEmployee: json['relationWithEmployee'] ?? '',

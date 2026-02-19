@@ -34,42 +34,32 @@ class MeetProvider extends ChangeNotifier {
   }
   
 
-  Future<void> fetchUpcomingMeetings({bool forceRefresh = false}) async {
-
+  Future<void> fetchUpcomingMeetings({
+  bool forceRefresh = false,
+  DateTime? selectedDate,
+}) async {
   _logger.logGeneral("🔄 fetchUpcomingMeetings started");
 
-  // 1️⃣ Load from cache first (instant UI)
+  final DateTime baseDate = selectedDate ?? DateTime.now();
+
+  // 1️⃣ Load cache first
   if (!forceRefresh) {
     final cachedMeets = await _localStorage.getMeetList();
-
     if (cachedMeets != null && cachedMeets.isNotEmpty) {
       _meetList = cachedMeets;
       _state = MeetState.success;
       notifyListeners();
-
-      _logger.logStorage(
-        "🟢 Loaded ${_meetList.length} meets from cache",
-      );
     }
   }
 
-  // 2️⃣ Check if refresh needed
-  final lastCacheTime =
-      await _localStorage.getMeetListTimestamp();
-
-  final now = DateTime.now();
+  final lastCacheTime = await _localStorage.getMeetListTimestamp();
 
   final shouldRefresh = forceRefresh ||
       _meetList.isEmpty ||
       lastCacheTime == null ||
-      now.difference(lastCacheTime) > cacheValidity;
+      DateTime.now().difference(lastCacheTime) > cacheValidity;
 
-  if (!shouldRefresh) {
-    _logger.logStorage(
-      "🟢 Meet cache still valid, skipping API call",
-    );
-    return;
-  }
+  if (!shouldRefresh) return;
 
   if (_meetList.isEmpty) {
     _state = MeetState.loading;
@@ -77,56 +67,36 @@ class MeetProvider extends ChangeNotifier {
   }
 
   try {
-
     _logger.logNetwork(
-      "📡 Calling meeting API (view=week, month=${now.month}, year=${now.year})",
+      "📡 Calling API (month=${baseDate.month}, year=${baseDate.year})",
     );
 
-    final response =
-        await _meetService.getUpcomingMeetings(
-      month: now.month,
-      year: now.year,
-      view: "week", // 🔥 Use week as backend suggested
+    final response = await _meetService.getUpcomingMeetings(
+      month: baseDate.month,
+      year: baseDate.year,
+      view: "week",
     );
 
-    if (response.success) {
+    if (response.success && response.data is List) {
+      final List<dynamic> meetsJson = response.data as List<dynamic>;
 
-      if (response.data is List) {
+      final List<Meet> apiMeets =
+          meetsJson.map((json) => Meet.fromJson(json)).toList();
 
-        final List<dynamic> meetsJson =
-            response.data as List<dynamic>;
+      _meetList = apiMeets;
 
-        _logger.logNetwork(
-          "✅ API returned ${meetsJson.length} meetings",
-        );
+      // 🔥 SORT BY DATE ASCENDING (timeline friendly)
+      _meetList.sort((a, b) =>
+          DateTime.parse(a.time)
+              .compareTo(DateTime.parse(b.time)));
 
-        _meetList = meetsJson
-            .map((json) => Meet.fromJson(json))
-            .toList();
-
-        await _localStorage.saveMeetList(_meetList);
-
-        _logger.logStorage(
-          "💾 Saved ${_meetList.length} meets to local storage",
-        );
-
-      } else {
-
-        _logger.logGeneral(
-          "⚠️ Unexpected response format — keeping old data",
-        );
-
-        // ❌ DO NOT CLEAR EXISTING LIST
-      }
+      await _localStorage.saveMeetList(_meetList);
 
       _state = MeetState.success;
-
     } else {
       throw Exception(response.message);
     }
-
   } catch (e, s) {
-
     _errorMessage = 'Failed to fetch meets: $e';
 
     _logger.error(

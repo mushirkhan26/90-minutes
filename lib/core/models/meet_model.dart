@@ -28,12 +28,16 @@ class Meet {
   });
 
   factory Meet.fromJson(Map<String, dynamic> json) {
+  final meetingDate = json['meetingDate']?.toString() ?? '';
+  final meetingTime = json['meetingTime']?.toString() ?? '';
 
-  final meetingDate = json['meetingDate'] ?? '';
-  final meetingTime = json['meetingTime'] ?? '';
+  String combinedTime = '';
 
-  // ✅ Proper ISO format
-  final combinedTime = "${meetingDate}T${meetingTime}:00";
+  if (meetingDate.isNotEmpty && meetingTime.isNotEmpty) {
+    combinedTime = "$meetingDate" "T$meetingTime:00";
+  } else {
+    combinedTime = DateTime.now().toIso8601String(); // fallback
+  }
 
   return Meet(
     id: json['meetingId']?.toString(),
