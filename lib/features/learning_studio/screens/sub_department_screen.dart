@@ -8,7 +8,11 @@ class SubDepartmentScreen extends StatefulWidget {
   final String department;
   final String subDepartment;
 
-  const SubDepartmentScreen({super.key, required this.department, required this.subDepartment});
+  const SubDepartmentScreen({
+    super.key,
+    required this.department,
+    required this.subDepartment,
+  });
 
   @override
   State<SubDepartmentScreen> createState() => _SubDepartmentScreenState();
@@ -23,7 +27,9 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
     super.initState();
     // The trigger to load is here, but the Provider handles the "Smart" logic (Cache vs API)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LearningStudioProvider>().loadSubDepartments(widget.department);
+      context.read<LearningStudioProvider>().loadSubDepartments(
+        widget.department,
+      );
     });
   }
 
@@ -40,14 +46,19 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
 
     final filteredSubDepartments = _searchQuery.isEmpty
         ? allSubDepartments
-        : allSubDepartments.where((e) => e.toLowerCase().contains(_searchQuery)).toList();
+        : allSubDepartments
+              .where((e) => e.toLowerCase().contains(_searchQuery))
+              .toList();
 
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF26A69A),
         title: Text(
           'Learning Studio > ${widget.department}',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         actions: [
           Padding(
@@ -55,12 +66,23 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
             child: ElevatedButton.icon(
               onPressed: () => _showAddSubDepartmentDialog(context),
               icon: const Icon(Icons.add, size: 18, color: Colors.white),
-              label: const Text('Add', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+              label: const Text(
+                'Add',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6FBFC0),
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
               ),
             ),
           ),
@@ -73,7 +95,8 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
             color: const Color(0xFF26A69A),
             child: TextField(
               controller: _searchController,
-              onChanged: (value) => setState(() => _searchQuery = value.toLowerCase()),
+              onChanged: (value) =>
+                  setState(() => _searchQuery = value.toLowerCase()),
               decoration: InputDecoration(
                 hintText: 'Search subdepartments...',
                 filled: true,
@@ -88,7 +111,8 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => provider.loadSubDepartments(widget.department, force: true),
+              onRefresh: () =>
+                  provider.loadSubDepartments(widget.department, force: true),
               child: _buildContent(provider, filteredSubDepartments),
             ),
           ),
@@ -97,9 +121,13 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
     );
   }
 
-  Widget _buildContent(LearningStudioProvider provider, List<String> filteredSubDepartments) {
+  Widget _buildContent(
+    LearningStudioProvider provider,
+    List<String> filteredSubDepartments,
+  ) {
     // Only show loading if we don't have data yet
-    if (provider.state == LearningStudioState.loading && filteredSubDepartments.isEmpty) {
+    if (provider.state == LearningStudioState.loading &&
+        filteredSubDepartments.isEmpty) {
       return GridView.builder(
         padding: const EdgeInsets.all(16),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -114,7 +142,12 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
     }
 
     if (filteredSubDepartments.isEmpty) {
-      return const Center(child: Text('No subdepartments found', style: TextStyle(color: Colors.grey)));
+      return const Center(
+        child: Text(
+          'No subdepartments found',
+          style: TextStyle(color: Colors.grey),
+        ),
+      );
     }
 
     return GridView.builder(
@@ -133,18 +166,24 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => CoursesScreen(department: widget.department, subDepartment: subDept),
+                builder: (_) => CoursesScreen(
+                  department: widget.department,
+                  subDepartment: subDept,
+                ),
               ),
             );
           },
           child: Container(
+            padding: const EdgeInsets.all(15),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
-              boxShadow: [BoxShadow(color: Colors.grey.shade300, blurRadius: 6)],
+              boxShadow: [
+                BoxShadow(color: Colors.grey.shade300, blurRadius: 6),
+              ],
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Container(
                   padding: const EdgeInsets.all(14),
@@ -152,24 +191,23 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
                     color: const Color(0xFF26A69A).withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.folder, color: Color(0xFF26A69A), size: 32),
+                  child: const Icon(
+                    Icons.folder,
+                    color: Color(0xFF26A69A),
+                    size: 32,
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Expanded(
-  child: Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6),
-    child: Text(
-      subDept,
-      textAlign: TextAlign.center,
-      maxLines: 2,                   
-      overflow: TextOverflow.ellipsis,
-      style: const TextStyle(
-        fontWeight: FontWeight.w500,
-        fontSize: 13,
-      ),
-    ),
-  ),
-),
+                const SizedBox(height: 8),
+                Text(
+                  subDept,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
               ],
             ),
           ),
@@ -186,7 +224,9 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
       barrierDismissible: false,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -196,37 +236,84 @@ class _SubDepartmentScreenState extends State<SubDepartmentScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Add New Subdepartment',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Color(0xFF26A69A))),
-                    IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
+                    const Text(
+                      'Add New Subdepartment',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF26A69A),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                const Text('Subdepartment Name *', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
+                const Text(
+                  'Subdepartment Name *',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                TextField(controller: nameController, decoration: const InputDecoration(hintText: 'e.g. Frontend', border: OutlineInputBorder())),
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    hintText: 'e.g. Frontend',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
                 const SizedBox(height: 14),
-                const Text('Description', style: TextStyle(color: Colors.black, fontWeight: FontWeight.w500)),
+                const Text(
+                  'Description',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 6),
-                TextField(controller: descController, maxLines: 2, decoration: const InputDecoration(hintText: 'Description', border: OutlineInputBorder())),
+                TextField(
+                  controller: descController,
+                  maxLines: 2,
+                  decoration: const InputDecoration(
+                    hintText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
                 const SizedBox(height: 20),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel'),
+                    ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF26A69A)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF26A69A),
+                      ),
                       onPressed: () async {
                         if (nameController.text.trim().isEmpty) return;
-                        final success = await context.read<LearningStudioProvider>().addSubDepartment(
+                        final success = await context
+                            .read<LearningStudioProvider>()
+                            .addSubDepartment(
                               subDepartmentName: nameController.text.trim(),
                               department: widget.department,
                               description: descController.text.trim(),
                             );
                         if (success && context.mounted) Navigator.pop(context);
                       },
-                      child: const Text('Create', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Create',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ],
                 ),
