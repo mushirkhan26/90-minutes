@@ -1,149 +1,21 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/payroll_documents/provider/payroll_provider.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:open_file/open_file.dart';
 
-class PayrollDocumentsScreen extends StatefulWidget {
+class PayrollDocumentsScreen extends StatelessWidget {
   const PayrollDocumentsScreen({super.key});
 
-  @override
-  State<PayrollDocumentsScreen> createState() => _PayrollDocumentsScreenState();
-}
-
-class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
-  String selectedYear = '2026';
-  String selectedMonth = 'January';
-
-  final List<String> years = ['2024', '2025', '2026'];
-  final List<String> months = [
+  final List<String> years = const ['2024', '2025', '2026'];
+  final List<String> months = const [
     'January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    final now = DateTime.now();
-    selectedYear = now.year.toString();
-    selectedMonth = DateFormat('MMMM').format(now);
-    
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchPayroll();
-    });
-  }
-
-  void _fetchPayroll({bool forceRefresh = false}) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final employeeId = authProvider.userData?['employeeId']?.toString();
-    
-    if (employeeId != null) {
-      Provider.of<PayrollProvider>(context, listen: false).fetchPayroll(
-        employeeId: employeeId,
-        year: selectedYear,
-        month: selectedMonth,
-        forceRefresh: forceRefresh,
-      );
-    }
-  }
-
-  Future<void> _generateAndDownloadPdf(PayrollProvider provider) async {
-    final data = provider.payrollData;
-    if (data == null) return;
-
-    try {
-      final pdf = pw.Document();
-
-      pdf.addPage(
-        pw.Page(
-          build: (pw.Context context) {
-            return pw.Padding(
-              padding: const pw.EdgeInsets.all(20),
-              child: pw.Column(
-                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                children: [
-                  pw.Center(
-                    child: pw.Text('Hertzworkz Private Limited',
-                        style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
-                  ),
-                  pw.SizedBox(height: 10),
-                  pw.Center(
-                    child: pw.Text('PAYSLIP',
-                        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  ),
-                  pw.Center(
-                    child: pw.Text('$selectedMonth $selectedYear',
-                        style: const pw.TextStyle(fontSize: 14)),
-                  ),
-                  pw.SizedBox(height: 30),
-                  pw.Divider(),
-                  pw.SizedBox(height: 10),
-                  pw.Row(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      pw.Text('Employee ID: ${data.employeeId ?? 'N/A'}'),
-                      pw.Text('Package: ${data.packageName ?? 'N/A'}'),
-                    ],
-                  ),
-                  pw.SizedBox(height: 20),
-                  pw.Text('Earnings', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Divider(),
-                  _buildPdfRow('Basic Salary', 'INR ${data.basicSalary?.toStringAsFixed(2)}'),
-                  _buildPdfRow('Allowances', 'INR ${data.allowances?.toStringAsFixed(2)}'),
-                  _buildPdfRow('Bonus', 'INR ${data.bonus?.toStringAsFixed(2)}'),
-                  pw.SizedBox(height: 10),
-                  _buildPdfRow('Gross Salary', 'INR ${data.grossSalary?.toStringAsFixed(2)}', isBold: true),
-                  pw.SizedBox(height: 20),
-                  pw.Text('Deductions', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                  pw.Divider(),
-                  _buildPdfRow('Provident Fund', 'INR ${data.providentFund?.toStringAsFixed(2)}'),
-                  _buildPdfRow('Tax', 'INR ${data.tax?.toStringAsFixed(2)}'),
-                  pw.SizedBox(height: 20),
-                  pw.Divider(),
-                  _buildPdfRow('NET SALARY', 'INR ${data.netSalary?.toStringAsFixed(2)}', isBold: true),
-                  pw.SizedBox(height: 40),
-                  pw.Text('Note: This is a computer generated payslip and does not require a signature.',
-                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
-                ],
-              ),
-            );
-          },
-        ),
-      );
-
-      final output = await getTemporaryDirectory();
-      final file = File("${output.path}/Payslip_${selectedMonth}_${selectedYear}.pdf");
-      await file.writeAsBytes(await pdf.save());
-
-      await OpenFile.open(file.path);
-    } catch (e) {
-      debugPrint("Error generating PDF: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to generate PDF: $e')),
-        );
-      }
-    }
-  }
-
-  pw.Widget _buildPdfRow(String label, String value, {bool isBold = false}) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 4),
-      child: pw.Row(
-        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-        children: [
-          pw.Text(label, style: isBold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null),
-          pw.Text(value, style: isBold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -183,26 +55,34 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
                   children: [
                     Expanded(
                       flex: 2,
-                      child: _buildDropdown(selectedYear, years, (value) {
-                        setState(() {
-                          selectedYear = value!;
-                          _fetchPayroll();
-                        });
-                      }),
+                      child: _buildDropdown(
+                        payrollProvider.selectedYear,
+                        years,
+                        (value) => payrollProvider.updateSelection(value!, payrollProvider.selectedMonth),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       flex: 3,
-                      child: _buildDropdown(selectedMonth, months, (value) {
-                        setState(() {
-                          selectedMonth = value!;
-                          _fetchPayroll();
-                        });
-                      }),
+                      child: _buildDropdown(
+                        payrollProvider.selectedMonth,
+                        months,
+                        (value) => payrollProvider.updateSelection(payrollProvider.selectedYear, value!),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     ElevatedButton(
-                      onPressed: () => _fetchPayroll(forceRefresh: true),
+                      onPressed: () {
+                        // For force refresh, we might need a way to trigger it. 
+                        // But usually, selection update is enough. 
+                        // If we want a dedicated refresh:
+                        payrollProvider.fetchPayroll(
+                          employeeId: payrollProvider.payrollData?.employeeId ?? '', 
+                          year: payrollProvider.selectedYear, 
+                          month: payrollProvider.selectedMonth,
+                          forceRefresh: true,
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF3B82F6),
                         foregroundColor: Colors.white,
@@ -231,7 +111,15 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
                         const Icon(Icons.error_outline, size: 48, color: Colors.red),
                         const SizedBox(height: 16),
                         Text(payrollProvider.errorMessage ?? 'Error loading payroll'),
-                        TextButton(onPressed: () => _fetchPayroll(forceRefresh: true), child: const Text('Retry')),
+                        TextButton(
+                          onPressed: () => payrollProvider.fetchPayroll(
+                            employeeId: '', // Ideally retrieved internally or passed
+                            year: payrollProvider.selectedYear,
+                            month: payrollProvider.selectedMonth,
+                            forceRefresh: true,
+                          ),
+                          child: const Text('Retry'),
+                        ),
                       ],
                     ),
                   )
@@ -249,7 +137,7 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
                     ),
                   )
                 else
-                  _buildPayslipCard(payrollProvider),
+                  _buildPayslipCard(context, payrollProvider),
               ],
             ),
           );
@@ -258,9 +146,8 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
     );
   }
 
-  Widget _buildPayslipCard(PayrollProvider provider) {
+  Widget _buildPayslipCard(BuildContext context, PayrollProvider provider) {
     final data = provider.payrollData!;
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     
     return Center(
       child: Container(
@@ -302,7 +189,7 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
                 ),
               ),
               Text(
-                '$selectedMonth $selectedYear',
+                '${provider.selectedMonth} ${provider.selectedYear}',
                 style: const TextStyle(
                   fontSize: 12,
                   color: Colors.grey,
@@ -327,7 +214,7 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            data.employeeId ?? authProvider.userData?['employeeId']?.toString() ?? 'N/A',
+                            data.employeeId ?? 'N/A',
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -409,7 +296,7 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _generateAndDownloadPdf(provider),
+                  onPressed: () => _generateAndDownloadPdf(context, provider),
                   icon: const Icon(Icons.file_download_outlined),
                   label: const Text('DOWNLOAD PAYSLIP'),
                   style: ElevatedButton.styleFrom(
@@ -483,6 +370,96 @@ class _PayrollDocumentsScreenState extends State<PayrollDocumentsScreen> {
           ),
           const SizedBox(height: 8),
           const Divider(height: 1, color: Color(0xFFE2E8F0)),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _generateAndDownloadPdf(BuildContext context, PayrollProvider provider) async {
+    final data = provider.payrollData;
+    if (data == null) return;
+
+    try {
+      final pdf = pw.Document();
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context pwContext) {
+            return pw.Padding(
+              padding: const pw.EdgeInsets.all(20),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Center(
+                    child: pw.Text('Hertzworkz Private Limited',
+                        style: pw.TextStyle(fontSize: 20, fontWeight: pw.FontWeight.bold)),
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Center(
+                    child: pw.Text('PAYSLIP',
+                        style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+                  ),
+                  pw.Center(
+                    child: pw.Text('${provider.selectedMonth} ${provider.selectedYear}',
+                        style: const pw.TextStyle(fontSize: 14)),
+                  ),
+                  pw.SizedBox(height: 30),
+                  pw.Divider(),
+                  pw.SizedBox(height: 10),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Employee ID: ${data.employeeId ?? 'N/A'}'),
+                      pw.Text('Package: ${data.packageName ?? 'N/A'}'),
+                    ],
+                  ),
+                  pw.SizedBox(height: 20),
+                  pw.Text('Earnings', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Divider(),
+                  _buildPdfRow('Basic Salary', 'INR ${data.basicSalary?.toStringAsFixed(2)}'),
+                  _buildPdfRow('Allowances', 'INR ${data.allowances?.toStringAsFixed(2)}'),
+                  _buildPdfRow('Bonus', 'INR ${data.bonus?.toStringAsFixed(2)}'),
+                  pw.SizedBox(height: 10),
+                  _buildPdfRow('Gross Salary', 'INR ${data.grossSalary?.toStringAsFixed(2)}', isBold: true),
+                  pw.SizedBox(height: 20),
+                  pw.Text('Deductions', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.Divider(),
+                  _buildPdfRow('Provident Fund', 'INR ${data.providentFund?.toStringAsFixed(2)}'),
+                  _buildPdfRow('Tax', 'INR ${data.tax?.toStringAsFixed(2)}'),
+                  pw.SizedBox(height: 20),
+                  pw.Divider(),
+                  _buildPdfRow('NET SALARY', 'INR ${data.netSalary?.toStringAsFixed(2)}', isBold: true),
+                  pw.SizedBox(height: 40),
+                  pw.Text('Note: This is a computer generated payslip and does not require a signature.',
+                      style: const pw.TextStyle(fontSize: 10, color: PdfColors.grey)),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+
+      final output = await getTemporaryDirectory();
+      final file = File("${output.path}/Payslip_${provider.selectedMonth}_${provider.selectedYear}.pdf");
+      await file.writeAsBytes(await pdf.save());
+
+      await OpenFile.open(file.path);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to generate PDF: $e')),
+        );
+      }
+    }
+  }
+
+  pw.Widget _buildPdfRow(String label, String value, {bool isBold = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 4),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: isBold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null),
+          pw.Text(value, style: isBold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null),
         ],
       ),
     );

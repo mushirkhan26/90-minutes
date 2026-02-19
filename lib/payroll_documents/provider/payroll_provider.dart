@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/api/network/payroll_service.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
+import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:hrtz_hrms/core/models/payroll_model.dart';
+import 'package:intl/intl.dart';
 
 enum PayrollState { idle, loading, success, error, empty }
 
 class PayrollProvider extends ChangeNotifier {
   final PayrollService _payrollService = PayrollService();
   final LocalStorageService _storage = LocalStorageService();
+  final SecureStorageService _secureStorage = SecureStorageService();
   final LoggingService _logger = LoggingService.instance;
 
   PayrollState _state = PayrollState.idle;
@@ -20,12 +23,52 @@ class PayrollProvider extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  String _selectedYear = '2025';
+  String _selectedMonth = 'January';
+
+  String get selectedYear => _selectedYear;
+  String get selectedMonth => _selectedMonth;
+
+  PayrollProvider() {
+    _init();
+  }
+
+  void _init() {
+    final now = DateTime.now();
+    _selectedYear = now.year.toString();
+    _selectedMonth = DateFormat('MMMM').format(now);
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    final employeeId = await _secureStorage.getEmployeeId();
+    if (employeeId != null) {
+      await fetchPayroll(
+        employeeId: employeeId,
+        year: _selectedYear,
+        month: _selectedMonth,
+      );
+    }
+  }
+
+  void updateSelection(String year, String month) {
+    if (_selectedYear == year && _selectedMonth == month) return;
+    _selectedYear = year;
+    _selectedMonth = month;
+    notifyListeners();
+    // Fetch data for new selection
+    _loadInitialData();
+  }
+
   Future<void> fetchPayroll({
     required String employeeId,
     required String year,
     required String month,
     bool forceRefresh = false,
   }) async {
+    _selectedYear = year;
+    _selectedMonth = month;
+    
     // 1. Try to load from cache first
     if (!forceRefresh) {
       final cachedData = await _storage.getPayroll(employeeId, year, month);
@@ -34,7 +77,6 @@ class PayrollProvider extends ChangeNotifier {
         _state = PayrollState.success;
         notifyListeners();
         _logger.logNetwork('Payroll data loaded from cache for $employeeId');
-        // Optional: Return early if cache found and fresh enough
       }
     }
 
@@ -56,7 +98,6 @@ class PayrollProvider extends ChangeNotifier {
         if (response.success && response.data != null) {
           final data = response.data!;
           if (data.containsKey('packageDetails') && data['packageDetails'] != null) {
-            // Pass employeeId explicitly because it's not in the response body root
             _payrollData = PayrollModel.fromJson(data, employeeId: employeeId);
             _state = PayrollState.success;
             
