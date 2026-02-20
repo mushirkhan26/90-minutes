@@ -1,38 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/utils/url_launcher_helper.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../provider/document_provider.dart';
 import '../../../core/models/document_model.dart';
 
-class MyDocumentsScreen extends StatefulWidget {
+class MyDocumentsScreen extends StatelessWidget {
   const MyDocumentsScreen({super.key});
 
-  @override
-  State<MyDocumentsScreen> createState() => _MyDocumentsScreenState();
-}
-
-class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchData();
-    });
-  }
-
-  Future<void> _fetchData() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final id = authProvider.userData?['employeeId']?.toString();
-    if (id != null) {
-      await context.read<DocumentProvider>().fetchDocuments(id);
+  Future<void> _handleDocumentAction(BuildContext context, String url) async {
+    if (url.isEmpty) {
+      AlertHelper.snackBarError(context, 'Document URL is not available');
+      return;
     }
-  }
 
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (!await launchUrl(uri)) {
-      throw Exception('Could not launch $url');
+    try {
+      await UrlLauncherHelper.launchUrlString(url);
+    } catch (e) {
+      if (context.mounted) {
+        AlertHelper.snackBarError(context, 'Could not open document');
+      }
     }
   }
 
@@ -41,7 +29,8 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('My Documents', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text('My Documents',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         backgroundColor: const Color(0xFF26A69A),
         foregroundColor: Colors.white,
         iconTheme: const IconThemeData(color: Colors.white),
@@ -49,18 +38,31 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
       ),
       body: Consumer<DocumentProvider>(
         builder: (context, provider, child) {
+          // Show loading only if we have no data at all
           if (provider.isLoading && provider.documents.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
 
+          // Show error only if we have no data (even from cache)
           if (provider.errorMessage != null && provider.documents.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
                   Text('Error: ${provider.errorMessage}'),
+                  const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _fetchData,
+                    onPressed: () {
+                      final authProvider =
+                          Provider.of<AuthProvider>(context, listen: false);
+                      final id =
+                          authProvider.userData?['employeeId']?.toString();
+                      if (id != null) {
+                        provider.refreshDocuments(id);
+                      }
+                    },
                     child: const Text('Retry'),
                   ),
                 ],
@@ -71,7 +73,14 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
           final documents = provider.documents;
 
           return RefreshIndicator(
-            onRefresh: _fetchData,
+            onRefresh: () async {
+              final authProvider =
+                  Provider.of<AuthProvider>(context, listen: false);
+              final id = authProvider.userData?['employeeId']?.toString();
+              if (id != null) {
+                await provider.refreshDocuments(id);
+              }
+            },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
@@ -100,7 +109,7 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
                         border: Border.all(color: Colors.grey.shade200),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.03),
+                            color: Colors.black.withValues(alpha: 0.03),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -110,18 +119,34 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
                         children: [
                           // Header
                           Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 15),
                             child: Row(
                               children: [
-                                Expanded(flex: 3, child: Text('Document', style: _headerStyle)),
-                                Expanded(flex: 2, child: Center(child: Text('Status', style: _headerStyle))),
-                                Expanded(flex: 2, child: Center(child: Text('Type', style: _headerStyle))),
-                                Expanded(flex: 2, child: Center(child: Text('Actions', style: _headerStyle))),
+                                Expanded(
+                                    flex: 3,
+                                    child: Text('Document',
+                                        style: _headerStyle)),
+                                Expanded(
+                                    flex: 2,
+                                    child: Center(
+                                        child: Text('Status',
+                                            style: _headerStyle))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Center(
+                                        child: Text('Type',
+                                            style: _headerStyle))),
+                                Expanded(
+                                    flex: 2,
+                                    child: Center(
+                                        child: Text('Actions',
+                                            style: _headerStyle))),
                               ],
                             ),
                           ),
                           const Divider(height: 1),
-                          if (documents.isEmpty)
+                          if (documents.isEmpty && !provider.isLoading)
                             const Padding(
                               padding: EdgeInsets.all(40.0),
                               child: Center(child: Text('No documents found')),
@@ -161,12 +186,16 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
             flex: 3,
             child: Row(
               children: [
-                const Icon(Icons.description_outlined, size: 20, color: Color(0xFF2563EB)),
+                const Icon(Icons.description_outlined,
+                    size: 20, color: Color(0xFF2563EB)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     doc.name,
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF1E293B)),
+                    style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF1E293B)),
                   ),
                 ),
               ],
@@ -183,7 +212,10 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
                 ),
                 child: Text(
                   doc.status.toUpperCase(),
-                  style: const TextStyle(color: Color(0xFF166534), fontSize: 10, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Color(0xFF166534),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -203,13 +235,15 @@ class _MyDocumentsScreenState extends State<MyDocumentsScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 InkWell(
-                  onTap: () => _launchUrl(doc.url),
-                  child: const Icon(Icons.remove_red_eye_outlined, size: 20, color: Color(0xFF2563EB)),
+                  onTap: () => _handleDocumentAction(context, doc.url),
+                  child: const Icon(Icons.remove_red_eye_outlined,
+                      size: 20, color: Color(0xFF2563EB)),
                 ),
                 const SizedBox(width: 12),
                 InkWell(
-                  onTap: () => _launchUrl(doc.url),
-                  child: const Icon(Icons.download_outlined, size: 20, color: Color(0xFF166534)),
+                  onTap: () => _handleDocumentAction(context, doc.url),
+                  child: const Icon(Icons.download_outlined,
+                      size: 20, color: Color(0xFF166534)),
                 ),
               ],
             ),

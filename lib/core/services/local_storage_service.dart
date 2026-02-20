@@ -10,6 +10,7 @@ import 'package:hrtz_hrms/core/models/meet_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
 import 'package:hrtz_hrms/core/models/project_model.dart';
 import 'package:hrtz_hrms/core/models/payroll_model.dart';
+import 'package:hrtz_hrms/core/models/document_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hrtz_hrms/core/models/benefits_claim_model.dart';
@@ -55,6 +56,9 @@ class LocalStorageService {
 
   // 💰 Payroll caching related keys
   static const String _keyPayrollPrefix = 'payroll_';
+
+  // 📄 Document caching related keys
+  static const String _keyDocumentPrefix = 'documents_';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -882,5 +886,42 @@ Future<DateTime?> getAllClaimsTimestamp() async {
       _logger.error('LOCAL_STORAGE', 'Failed to parse cached payroll', error: e);
       return null;
     }
+  }
+
+  // --------------------------------------------------------------------------
+  // 📄 Documents caching methods
+  // --------------------------------------------------------------------------
+
+  Future<void> saveDocuments(String employeeId, List<Document> documents) async {
+    final key = '$_keyDocumentPrefix$employeeId';
+    final jsonList = documents.map((e) => {
+      'id': e.id,
+      'name': e.name,
+      'status': e.status,
+      'type': e.type,
+      'url': e.url,
+    }).toList();
+    await prefs.setString(key, jsonEncode(jsonList));
+    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+    _logger.logStorage('Saved ${documents.length} documents for $employeeId');
+  }
+
+  Future<List<Document>?> getDocuments(String employeeId) async {
+    final key = '$_keyDocumentPrefix$employeeId';
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((json) => Document.fromJson(json)).toList();
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse cached documents', error: e);
+      return null;
+    }
+  }
+
+  Future<DateTime?> getDocumentCacheTimestamp(String employeeId) async {
+    final key = '$_keyDocumentPrefix$employeeId';
+    final ts = prefs.getInt('${key}_timestamp');
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
   }
 }
