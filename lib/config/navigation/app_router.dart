@@ -40,6 +40,8 @@ import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
 import 'package:hrtz_hrms/features/employee_directory/screens/employee_directory_screen.dart';
+import 'package:hrtz_hrms/features/hr_employee_task/screens/compliance_center_screen.dart';
+import 'package:hrtz_hrms/features/documents/screens/my_documents_screen.dart';
 
 
 import 'package:hrtz_hrms/splash_screen.dart';
@@ -383,6 +385,16 @@ final GoRouter appRouter = GoRouter(
       name: 'payroll-documents',
       builder: (context, state) => const PayrollDocumentsScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.complianceCenter,
+      name: 'compliance-center',
+      builder: (context, state) => const ComplianceCenterScreen(),
+    ),
+    GoRoute(
+      path: AppRoutes.myDocuments,
+      name: 'my-documents',
+      builder: (context, state) => const MyDocumentsScreen(),
+    ),
   ],
 );
 
@@ -465,6 +477,8 @@ extension AuthNavigation on BuildContext {
   void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
   void goToManageTasks() => push(AppRoutes.manageTasks);
   void goToPayrollDocuments() => push(AppRoutes.payrollDocuments);
+  void goToComplianceCenter() => push(AppRoutes.complianceCenter);
+  void goToMyDocuments() => push(AppRoutes.myDocuments);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {

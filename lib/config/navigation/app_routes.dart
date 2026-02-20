@@ -47,5 +47,6 @@ class AppRoutes {
   static const String addProject = '/add-project';
   static const String employeeBenefits = '/employee-benefits';
   static const String payrollDocuments = '/payroll-documents';
-
+  static const String complianceCenter = '/compliance-center';
+  static const String myDocuments = '/my-documents';
 }

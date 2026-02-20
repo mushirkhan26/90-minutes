@@ -293,6 +293,24 @@ class HomeScreen extends StatelessWidget {
           context.goToPayrollDocuments();
         },
       ),
+      ListTile(
+        leading: const Icon(Icons.assignment_outlined,
+            color: Colors.black87),
+        title: const Text('HR Employee Task'),
+        onTap: () {
+          Navigator.pop(context);
+          context.goToComplianceCenter();
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.folder_shared_outlined,
+            color: Colors.black87),
+        title: const Text('Documents'),
+        onTap: () {
+          Navigator.pop(context);
+          context.goToMyDocuments();
+        },
+      ),
     ],
   ),
 ),
