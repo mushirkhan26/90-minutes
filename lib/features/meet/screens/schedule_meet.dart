@@ -800,7 +800,7 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
 
               _buildLabel("Attachments", Icons.upload_file),
               const Text(
-                "Allowed: PDF, DOC, PPT, XLS, TXT, Images (Max 8MB, 5 files)",
+                "Allowed: PDF, DOC, PPT, XLS, TXT, Videos, Images (Max 8MB, 5 files)",
                 style: TextStyle(fontSize: 10, color: Colors.grey),
               ),
               const SizedBox(height: 8),
