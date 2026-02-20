@@ -17,11 +17,12 @@ import 'package:hrtz_hrms/features/chat/screens/group_chat_details_screen.dart';
 import 'package:hrtz_hrms/features/chat/screens/group_chat_screens.dart';
 import 'package:hrtz_hrms/features/employee_benefits/screens/benefits_screen.dart';
 import 'package:hrtz_hrms/features/holiday/screen/holiday_calendar_screen.dart';
+import 'package:hrtz_hrms/features/home/screens/my_doucments_screen.dart';
 import 'package:hrtz_hrms/features/leaderboard/screens/admin_leaderboard_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/new_registrations_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/performance_screen.dart';
 import 'package:hrtz_hrms/features/hr_services/screens/previous_reviews_screen.dart';
-import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart'; 
+import 'package:hrtz_hrms/features/leave/screens/leave_request_screen.dart';
 import 'package:hrtz_hrms/features/leave/screens/admin_leave_approval_screen.dart';
 import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:hrtz_hrms/features/home/screens/home_screen.dart';
@@ -40,7 +41,6 @@ import 'package:hrtz_hrms/features/complaint/screens/my_complaints_screen.dart';
 import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
 import 'package:hrtz_hrms/features/learning_studio/screens/learning_studio_screen.dart';
 import 'package:hrtz_hrms/features/employee_directory/screens/employee_directory_screen.dart';
-
 
 import 'package:hrtz_hrms/splash_screen.dart';
 
@@ -82,8 +82,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.splashRoute,
       name: 'splash',
-      pageBuilder: (context, state) =>
-          buildTransitionPage(const SplashScreen()),
+      pageBuilder: (context, state) => buildTransitionPage(const SplashScreen()),
     ),
 
     /// 🔐 Login
@@ -97,8 +96,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.forgotPasswordScreen,
       name: 'forgot-password',
-      pageBuilder: (context, state) =>
-          buildTransitionPage(const ForgotPasswordScreen()),
+      pageBuilder: (context, state) => buildTransitionPage(const ForgotPasswordScreen()),
     ),
 
     GoRoute(
@@ -130,8 +128,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.onboardingRoute,
       name: 'onboarding',
-      pageBuilder: (context, state) =>
-          buildTransitionPage(const OnboardingFormScreen()),
+      pageBuilder: (context, state) => buildTransitionPage(const OnboardingFormScreen()),
     ),
 
     /// Navigation Shell for main app after login
@@ -141,34 +138,29 @@ final GoRouter appRouter = GoRouter(
         GoRoute(
           path: AppRoutes.homeRoute,
           name: 'home',
-          pageBuilder: (context, state) =>
-              buildTransitionPage(const HomeScreen()),
+          pageBuilder: (context, state) => buildTransitionPage(const HomeScreen()),
         ),
         GoRoute(
           path: AppRoutes.chatRoute,
           name: 'chat',
-          pageBuilder: (context, state) =>
-              buildTransitionPage(const ChatListScreen()),
+          pageBuilder: (context, state) => buildTransitionPage(const ChatListScreen()),
         ),
         GoRoute(
           path: AppRoutes.meetRoute,
           name: 'meet',
           redirect: (context, state) => authGuard(context, state),
-          pageBuilder: (context, state) =>
-              buildTransitionPage(const MeetScreen()),
+          pageBuilder: (context, state) => buildTransitionPage(const MeetScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailRoute,
           name: 'mail',
-          pageBuilder: (context, state) =>
-              buildTransitionPage(const MailScreen()),
+          pageBuilder: (context, state) => buildTransitionPage(const MailScreen()),
         ),
         GoRoute(
           path: AppRoutes.mailDetail,
           name: '/mail_detail',
-          pageBuilder: (context, state) => buildTransitionPage(
-            MailDetailsScreen(mail: state.extra as MailModel),
-          ),
+          pageBuilder: (context, state) =>
+              buildTransitionPage(MailDetailsScreen(mail: state.extra as MailModel)),
         ),
       ],
     ),
@@ -181,8 +173,7 @@ final GoRouter appRouter = GoRouter(
         final otherUserId = state.pathParameters['otherUserId']!;
         final extra = state.extra as Map<String, dynamic>?;
         final otherUserName = extra?['otherUserName'] ?? 'User';
-        final currentUserData =
-            extra?['currentUserData'] as Map<String, dynamic>?;
+        final currentUserData = extra?['currentUserData'] as Map<String, dynamic>?;
 
         return ChatScreen(
           currentUserId: currentUserData?['employeeId'] ?? '',
@@ -238,15 +229,13 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: AppRoutes.permissionsRoute,
       name: '/permissions',
-      pageBuilder: (context, state) =>
-          buildTransitionPage(const PermissionsScreen()),
+      pageBuilder: (context, state) => buildTransitionPage(const PermissionsScreen()),
     ),
 
     GoRoute(
       path: AppRoutes.faceverification,
       name: '/face-verification',
-      builder: (context, state) =>
-          FaceVerification(isClockIn: true, onVerified: () {}),
+      builder: (context, state) => FaceVerification(isClockIn: true, onVerified: () {}),
     ),
 
     GoRoute(
@@ -301,7 +290,7 @@ final GoRouter appRouter = GoRouter(
         );
       },
     ),
-    
+
     GoRoute(
       path: AppRoutes.complaint,
       name: '/complaint',
@@ -313,16 +302,16 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-  path: AppRoutes.serviceRequest,
-  name: 'service-request',
-  builder: (context, state) {
-    return ChangeNotifierProvider(
-      create: (_) => ServiceRequestProvider(),
-      child: const ServiceRequestsScreen(),
-    );
-  },
-),
-     GoRoute(
+      path: AppRoutes.serviceRequest,
+      name: 'service-request',
+      builder: (context, state) {
+        return ChangeNotifierProvider(
+          create: (_) => ServiceRequestProvider(),
+          child: const ServiceRequestsScreen(),
+        );
+      },
+    ),
+    GoRoute(
       path: AppRoutes.learningStudio,
       name: 'learning-studio',
       pageBuilder: (context, state) => buildTransitionPage(const LearningStudioScreen()),
@@ -383,6 +372,12 @@ final GoRouter appRouter = GoRouter(
       name: 'payroll-documents',
       builder: (context, state) => const PayrollDocumentsScreen(),
     ),
+
+    GoRoute(
+      path: AppRoutes.myDocuments,
+      name: 'my-documents',
+      pageBuilder: (context, state) => buildTransitionPage(const MyDocumentsScreen()),
+    ),
   ],
 );
 
@@ -411,10 +406,7 @@ extension AuthNavigation on BuildContext {
 
     push(
       '${AppRoutes.chatRoute}/$otherUserId',
-      extra: {
-        'otherUserName': otherUserName,
-        'currentUserData': currentUserData,
-      },
+      extra: {'otherUserName': otherUserName, 'currentUserData': currentUserData},
     );
   }
 
@@ -460,11 +452,13 @@ extension AuthNavigation on BuildContext {
   void goToNewRegistrations() => push(AppRoutes.newRegistrations);
   void goToEmployeeDirectory() => push(AppRoutes.employeeDirectory);
   void goToPerformance() => push(AppRoutes.performance);
-  void goToPreviousReviews(String name, String id) => push(AppRoutes.previousReviews, extra: {'employeeName': name, 'employeeId': id});
+  void goToPreviousReviews(String name, String id) =>
+      push(AppRoutes.previousReviews, extra: {'employeeName': name, 'employeeId': id});
   void goToLeaderboard() => push(AppRoutes.leaderboard);
   void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
   void goToManageTasks() => push(AppRoutes.manageTasks);
   void goToPayrollDocuments() => push(AppRoutes.payrollDocuments);
+  void goToMyDocuments() => push(AppRoutes.myDocuments);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {
@@ -475,10 +469,7 @@ CustomTransitionPage buildTransitionPage(Widget child) {
       return FadeTransition(
         opacity: animation,
         child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0.1, 0),
-            end: Offset.zero,
-          ).animate(animation),
+          position: Tween<Offset>(begin: const Offset(0.1, 0), end: Offset.zero).animate(animation),
           child: child,
         ),
       );

@@ -3,10 +3,8 @@ import 'package:flutter_initicon/flutter_initicon.dart';
 
 import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
-import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/mail/widgets/attachment_tile.dart';
 import 'package:intl/intl.dart';
-import 'package:provider/provider.dart';
 
 class MailDetailsScreen extends StatefulWidget {
   final MailModel mail;
@@ -24,10 +22,8 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays >= 1)
-      return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
-    if (diff.inHours >= 1)
-      return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+    if (diff.inDays >= 1) return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+    if (diff.inHours >= 1) return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
     if (diff.inMinutes >= 1) return '${diff.inMinutes} min ago';
     return 'Just now';
   }
@@ -35,9 +31,7 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final mail = widget.mail;
-    final formattedDate = DateFormat(
-      'EEE, MMM d • h:mm a',
-    ).format(mail.createdAt);
+    final formattedDate = DateFormat('EEE, MMM d • h:mm a').format(mail.createdAt);
     final timeAgo = _getTimeAgo(mail.createdAt);
 
     return Scaffold(
@@ -77,23 +71,15 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
                             child: Row(
                               children: [
                                 Expanded(
-                                  child: Text(
-                                    mail.senderName,
-                                    style: AppTextStyles.black16_600,
-                                  ),
+                                  child: Text(mail.senderName, style: AppTextStyles.black16_600),
                                 ),
-                                Text(
-                                  timeAgo,
-                                  style: AppTextStyles.black60alpha_12_500,
-                                ),
+                                Text(timeAgo, style: AppTextStyles.black60alpha_12_500),
                               ],
                             ),
                           ),
                           IconButton(
                             icon: Icon(
-                              _showDetails
-                                  ? Icons.keyboard_arrow_up
-                                  : Icons.keyboard_arrow_down,
+                              _showDetails ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
                               size: 22,
                               color: Colors.black54,
                             ),
@@ -114,16 +100,11 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
             // 📬 Expandable sender details like Gmail
             AnimatedCrossFade(
               duration: const Duration(milliseconds: 250),
-              crossFadeState: _showDetails
-                  ? CrossFadeState.showFirst
-                  : CrossFadeState.showSecond,
+              crossFadeState: _showDetails ? CrossFadeState.showFirst : CrossFadeState.showSecond,
               firstChild: Container(
                 width: double.infinity,
                 margin: const EdgeInsets.only(top: 8),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12),
@@ -134,13 +115,9 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
                   children: [
                     _buildDetailRow('From', mail.sender),
                     _buildDetailRow('To', mail.receiver.join(', ')),
-                    if (mail.cc.isNotEmpty)
-                      _buildDetailRow('Cc', mail.cc.join(', ')),
+                    if (mail.cc.isNotEmpty) _buildDetailRow('Cc', mail.cc.join(', ')),
                     if (mail.perUserStatus['bcc'] != null)
-                      _buildDetailRow(
-                        'Bcc',
-                        (mail.perUserStatus['bcc'] as List).join(', '),
-                      ),
+                      _buildDetailRow('Bcc', (mail.perUserStatus['bcc'] as List).join(', ')),
                     _buildDetailRow('Date', formattedDate),
                   ],
                 ),
@@ -176,9 +153,7 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
               Wrap(
                 spacing: 10,
                 runSpacing: 10,
-                children: mail.attachmentUrls
-                    .map((url) => AttachmentTile(url: url))
-                    .toList(),
+                children: mail.attachmentUrls.map((url) => AttachmentTile(url: url)).toList(),
               ),
             ],
           ],
@@ -193,16 +168,11 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 50,
-            child: Text(label, style: AppTextStyles.grey12_600),
-          ),
+          SizedBox(width: 50, child: Text(label, style: AppTextStyles.grey12_600)),
           Expanded(
             child: Text(
               value,
-              style: AppTextStyles.black12_400.copyWith(
-                color: Colors.black.withValues(alpha: 0.8),
-              ),
+              style: AppTextStyles.black12_400.copyWith(color: Colors.black.withValues(alpha: 0.8)),
             ),
           ),
         ],

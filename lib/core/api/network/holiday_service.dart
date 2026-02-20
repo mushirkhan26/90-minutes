@@ -19,19 +19,10 @@ class HolidayService {
           holidayJson = response.data;
         } else if (response.data is Map<String, dynamic>) {
           holidayJson =
-              response.data['items'] ??
-              response.data['data'] ??
-              response.data['message'] ??
-              [];
+              response.data['items'] ?? response.data['data'] ?? response.data['message'] ?? [];
         }
 
-        if (holidayJson is! List) {
-          holidayJson = [];
-        }
-
-        final holidays = holidayJson
-            .map((json) => HolidayModel.fromJson(json))
-            .toList();
+        final holidays = holidayJson.map((json) => HolidayModel.fromJson(json)).toList();
         return ApiResponse.success(holidays);
       } catch (e) {
         _logger.error('HOLIDAY', 'Error parsing holidays', error: e);
