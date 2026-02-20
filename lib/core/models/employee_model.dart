@@ -1,4 +1,5 @@
 class EmployeeModel {
+  final String? id; // MongoDB _id
   final String name;
   final String employeeID;
   final String? profileImage;
@@ -13,6 +14,7 @@ class EmployeeModel {
   final  List<EmployeeBenefit> benefit;
 
   EmployeeModel({
+    this.id,
     required this.name,
     required this.employeeID,
     this.profileImage,
@@ -29,6 +31,7 @@ class EmployeeModel {
 
   factory EmployeeModel.fromJson(Map<String, dynamic> json) {
     return EmployeeModel(
+      id: json['_id']?.toString(),
       name: json['name']?.toString() ?? json['username']?.toString() ?? '',
       employeeID: json['employeeID']?.toString() ?? json['employeeId']?.toString() ?? '',
       profileImage: json['profileImage']?.toString(),
@@ -46,13 +49,12 @@ class EmployeeModel {
             ?.map((e) => EmployeeBenefit.fromJson(e))
             .toList() ??
             [],
-        
-      
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
+      '_id': id,
       'name': name,
       'employeeID': employeeID,
       'profileImage': profileImage,
@@ -68,6 +70,7 @@ class EmployeeModel {
     };
   }
 }
+
 class EmployeeBenefit {
   final String benefitName;
   final String id;

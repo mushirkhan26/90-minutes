@@ -267,39 +267,123 @@ class HomeScreen extends StatelessWidget {
                         ),
 
                       Theme(
-                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                        child: ExpansionTile(
-                          leading: const Icon(Icons.school, color: Colors.black87),
-                          title: const Text('Learning & Growth'),
-                          childrenPadding: const EdgeInsets.only(left: 16),
-                          children: [
-                            ListTile(
-                              leading: const Icon(Icons.menu_book, color: Colors.black87),
-                              title: const Text('Learning Studio'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                context.push(AppRoutes.learningStudio);
-                              },
-                            ),
-                            ListTile(
-                              leading: const Icon(Icons.card_giftcard, color: Colors.black87),
-                              title: const Text('Employee Benefits'),
-                              onTap: () {
-                                Navigator.pop(context);
-                                context.push(AppRoutes.employeeBenefits);
-                              },
-                            ),
-                          ],
-                        ),
-                      ),
-                      ListTile(
-                        leading: Icon(Icons.document_scanner_outlined),
-                        title: const Text("My Documents"),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.goToMyDocuments();
-                        },
-                      ),
+  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+  child: ExpansionTile(
+    leading: const Icon(Icons.work_outline, color: Colors.black87,),
+    title: const Text('HR Services'),
+    childrenPadding: const EdgeInsets.only(left: 16),
+    children: [
+
+    
+      ListTile(
+        leading: const Icon(Icons.person_remove_alt_1, color: Colors.black87),
+        title: const Text('Resignation'),
+        onTap: () {
+          Navigator.pop(context);
+
+          final role = context
+              .read<AuthProvider>()
+              .userData?['role']
+              ?.toString()
+              .toLowerCase();
+
+          context.push(
+            AppRoutes.resignation,
+            extra: {
+              'openManagement': role == 'manager',
+            },
+          );
+        },
+      ),
+      
+        ListTile(
+          leading: const Icon(Icons.headset_mic),
+          title: const Text('Service Request'),
+          onTap: () {
+            Navigator.pop(context);
+            context.push(AppRoutes.serviceRequest);
+          },
+        ),
+
+      
+      ListTile(
+        leading: const Icon(Icons.report_problem_outlined,
+            color: Colors.black87),
+        title: const Text('Complaint'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.complaint);
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.description_outlined,
+            color: Colors.black87),
+        title: const Text('Payroll Documents'),
+        onTap: () {
+          Navigator.pop(context);
+          context.goToPayrollDocuments();
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.assignment_outlined,
+            color: Colors.black87),
+        title: const Text('HR Employee Task'),
+        onTap: () {
+          Navigator.pop(context);
+          context.goToComplianceCenter();
+        },
+      ),
+      ListTile(
+        leading: const Icon(Icons.folder_shared_outlined,
+            color: Colors.black87),
+        title: const Text('Documents'),
+        onTap: () {
+          Navigator.pop(context);
+          context.goToMyDocuments();
+        },
+      ),
+    ],
+  ),
+),
+
+      
+      Theme(
+  data: Theme.of(context).copyWith(
+    dividerColor: Colors.transparent, 
+  ),
+  child: ExpansionTile(
+    leading: const Icon(Icons.school, color: Colors.black87),
+    title: const Text('Learning & Growth'),
+    childrenPadding: const EdgeInsets.only(left: 16),
+    children: [
+      ListTile(
+        leading: const Icon(
+          Icons.menu_book,
+          color: Colors.black87,
+        ),
+        title: const Text('Learning Studio'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.learningStudio);
+        },
+      ),
+      ListTile(
+        leading: const Icon(
+          Icons.card_giftcard,
+          color: Colors.black87,
+        ),
+        title: const Text('Employee Benefits'),
+        onTap: () {
+          Navigator.pop(context);
+          context.push(AppRoutes.employeeBenefits);
+        },
+      ),
+    ],
+  ),
+),
+    
+
+
                       ListTile(
                         leading: const Icon(Icons.settings),
                         title: const Text('Settings'),

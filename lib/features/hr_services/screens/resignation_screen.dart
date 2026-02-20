@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/features/hr_services/widgets/resignation_my_details.card.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -98,8 +99,12 @@ class _ResignationScreenState extends State<ResignationScreen>
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resignation'),
-        backgroundColor: const Color(0xFF2F9E9E),
+        title: const Text(
+          'Resignation',
+          style: TextStyle(color: Colors.white),
+          ),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
       ),
       body: isManager
           ? Column(

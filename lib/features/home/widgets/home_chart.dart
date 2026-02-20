@@ -11,18 +11,27 @@ class HomeChart extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>();
     final isLoading = authProvider.isFetchingAttendance;
-    final hasData = authProvider.hasAttendanceData;
+    
+    // Fallback data if everything is zero to show an empty state doughnut instead of text
+    final double online = _parseTimeToDouble(authProvider.onlineTime);
+    final double meeting = _parseTimeToDouble(authProvider.meetingTime);
+    final double breakTime = _parseTimeToDouble(authProvider.breakTime);
+
+    final bool isActuallyEmpty = online == 0 && meeting == 0 && breakTime == 0;
+
+    final List<ChartData> chartData = isActuallyEmpty
+        ? [ChartData('No Data', 1, Colors.grey.shade200)]
+        : [
+      ChartData('Online', online, AppColors.activeGreen),
+      ChartData('Meeting', meeting, Colors.blue),
+      ChartData('Break', breakTime, Colors.purple),
+    ];
 
     if (isLoading && authProvider.attendanceData == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Process chart data from provider
-    final List<ChartData> chartData = [
-      ChartData('Online', authProvider.attendanceData?['onlineTime']?.toDouble() ?? 0, AppColors.activeGreen),
-      ChartData('Meeting', authProvider.attendanceData?['meetingTime']?.toDouble() ?? 0, Colors.blue),
-      ChartData('Break', authProvider.attendanceData?['breakTime']?.toDouble() ?? 0, Colors.purple),
-    ];
+    final String productivityText = authProvider.attendanceData?['productivity']?.toString() ?? '0%';
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -32,110 +41,158 @@ class HomeChart extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withValues(alpha: 0.2),
+                  color: Colors.black.withAlpha(10),
                   spreadRadius: 2,
-                  blurRadius: 5,
-                  offset: const Offset(0, 3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
             child: Column(
               children: [
-                const Text(
-                  "Utilization Graph",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.pie_chart_outline, size: 20, color: AppColors.primary),
+                    SizedBox(width: 8),
+                    Text(
+                      "Utilization Graph",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1E293B)),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 10),
-                // Check if chartData is empty or all values are zero
-                !hasData
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(20.0),
-                          child: Text(
-                            'No data available for the chart.',
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
-                          ),
-                        ),
-                      )
-                    : SizedBox(
-                        height: 200,
-                        child: SfCircularChart(
-                          key: const ValueKey('utilization_chart'),
-                          series: <CircularSeries>[
-                            DoughnutSeries<ChartData, String>(
-                              animationDuration: 0,
-                              dataSource: chartData,
-                              xValueMapper: (ChartData data, _) => data.category,
-                              yValueMapper: (ChartData data, _) => data.value,
-                              pointColorMapper: (ChartData data, _) => data.color,
-                              radius: '80%',
-                              innerRadius: '60%',
-                              dataLabelSettings: const DataLabelSettings(
-                                isVisible: true,
-                                labelPosition: ChartDataLabelPosition.inside,
-                                textStyle: TextStyle(fontSize: 12, color: Colors.white),
-                              ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  height: 220,
+                  child: SfCircularChart(
+                    key: const ValueKey('utilization_chart'),
+                    annotations: <CircularChartAnnotation>[
+                      CircularChartAnnotation(
+                        widget: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              isActuallyEmpty ? "0%" : productivityText,
+                              style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary),
+                            ),
+                            const Text(
+                              'Productivity',
+                              style: TextStyle(fontSize: 10, color: Colors.grey),
                             ),
                           ],
-                          legend: const Legend(
-                            isVisible: true,
-                            position: LegendPosition.right,
-                            overflowMode: LegendItemOverflowMode.wrap,
-                          ),
+                        ),
+                      )
+                    ],
+                    legend: Legend(
+                      isVisible: !isActuallyEmpty,
+                      position: LegendPosition.bottom,
+                      overflowMode: LegendItemOverflowMode.wrap,
+                      textStyle: const TextStyle(fontSize: 12),
+                    ),
+                    series: <CircularSeries>[
+                      DoughnutSeries<ChartData, String>(
+                        animationDuration: 1000,
+                        dataSource: chartData,
+                        xValueMapper: (ChartData data, _) => data.category,
+                        yValueMapper: (ChartData data, _) => data.value,
+                        pointColorMapper: (ChartData data, _) => data.color,
+                        radius: '100%',
+                        innerRadius: '75%',
+                        enableTooltip: !isActuallyEmpty,
+                        dataLabelSettings: DataLabelSettings(
+                          isVisible: !isActuallyEmpty,
+                          labelPosition: ChartDataLabelPosition.outside,
+                          useSeriesColor: true,
+                          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           // Dynamic Cards
-          _buildCard('Total', authProvider.totalTime, Colors.deepOrange, authProvider.productivityLabel),
-          const SizedBox(height: 15),
-          _buildCard('Online', authProvider.onlineTime, AppColors.activeGreen),
-          const SizedBox(height: 15),
-          _buildCard('Meeting', authProvider.meetingTime, Colors.blue),
-          const SizedBox(height: 15),
-          _buildCard('Break', authProvider.breakTime, Colors.purple),
+          _buildDetailCard('Total Hours', authProvider.totalTime, Colors.deepOrange, authProvider.productivityLabel, Icons.timer),
+          const SizedBox(height: 12),
+          _buildDetailCard('Online Duration', authProvider.onlineTime, AppColors.activeGreen, null, Icons.laptop),
+          const SizedBox(height: 12),
+          _buildDetailCard('Meeting Duration', authProvider.meetingTime, Colors.blue, null, Icons.groups),
+          const SizedBox(height: 12),
+          _buildDetailCard('Break Duration', authProvider.breakTime, Colors.purple, null, Icons.coffee),
         ],
       ),
     );
   }
 
-  Widget _buildCard(String title, String time, Color color, [String? subtitle]) {
+  // Helper function to parse "HH:MM" or "MM:SS" string to double minutes
+  double _parseTimeToDouble(String timeStr) {
+    try {
+      if (timeStr == '00:00' || timeStr.isEmpty) return 0;
+      final parts = timeStr.split(':');
+      if (parts.length == 2) {
+        return double.parse(parts[0]) * 60 + double.parse(parts[1]);
+      } else if (parts.length == 3) {
+        return double.parse(parts[0]) * 3600 + double.parse(parts[1]) * 60 + double.parse(parts[2]);
+      }
+    } catch (_) {}
+    return 0;
+  }
+
+  Widget _buildDetailCard(String title, String time, Color color, [String? subtitle, IconData? icon]) {
     return Container(
-      width: 375,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(30)),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.2),
-            spreadRadius: 2,
+            color: Colors.black.withAlpha(5),
+            spreadRadius: 1,
             blurRadius: 5,
-            offset: const Offset(0, 3),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 130, vertical: 10),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(5),
+              color: color.withAlpha(20),
+              shape: BoxShape.circle,
             ),
-            child: Text(time, style: TextStyle(color: color)),
+            child: Icon(icon ?? Icons.access_time, color: color, size: 20),
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(subtitle, style: TextStyle(color: color, fontSize: 10)),
-          ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14, color: Color(0xFF64748B))),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500)),
+                ],
+              ],
+            ),
+          ),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
         ],
       ),
     );

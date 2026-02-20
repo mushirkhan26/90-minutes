@@ -372,11 +372,11 @@ final GoRouter appRouter = GoRouter(
       name: 'payroll-documents',
       builder: (context, state) => const PayrollDocumentsScreen(),
     ),
-
+    
     GoRoute(
       path: AppRoutes.myDocuments,
       name: 'my-documents',
-      pageBuilder: (context, state) => buildTransitionPage(const MyDocumentsScreen()),
+      builder: (context, state) => const MyDocumentsScreen(),
     ),
   ],
 );
@@ -458,6 +458,7 @@ extension AuthNavigation on BuildContext {
   void goToAdminLeaderboard() => push(AppRoutes.adminLeaderboard);
   void goToManageTasks() => push(AppRoutes.manageTasks);
   void goToPayrollDocuments() => push(AppRoutes.payrollDocuments);
+  void goToComplianceCenter() => push(AppRoutes.complianceCenter);
   void goToMyDocuments() => push(AppRoutes.myDocuments);
 }
 
