@@ -85,9 +85,9 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   }
 
   ///  COMBINED DATE + TIME
-  DateTime _combineDateAndTime(DateTime date, TimeOfDay time) {
-    return DateTime(date.year, date.month, date.day, time.hour, time.minute);
-  }
+  // DateTime _combineDateAndTime(DateTime date, TimeOfDay time) {
+  //   return DateTime(date.year, date.month, date.day, time.hour, time.minute);
+  // }
 
   /// 🔥 VALIDATION: BLOCK PAST TIME (AM/PM BUG FIX)
   bool _isPastDateTime(DateTime selected) {

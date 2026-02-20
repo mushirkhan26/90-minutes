@@ -102,7 +102,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.emoji_events, color: Colors.white, size: 32),
@@ -118,7 +118,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
                 ),
                 Text(
                   "Track team achievements",
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
                 ),
               ],
             ),
@@ -126,7 +126,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
+              color: Colors.white.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -165,7 +165,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -222,7 +222,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 5)],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 5)],
         ),
         child: Column(
           children: [
@@ -254,7 +254,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(20)),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(20)),
             child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -317,7 +317,7 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(8)),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
           child: Column(
             children: [
               Row(
@@ -363,9 +363,9 @@ class _AdminLeaderboardScreenState extends State<AdminLeaderboardScreen> {
               itemBuilder: (context, index) {
                 final item = list[index];
                 Color medalColor = Colors.grey[400]!;
-                if (index == 0) medalColor = Colors.amber[400]!;
-                else if (index == 1) medalColor = Colors.grey[300]!;
-                else if (index == 2) medalColor = Colors.orange[300]!;
+                if (index == 0) {medalColor = Colors.amber[400]!;}
+                else if (index == 1) {medalColor = Colors.grey[300]!;}
+                else if (index == 2) {medalColor = Colors.orange[300]!;}
                 
                 return _buildRankingTile(index + 1, item.employeeName[0], item.employeeName, "${item.totalPoints}", medalColor, item.tasksCompleted, item.subtasksDone);
               },

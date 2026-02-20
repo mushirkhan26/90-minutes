@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/models/task_model.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/utils/validators.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -178,17 +180,21 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
   }
 
   Future<void> _pickFiles() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
-      type: FileType.any,
-    );
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.any,
+      );
 
-    if (result != null) {
-      setState(() {
-        // In a real app, you would upload these files to S3 and store the URLs.
-        // For now, we'll just add the names as placeholders to show it's working.
-        _references.addAll(result.files.map((file) => file.name));
-      });
+      if (result != null) {
+        setState(() {
+          _references.addAll(result.files.map((file) => file.name));
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        AlertHelper.snackBarError(context, 'Failed to pick files');
+      }
     }
   }
 
@@ -235,7 +241,7 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                       TextFormField(
                         initialValue: _title,
                         decoration: _inputDecoration('Task Name', isRequired: true).copyWith(hintText: 'Enter task name'),
-                        validator: (value) => value == null || value.isEmpty ? 'Please enter a title' : null,
+                        validator: (value) => Validators.validateName(value, fieldName: 'Task Name'),
                         onSaved: (value) => _title = value!,
                       ),
                       const SizedBox(height: 20),
@@ -249,7 +255,7 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                           enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.grey.shade300)),
                           focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: AppColors.primary, width: 2)),
                         ),
-                        validator: (value) => value == null || value.isEmpty ? 'Please enter a description' : null,
+                        validator: (value) => Validators.validateName(value, fieldName: 'Description'),
                         onSaved: (value) => _description = value!,
                       ),
                       const SizedBox(height: 20),
@@ -350,8 +356,6 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                                     final date = await showDatePicker(
                                       context: context,
                                       initialDate: _deadline,
-                                      // firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                                      // lastDate: DateTime.now().add(const Duration(days: 365)),
                                       firstDate: DateTime.now().subtract(const Duration(minutes: 1)),
                                       lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                                     );
@@ -443,6 +447,15 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                   ),
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
+                      if (_selectedAssignees.isEmpty) {
+                        AlertHelper.snackBarError(context, 'Please select at least one assignee');
+                        return;
+                      }
+                      if (_selectedReviewers.isEmpty) {
+                        AlertHelper.snackBarError(context, 'Please select a reviewer');
+                        return;
+                      }
+                      
                       _formKey.currentState!.save();
                       final task = Task(
                         id: widget.task?.id ?? '',

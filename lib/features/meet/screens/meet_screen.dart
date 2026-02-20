@@ -438,7 +438,7 @@ class _MeetScreenState extends State<MeetScreen> {
       //if (isSameDay) return true;
       if (isSameDay) {
         final now = DateTime.now();
-        final endTime = mDate.add(Duration(minutes: m.duration ?? 30));
+        final endTime = mDate.add(Duration(minutes: m.duration));
 
         if (endTime.isBefore(now)) {
           return false; // hide expired meeting

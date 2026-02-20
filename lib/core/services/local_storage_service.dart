@@ -11,6 +11,7 @@ import 'package:hrtz_hrms/core/models/performance_model.dart';
 import 'package:hrtz_hrms/core/models/project_model.dart';
 import 'package:hrtz_hrms/core/models/payroll_model.dart';
 import 'package:hrtz_hrms/core/models/document_model.dart';
+import 'package:hrtz_hrms/core/models/compliance_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hrtz_hrms/core/models/benefits_claim_model.dart';
@@ -59,6 +60,9 @@ class LocalStorageService {
 
   // 📄 Document caching related keys
   static const String _keyDocumentPrefix = 'documents_';
+
+  // 🛡️ Compliance caching related keys
+  static const String _keyCompliancePrefix = 'compliance_';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -921,6 +925,37 @@ Future<DateTime?> getAllClaimsTimestamp() async {
 
   Future<DateTime?> getDocumentCacheTimestamp(String employeeId) async {
     final key = '$_keyDocumentPrefix$employeeId';
+    final ts = prefs.getInt('${key}_timestamp');
+    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+  }
+
+  // --------------------------------------------------------------------------
+  // 🛡️ Compliance caching methods
+  // --------------------------------------------------------------------------
+
+  Future<void> saveCompliance(String employeeId, List<Compliance> compliance) async {
+    final key = '$_keyCompliancePrefix$employeeId';
+    final jsonList = compliance.map((e) => e.toJson()).toList();
+    await prefs.setString(key, jsonEncode(jsonList));
+    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
+    _logger.logStorage('Saved ${compliance.length} compliance items for $employeeId');
+  }
+
+  Future<List<Compliance>?> getCompliance(String employeeId) async {
+    final key = '$_keyCompliancePrefix$employeeId';
+    final jsonString = prefs.getString(key);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((json) => Compliance.fromJson(json)).toList();
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse cached compliance', error: e);
+      return null;
+    }
+  }
+
+  Future<DateTime?> getComplianceCacheTimestamp(String employeeId) async {
+    final key = '$_keyCompliancePrefix$employeeId';
     final ts = prefs.getInt('${key}_timestamp');
     return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
   }

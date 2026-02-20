@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../core/utils/alert_utils.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/compliance_provider.dart';
 import '../widgets/summary_card.dart';
@@ -169,17 +170,13 @@ class _ComplianceCenterScreenState extends State<ComplianceCenterScreen> {
                     ...compliances.map((compliance) => ComplianceCard(
                           compliance: compliance,
                           onSubmit: (docs) async {
+                            // After submitting compliance
                             final response = await provider.submitCompliance(compliance.id, docs);
-                            if (!mounted) return;
+                            if (!context.mounted) return;
                             if (response.success) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Compliance submitted successfully')),
-                              );
-                              _fetchData();
+                              AlertHelper.snackBarSuccess(context, 'Compliance submitted successfully');
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error: ${response.message}')),
-                              );
+                              AlertHelper.snackBarError(context, response.message ?? 'Submission failed');
                             }
                           },
                         )),

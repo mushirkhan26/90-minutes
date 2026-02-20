@@ -347,8 +347,8 @@ class _ComplianceCardState extends State<ComplianceCard> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isCompleted ? const Color(0xFF059669) : const Color(0xFF26A69A),
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: const Color(0xFF059669).withOpacity(0.6),
-                  disabledForegroundColor: Colors.white.withOpacity(0.8),
+                  disabledBackgroundColor: const Color(0xFF059669).withValues(alpha: 0.6),
+                  disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   padding: const EdgeInsets.symmetric(vertical: 16),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
 import 'package:provider/provider.dart';
@@ -584,11 +585,12 @@ class _UpdateMessageDialogState extends State<UpdateMessageDialog> {
                           reviewId: rating.reviewId,
                           comment: _controller.text,
                         );
-                        if (success && context.mounted) {
+                        if (!context.mounted) return;
+                        if (success) {
                           Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Response updated successfully")),
-                          );
+                          AlertHelper.snackBarSuccess(context, "Response updated successfully");
+                        } else {
+                          AlertHelper.snackBarError(context, "Failed to update response");
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -1013,9 +1015,9 @@ class _AddReviewDialogState extends State<AddReviewDialog> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   final authProvider = Provider.of<AuthProvider>(context, listen: false);
-                  Provider.of<PerformanceProvider>(context, listen: false).addReview(
+                  final success = await Provider.of<PerformanceProvider>(context, listen: false).addReview(
                     employeeId: widget.employeeId,
                     employeeName: widget.employeeName,
                     reviewerId: authProvider.userData?['employeeId'] ?? '',
@@ -1023,7 +1025,10 @@ class _AddReviewDialogState extends State<AddReviewDialog> {
                     rating: _selectedRating.toDouble(),
                     comment: _commentController.text,
                   );
-                  Navigator.pop(context);
+                  if (success && context.mounted) {
+                    Navigator.pop(context);
+                    AlertHelper.snackBarSuccess(context, "Review added successfully");
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00897B),
@@ -1205,12 +1210,15 @@ class _TeamReplyDialogState extends State<TeamReplyDialog> {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    onPressed: () {
-                      Provider.of<PerformanceProvider>(context, listen: false).replyToReview(
+                    onPressed: () async {
+                      final success = await Provider.of<PerformanceProvider>(context, listen: false).replyToReview(
                         reviewId: widget.rating.reviewId,
                         reply: _controller.text,
                       );
-                      Navigator.pop(context);
+                      if (success && context.mounted) {
+                        Navigator.pop(context);
+                        AlertHelper.snackBarSuccess(context, "Reply sent successfully");
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2962FF),

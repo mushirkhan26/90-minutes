@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../provider/employee_directory_provider.dart';
@@ -318,7 +319,7 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                             decoration: BoxDecoration(
                                               color: isSelected
                                                   ? Colors.blue.shade50
-                                                        .withOpacity(0.3)
+                                                        .withValues(alpha: 0.3)
                                                   : Colors.transparent,
                                               border: Border(
                                                 bottom: BorderSide(
@@ -484,7 +485,7 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE0F7F9).withOpacity(0.5),
+                          color: const Color(0xFFE0F7F9).withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: const Color(0xFFB2EBF2)),
                         ),
@@ -502,7 +503,6 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 10),
                                 Expanded(
-                                  // 🔹 Fixed: Prevents long names from pushing the Row out
                                   child: Text(
                                     employee.name,
                                     style: const TextStyle(
@@ -528,7 +528,6 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 10),
                                 Flexible(
-                                  // 🔹 Fixed: Safe wrapping for Role Chip
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 12,
@@ -540,7 +539,7 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                                       border: Border.all(
                                         color: const Color(
                                           0xFF26A69A,
-                                        ).withOpacity(0.3),
+                                        ).withValues(alpha: 0.3),
                                       ),
                                     ),
                                     child: Text(
@@ -572,7 +571,7 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       DropdownButtonFormField<String>(
                         hint: const Text("Select a new role..."),
-                        value: provider.availableRoles.contains(selectedRole)
+                        initialValue: provider.availableRoles.contains(selectedRole)
                             ? selectedRole
                             : null,
                         items: provider.availableRoles
@@ -638,12 +637,6 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   ElevatedButton(
-                    // onPressed: () async {
-                    //   if (selectedRole != null) {
-                    //     await provider.updateEmployeeRole(employee.employeeID, selectedRole!, currentUserName);
-                    //     if (context.mounted) Navigator.pop(context);
-                    //   }
-                    // },
                     onPressed: () async {
                       if (selectedRole != null) {
                         final success = await provider.updateEmployeeRole(
@@ -654,20 +647,12 @@ class EmployeeDirectoryScreen extends StatelessWidget {
 
                         if (!context.mounted) return;
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              success
-                                  ? "Role updated successfully to $selectedRole"
-                                  : "Failed to update role",
-                            ),
-                            backgroundColor: success
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                        );
-
-                        if (success) Navigator.pop(context);
+                        if (success) {
+                          AlertHelper.snackBarSuccess(context, "Role updated successfully to $selectedRole");
+                          Navigator.pop(context);
+                        } else {
+                          AlertHelper.snackBarError(context, "Failed to update role");
+                        }
                       }
                     },
 
@@ -859,15 +844,6 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                         vertical: 10,
                       ),
                     ),
-                    // onPressed: () async {
-                    //   if (selectedLead != null) {
-                    //     await provider.tagEmployee(
-                    //       employee.name,
-                    //       selectedLead!,
-                    //     );
-                    //     if (context.mounted) Navigator.pop(context);
-                    //   }
-                    // },
                     onPressed: () async {
                       if (selectedLead != null) {
                         final success = await provider.tagEmployee(
@@ -877,20 +853,12 @@ class EmployeeDirectoryScreen extends StatelessWidget {
 
                         if (!context.mounted) return;
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              success
-                                  ? "Employee successfully tagged as $selectedLead"
-                                  : "Tagging failed",
-                            ),
-                            backgroundColor: success
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                        );
-
-                        if (success) Navigator.pop(context);
+                        if (success) {
+                          AlertHelper.snackBarSuccess(context, "Employee successfully tagged as $selectedLead");
+                          Navigator.pop(context);
+                        } else {
+                          AlertHelper.snackBarError(context, "Tagging failed");
+                        }
                       }
                     },
 
@@ -1079,12 +1047,6 @@ class EmployeeDirectoryScreen extends StatelessWidget {
                         vertical: 10,
                       ),
                     ),
-                    // onPressed: () async {
-                    //   if (selectedLead != null) {
-                    //     await provider.tagSelectedEmployees(selectedLead!);
-                    //     if (context.mounted) Navigator.pop(context);
-                    //   }
-                    // },
                     onPressed: () async {
                       if (selectedLead != null) {
                         final success = await provider.tagSelectedEmployees(
@@ -1093,20 +1055,12 @@ class EmployeeDirectoryScreen extends StatelessWidget {
 
                         if (!context.mounted) return;
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              success
-                                  ? "Employees successfully tagged as $selectedLead"
-                                  : "Bulk tagging failed",
-                            ),
-                            backgroundColor: success
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                        );
-
-                        if (success) Navigator.pop(context);
+                        if (success) {
+                          AlertHelper.snackBarSuccess(context, "Employees successfully tagged as $selectedLead");
+                          Navigator.pop(context);
+                        } else {
+                          AlertHelper.snackBarError(context, "Bulk tagging failed");
+                        }
                       }
                     },
 
