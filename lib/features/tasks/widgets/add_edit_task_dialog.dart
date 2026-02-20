@@ -350,8 +350,10 @@ class _AddEditTaskDialogState extends State<AddEditTaskDialog> {
                                     final date = await showDatePicker(
                                       context: context,
                                       initialDate: _deadline,
-                                      firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                                      // firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                      // lastDate: DateTime.now().add(const Duration(days: 365)),
+                                      firstDate: DateTime.now().subtract(const Duration(minutes: 1)),
+                                      lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                                     );
                                     if (date != null) setState(() => _deadline = date);
                                   },

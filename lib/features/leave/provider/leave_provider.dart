@@ -34,7 +34,10 @@ class LeaveProvider extends ChangeNotifier {
     // or triggered via bootstrap if it's a primary dashboard item.
   }
 
-  Future<void> fetchLeaveInfo({required String employeeId, bool forceRefresh = false}) async {
+  Future<void> fetchLeaveInfo({
+    required String employeeId,
+    bool forceRefresh = false,
+  }) async {
     _isLoading = true;
     notifyListeners();
 
@@ -60,7 +63,10 @@ class LeaveProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> fetchLeaveHistory({required String employeeId, bool useCache = true}) async {
+  Future<void> fetchLeaveHistory({
+    required String employeeId,
+    bool useCache = true,
+  }) async {
     try {
       if (useCache && _leaveHistory == null) {
         final cachedData = await _localStorage.getLeaveHistory();
@@ -70,24 +76,33 @@ class LeaveProvider extends ChangeNotifier {
         }
       }
 
-      final response = await _authService.getLeaveHistory(employeeId: employeeId);
+      final response = await _authService.getLeaveHistory(
+        employeeId: employeeId,
+      );
       if (response.success && response.data != null) {
         _leaveHistory = response.data!;
-        
+
         if (_leaveHistory?['message']?['data'] != null) {
-          final List<dynamic> data = List.from(_leaveHistory!['message']['data']);
+          final List<dynamic> data = List.from(
+            _leaveHistory!['message']['data'],
+          );
           data.sort((a, b) {
-            final dateA = DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
-            final dateB = DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
+            final dateA =
+                DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
+            final dateB =
+                DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
             return dateB.compareTo(dateA);
           });
           _leaveHistory!['message']['data'] = data;
         }
-        
+
         await _localStorage.saveLeaveHistory(_leaveHistory!);
         notifyListeners();
-      } else if (response.message != null && response.message!.contains("No leave records found")) {
-        _leaveHistory = {'message': {'data': []}};
+      } else if (response.message != null &&
+          response.message!.contains("No leave records found")) {
+        _leaveHistory = {
+          'message': {'data': []},
+        };
         await _localStorage.saveLeaveHistory(_leaveHistory!);
         notifyListeners();
       }
@@ -96,7 +111,10 @@ class LeaveProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> fetchAvailableLeave({required String employeeId, bool useCache = true}) async {
+  Future<void> fetchAvailableLeave({
+    required String employeeId,
+    bool useCache = true,
+  }) async {
     try {
       if (useCache && _availableLeave == null) {
         final cachedData = await _localStorage.getAvailableLeave();
@@ -106,14 +124,20 @@ class LeaveProvider extends ChangeNotifier {
         }
       }
 
-      final response = await _authService.getAvailableLeave(employeeId: employeeId);
+      final response = await _authService.getAvailableLeave(
+        employeeId: employeeId,
+      );
       if (response.success && response.data != null) {
         _availableLeave = response.data!;
         await _localStorage.saveAvailableLeave(_availableLeave!);
         notifyListeners();
       }
     } catch (e) {
-      _logger.error('LEAVE_PROVIDER', 'Error fetching available leave', error: e);
+      _logger.error(
+        'LEAVE_PROVIDER',
+        'Error fetching available leave',
+        error: e,
+      );
     }
   }
 
@@ -124,25 +148,32 @@ class LeaveProvider extends ChangeNotifier {
       final response = await _authService.getAllLeaveRequests();
       if (response.success && response.data != null) {
         final rawData = response.data!;
-        
+
         if (rawData['message'] is List) {
           _allLeaveRequests = rawData['message'];
         } else if (rawData['data'] is List) {
           _allLeaveRequests = rawData['data'];
-        } else if (rawData['message'] is Map && rawData['message']['data'] is List) {
+        } else if (rawData['message'] is Map &&
+            rawData['message']['data'] is List) {
           _allLeaveRequests = rawData['message']['data'];
         } else {
           _allLeaveRequests = [];
         }
-        
+
         _allLeaveRequests.sort((a, b) {
-          final dateA = DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
-          final dateB = DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
+          final dateA =
+              DateTime.tryParse(a['createdOn'] ?? '') ?? DateTime(2000);
+          final dateB =
+              DateTime.tryParse(b['createdOn'] ?? '') ?? DateTime(2000);
           return dateB.compareTo(dateA);
         });
       }
     } catch (e) {
-      _logger.error('LEAVE_PROVIDER', 'Error fetching all leave requests', error: e);
+      _logger.error(
+        'LEAVE_PROVIDER',
+        'Error fetching all leave requests',
+        error: e,
+      );
     }
     _isLoading = false;
     notifyListeners();
@@ -189,34 +220,12 @@ class LeaveProvider extends ChangeNotifier {
       reason: reason,
       duration: duration,
       type: type,
-      medicalCertificate: medicalCertificate,
+      medicalCertificate: medicalCertificate, 
     );
 
     if (response.success) {
-      final Map<String, dynamic> newLeave = {
-        'employeeId': employeeId,
-        'name': name,
-        'startDate': startDate,
-        'endDate': endDate,
-        'reason': reason,
-        'duration': duration,
-        'type': type,
-        'leaveStatus': 'Waiting',
-        'createdOn': DateTime.now().toIso8601String(),
-        'leaveId': response.data?['leaveId'] ?? 'temp_${DateTime.now().millisecondsSinceEpoch}',
-      };
-
-      if (_leaveHistory != null && _leaveHistory!['message'] != null && _leaveHistory!['message']['data'] != null) {
-        final List<dynamic> data = List.from(_leaveHistory!['message']['data']);
-        data.insert(0, newLeave);
-        _leaveHistory!['message']['data'] = data;
-        await _localStorage.saveLeaveHistory(_leaveHistory!);
-        notifyListeners();
-      }
-
-      await Future.delayed(const Duration(seconds: 1));
       await fetchLeaveInfo(employeeId: employeeId, forceRefresh: true);
-      
+      notifyListeners();
       return (true, 'Leave request added successfully');
     } else {
       return (false, response.message ?? 'Failed to add leave request');
@@ -229,8 +238,8 @@ class LeaveProvider extends ChangeNotifier {
   }) async {
     final updatedBy = await _secureStorage.getUserName() ?? "";
     final response = await _authService.deleteLeaveRequest(
-      leaveId: leaveId, 
-      updatedBy: updatedBy
+      leaveId: leaveId,
+      updatedBy: updatedBy,
     );
 
     if (response.success) {

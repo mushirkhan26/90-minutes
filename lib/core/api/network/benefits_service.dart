@@ -46,13 +46,28 @@ class BenefitsService {
 
   ///  Add Claim
   Future<ApiResponse<Map<String, dynamic>>> addClaim(
-      Map<String, dynamic> body) async {
-    _logger.logNetwork("Adding claim");
+    Map<String, dynamic> body) async {
 
-    return await _apiHelper.post<Map<String, dynamic>>(
-        'claim/add', body);
+  _logger.logNetwork("Adding claim");
+
+  final response =
+      await _apiHelper.post<Map<String, dynamic>>(
+          'claim/add', body);
+
+  if (response.success && response.data != null) {
+
+    final data = response.data!['data'];
+
+    if (data is Map<String, dynamic>) {
+      return ApiResponse.success(data);
+    }
+
+    return ApiResponse.error("Invalid response format");
   }
 
+  return ApiResponse.error(
+      response.message ?? "Failed to add claim");
+}
   ///  Update Claim Status
   Future<ApiResponse<Map<String, dynamic>>> updateClaimStatus(
       String id, String status) async {

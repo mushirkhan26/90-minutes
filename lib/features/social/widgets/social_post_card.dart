@@ -117,21 +117,26 @@ class _SocialPostCardState extends State<SocialPostCard> {
                         ),
                       const SizedBox(height: 2),
                       Text(
-                        DateFormat(
-                          'MMM dd, yyyy • hh:mm a',
-                        ).format(widget.post.createdAt.toLocal()),
+                        'Created: ${DateFormat('dd/MM/yyyy, HH:mm:ss').format(widget.post.createdAt.toLocal())}',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
                         ),
                       ),
+                      if (widget.post.type == 'poll' &&
+                          widget.post.expiry != null)
+                        Text(
+                          'Expires: ${DateFormat('dd/MM/yyyy, HH:mm:ss').format(widget.post.expiry!.toLocal())}',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade500,
+                          ),
+                        ),
 
                       // Text(
                       //   "Raw: ${widget.post.createdAt.toString()} \nLocal: ${DateFormat('hh:mm a').format(widget.post.createdAt.toLocal())}",
                       //   style: TextStyle(fontSize: 10, color: Colors.red),
                       // ),
-
-
                     ],
                   ),
                 ),
@@ -327,6 +332,43 @@ class _SocialPostCardState extends State<SocialPostCard> {
                 ),
               ),
             ),
+
+          //Expire data and time show in card
+          // if (widget.post.type == 'poll' && widget.post.expiry != null)
+          //   Padding(
+          //     padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+          //     child: Container(
+          //       padding: const EdgeInsets.symmetric(
+          //         horizontal: 10,
+          //         vertical: 6,
+          //       ),
+          //       decoration: BoxDecoration(
+          //         color: Colors.orange.shade50,
+          //         borderRadius: BorderRadius.circular(6),
+          //         border: Border.all(color: Colors.orange.shade100),
+          //       ),
+          //       child: Row(
+          //         mainAxisSize: MainAxisSize.min,
+          //         children: [
+          //           const Icon(
+          //             Icons.timer_outlined,
+          //             size: 16,
+          //             color: Colors.orange,
+          //           ),
+          //           const SizedBox(width: 6),
+          //           Text(
+          //             'Expires: ${DateFormat('MMM dd, yyyy • hh:mm a').format(widget.post.expiry!.toLocal())}',
+
+          //             style: TextStyle(
+          //               fontSize: 12,
+          //               fontWeight: FontWeight.bold,
+          //               color: Colors.orange.shade900,
+          //             ),
+          //           ),
+          //         ],
+          //       ),
+          //     ),
+          //   ),
 
           if (widget.post.type != 'poll' &&
               (widget.post.type != 'birthday' ||

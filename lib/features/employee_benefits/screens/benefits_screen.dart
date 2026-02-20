@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/features/employee_benefits/screens/previous_claims_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
+import 'package:hrtz_hrms/features/employee_benefits/screens/new_claim_screen.dart';
 
 class BenefitsScreen extends StatefulWidget {
-  const BenefitsScreen({Key? key}) : super(key: key);
+  const BenefitsScreen({super.key});
 
   @override
   State<BenefitsScreen> createState() => _BenefitsScreenState();
@@ -47,7 +49,7 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
       body: Column(
         children: [
 
-          // ✅ Search Bar Below AppBar
+          //  Search Bar Below AppBar
           Container(
             width: double.infinity,
             color: Colors.white,
@@ -74,12 +76,12 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
             ),
           ),
 
-          // ✅ Content Area
+          // Content Area
           Expanded(
             child: Builder(
               builder: (_) {
 
-                // 🔄 Loading → Shimmer
+                //  Loading → Shimmer
                 if (authProvider.isFetchingProfile) {
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -145,7 +147,7 @@ if (employee == null) {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -191,7 +193,7 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
             mainAxisSize: MainAxisSize.min,
             children: [
 
-              /// 🔹 Dynamic Heading
+            
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -228,20 +230,24 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
                   icon: const Icon(Icons.visibility),
                   label: const Text("View Previous Claims"),
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PreviousClaimsScreen() ),
+                      );
                   },
                 ),
               ),
 
               const SizedBox(height: 12),
 
-              /// ✅ Apply For New Claim Button
+            
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white, // 👈 TEXT WHITE
+                    foregroundColor: Colors.white, 
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -251,6 +257,12 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
                   label: const Text("Apply For New Claim"),
                   onPressed: () {
                     Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => NewClaimScreen(benefitName: benefit.benefitName),
+                      )
+                      );
                   },
                 ),
               ),

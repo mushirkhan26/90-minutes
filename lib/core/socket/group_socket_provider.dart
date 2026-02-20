@@ -318,6 +318,14 @@ class GroupSocketProvider extends ChangeNotifier {
     String newName,
     String userId,
   ) async {
+    
+    final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+
+    if (index != -1) {
+      _groupChats[index] = _groupChats[index].copyWith(name: newName);
+      notifyListeners(); // VERY IMPORTANT
+    }
+
     await _manager.editGroupName(
       groupId: groupId,
       newName: newName,

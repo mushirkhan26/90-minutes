@@ -4,7 +4,7 @@ import 'package:hrtz_hrms/core/models/employee_model.dart';
 class BenefitCard extends StatelessWidget {
   final EmployeeBenefit benefit;
 
-  const BenefitCard({Key? key, required this.benefit}) : super(key: key);
+  const BenefitCard({super.key, required this.benefit,});
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +16,7 @@ class BenefitCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:  0.05),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

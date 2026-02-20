@@ -428,7 +428,7 @@ class _MeetScreenState extends State<MeetScreen> {
 
     final dailyMeets = userMeets.where((m) {
       final mDate = DateTime.parse(m.time).toLocal();
-      final String recurrence = m.recurrence ?? "One-time meeting";
+      final String recurrence = m.reccurrencePattern ?? "One-time meeting";
 
       bool isSameDay =
           mDate.day == _selectedDate.day &&
@@ -477,8 +477,13 @@ class _MeetScreenState extends State<MeetScreen> {
         }
 
         final hourMeets = dailyMeets
-            .where((m) => DateTime.parse(m.time).toLocal().hour == hour)
-            .toList();
+    .where((m) {
+      final meetingTime = DateTime.parse(m.time).toLocal();
+      return meetingTime.hour == hour;
+    })
+    .toList()
+  ..sort((a, b) =>
+      DateTime.parse(a.time).compareTo(DateTime.parse(b.time)));
 
         return Container(
           height: 70,

@@ -25,6 +25,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
   final _details = TextEditingController();
   final _videoUrl = TextEditingController();
   final _tags = TextEditingController();
+  bool _videoUrlError = false;
 
   final _departmentController = TextEditingController();
   final _subDepartmentController = TextEditingController();
@@ -104,7 +105,10 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                     label: 'Course Name *',
                     hint: 'Enter course name',
                     controller: _courseName,
-                    blockNumbers : true,
+                    blockNumbers: true,
+                    errorText: _courseNameError
+                        ? 'Course name is required'
+                        : null,
                   ),
 
                   // ===== Department =====
@@ -176,6 +180,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                     label: 'Duration *',
                     hint: '00:03:28',
                     controller: _duration,
+                    errorText: _durationError ? 'Duration is required' : null,
                   ),
 
                   _input(
@@ -183,6 +188,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                     hint: 'Enter course details',
                     controller: _details,
                     maxLines: 3,
+                    errorText: _detailsError ? 'Details are required' : null,
                   ),
 
                   // ================= VIDEO UPLOAD (UNCHANGED) =================
@@ -215,6 +221,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                         const SizedBox(height: 4),
                         const Text('Or'),
                         const SizedBox(height: 10),
+
                         // ElevatedButton(
                         //   onPressed: _uploading ? null : _pickAndUploadVideo,
                         //   style: ElevatedButton.styleFrom(
@@ -228,34 +235,35 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                         //     style: TextStyle(color: Colors.white),
                         //   ),
                         // ),
-
                         ElevatedButton(
                           onPressed: _uploading ? null : _pickAndUploadVideo,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                            _uploading ? Colors.blue : const Color(0xFF5DBBB3),
+                            backgroundColor: _uploading
+                                ? Colors.blue
+                                : const Color(0xFF5DBBB3),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
                             ),
                           ),
                           child: _uploading
                               ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
                               : const Text(
-                            'Browse Files',
-                            style: TextStyle(color: Colors.white),
-                          ),
+                                  'Browse Files',
+                                  style: TextStyle(color: Colors.white),
+                                ),
                         ),
 
                         const SizedBox(height: 12),
                         const Text('Or enter video URL directly:'),
                         const SizedBox(height: 8),
+
                         // TextField(
                         //   controller: _videoUrl,
                         //   decoration: InputDecoration(
@@ -266,19 +274,21 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                         //     ),
                         //   ),
                         // ),
-
                         TextField(
                           controller: _videoUrl,
                           enabled: !_uploading,
-                          readOnly: _videoUrl.text.isNotEmpty,
+                          //readOnly: _videoUrl.text.isNotEmpty,
                           decoration: InputDecoration(
-                            hintText: 'https://example-bucket.s3.amazonaws.com/video.mp4',
+                            hintText:
+                                'https://example-bucket.s3.amazonaws.com/video.mp4',
+                            errorText: _videoUrlError
+                                ? 'Please enter a valid URL'
+                                : null,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
                         ),
-
                       ],
                     ),
                   ),
@@ -307,43 +317,56 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
                 onPressed: _uploading
                     ? null
                     : () {
-                  setState(() {
-                    _courseNameError = _courseName.text.trim().isEmpty;
-                    _durationError = _duration.text.trim().isEmpty;
-                    _detailsError = _details.text.trim().isEmpty;
-                  });
+                        // Strict URL pattern to prevent just "http"
+                        final urlPattern = RegExp(r'^https?:\/\/.+\..+');
 
-                  if (_courseNameError || _durationError || _detailsError) {
-                    return;
-                  }
+                        setState(() {
+                          _courseNameError = _courseName.text.trim().isEmpty;
+                          _durationError = _duration.text.trim().isEmpty;
+                          _detailsError = _details.text.trim().isEmpty;
 
-                  Navigator.pop(context);
+                          // Validates that it's not empty AND matches the pattern
+                          _videoUrlError =
+                              _videoUrl.text.trim().isEmpty ||
+                              !urlPattern.hasMatch(_videoUrl.text.trim());
+                        });
 
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => CourseContentBottomSheet(
-                      courseName: _courseName.text.trim(),
-                      duration: _duration.text.trim(),
-                      details: _details.text.trim(),
-                      videoUrl: _videoUrl.text.trim(),
-                      tags: _tags.text
-                          .split(',')
-                          .map((e) => e.trim())
-                          .where((e) => e.isNotEmpty)
-                          .toList(),
-                      department:
-                          widget.department ??
-                          _departmentController.text.trim(),
-                      subDepartment:
-                          widget.subDepartment ??
-                          (isExistingDepartment
-                              ? _selectedSubDepartment!
-                              : _subDepartmentController.text.trim()),
-                    ),
-                  );
-                },
+                        // If there is any error, 'return' stops the code from proceeding
+                        // and the UI will automatically show the red error text on the fields.
+                        if (_courseNameError ||
+                            _durationError ||
+                            _detailsError ||
+                            _videoUrlError) {
+                          return;
+                        }
+
+                        Navigator.pop(context);
+
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          backgroundColor: Colors.transparent,
+                          builder: (_) => CourseContentBottomSheet(
+                            courseName: _courseName.text.trim(),
+                            duration: _duration.text.trim(),
+                            details: _details.text.trim(),
+                            videoUrl: _videoUrl.text.trim(),
+                            tags: _tags.text
+                                .split(',')
+                                .map((e) => e.trim())
+                                .where((e) => e.isNotEmpty)
+                                .toList(),
+                            department:
+                                widget.department ??
+                                _departmentController.text.trim(),
+                            subDepartment:
+                                widget.subDepartment ??
+                                (isExistingDepartment
+                                    ? _selectedSubDepartment!
+                                    : _subDepartmentController.text.trim()),
+                          ),
+                        );
+                      },
                 child: const Text(
                   'Next',
                   style: TextStyle(color: Colors.white),
@@ -358,12 +381,14 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
 
   // ================= HELPERS =================
 
+  // Change your _input helper to this:
   Widget _input({
     required String label,
     required String hint,
     required TextEditingController controller,
     int maxLines = 1,
     bool blockNumbers = false,
+    String? errorText, // Add this line
     Function(String)? onChanged,
   }) {
     return Padding(
@@ -377,18 +402,12 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
             controller: controller,
             maxLines: maxLines,
             onChanged: onChanged,
-
-          
             inputFormatters: blockNumbers
-                ? [
-              FilteringTextInputFormatter.deny(
-                RegExp(r'[0-9]'), 
-              ),
-            ]
+                ? [FilteringTextInputFormatter.deny(RegExp(r'[0-9]'))]
                 : [],
-
             decoration: InputDecoration(
               hintText: hint,
+              errorText: errorText, // Add this line
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -447,14 +466,7 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
   Future<void> _pickAndUploadVideo() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: [
-        'mp4',
-        'mov',
-        'avi',
-        'mkv',
-        'wmv',
-        'webm',
-      ],
+      allowedExtensions: ['mp4', 'mov', 'avi', 'mkv', 'wmv', 'webm'],
     );
 
     if (result == null) return;
@@ -470,16 +482,13 @@ class _AddCourseBottomSheetState extends State<AddCourseBottomSheet> {
       'wmv',
       'webm',
     ].contains(extension?.toLowerCase())) {
-       if (!mounted) return;
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Only video files are allowed'),
-        ),
+        const SnackBar(content: Text('Only video files are allowed')),
       );
       return;
     }
-
 
     final file = File(result.files.single.path!);
 

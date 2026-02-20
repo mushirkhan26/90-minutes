@@ -575,7 +575,25 @@ class _GroupChatScreenState extends State<GroupChatScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(widget.groupName, style: AppTextStyles.black16_500),
+              Consumer<GroupSocketProvider>(
+                builder: (context, provider, _) {
+                  final group = provider.groupChats.firstWhere(
+                    (g) => g.groupId == widget.groupId,
+                    orElse: () =>
+                        widget.groupModel ??
+                        GroupChatModel(
+                          groupId: widget.groupId,
+                          name: widget.groupName,
+                          members: [],
+                          createdBy: '',
+                          createdAt: DateTime.now(),
+                        ),
+                  );
+
+                  return Text(group.name, style: AppTextStyles.black16_500);
+                },
+              ),
+
               Text("Tap here to see details", style: AppTextStyles.grey12_600),
             ],
           ),

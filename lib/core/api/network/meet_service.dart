@@ -3,10 +3,16 @@ import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 
 class MeetService {
-  final ApiHelper _apiHelper = ApiHelper(baseUrl: ApiHelper.otherBaseUrl);
+
+  static const String meetingBaseUrl =
+      "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/";
+
+  final ApiHelper _apiHelper =
+      ApiHelper(baseUrl: meetingBaseUrl);
+
   final LoggingService _logger = LoggingService.instance;
 
-  // Add Meeting with all dynamic fields
+  // ================= ADD =================
   Future<ApiResponse<dynamic>> addMeet({
     required String meetLink,
     required String description,
@@ -15,34 +21,70 @@ class MeetService {
     required List<Map<String, String>> participants,
     String? agenda,
     int? duration,
-    String? recurrence,
   }) async {
+
+    final dateTime = DateTime.parse(time).toLocal();
+
+    final meetingDate =
+        "${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')}";
+
+    final meetingTime =
+        "${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}";
+
     final body = {
-      "meetLink": meetLink,
-      "createdBy": createdBy,
-      "participants": participants,
-      "time": time,
-      "description": description,
-      "agenda": agenda ?? "",
+      "meetingTitle": description.trim(),
+      "organizer": createdBy['employeeId'],
+      "joiners": participants.map((p) => p['employeeId']).toList(),
+      "meetingSummary": agenda ?? "",
+      "meetingLink": meetLink,
+      "meetingDate": meetingDate,
+      "meetingTime": meetingTime,
       "duration": duration ?? 30,
-      "recurrence": recurrence ?? "One-time meeting",
+      "attachments": [],
+      "isRecurring": false,
+      "recurrencePattern": "",
+      "startDate": "",
+      "endDate": ""
     };
-    _logger.logGeneral('Adding dynamic meeting: $description');
-    return await _apiHelper.post<dynamic>('meet', body);
+
+    return await _apiHelper.post<dynamic>(
+      "meeting/create",
+      body,
+    );
   }
 
-  Future<ApiResponse<dynamic>> getUpcomingMeetings() async {
-    _logger.logGeneral('Fetching dynamic meetings via /me');
-    return await _apiHelper.get<dynamic>('meet/employee/me');
+  // ================= FETCH =================
+  Future<ApiResponse<dynamic>> getUpcomingMeetings({
+    required int month,
+    required int year,
+    String view = "month",
+  }) async {
+
+    final endpoint =
+        "meeting/employee/me?view=$view&month=$month&year=$year";
+
+    return await _apiHelper.get<dynamic>(endpoint);
   }
 
-  // Update Meeting
-  Future<ApiResponse<dynamic>> updateMeet({required String id, required String time}) async {
-    return await _apiHelper.put<dynamic>('meet/$id', {"time": time});
+  // ================= UPDATE =================
+  Future<ApiResponse<dynamic>> updateMeet({
+    required String id,
+    required String time,
+  }) async {
+
+    return await _apiHelper.put<dynamic>(
+      "meeting/$id",
+      {"time": time},
+    );
   }
 
-  // Delete Meeting
-  Future<ApiResponse<dynamic>> deleteMeet({required String id}) async {
-    return await _apiHelper.delete<dynamic>('meet/$id');
+  // ================= DELETE =================
+  Future<ApiResponse<dynamic>> deleteMeet({
+    required String id,
+  }) async {
+
+    return await _apiHelper.delete<dynamic>(
+      "meeting/$id",
+    );
   }
 }

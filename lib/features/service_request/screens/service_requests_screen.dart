@@ -40,20 +40,24 @@ Future<void> _loadData() async {
   final auth = context.read<AuthProvider>();
   final provider = context.read<ServiceRequestProvider>();
 
-  final userData = auth.userData;
-
-  if (userData == null) return;
-
-  final role = userData['role']?.toString().toLowerCase();
-  final employeeId = userData['employeeId']?.toString();
-
-  if (role == 'user' && employeeId != null) {
-    provider.fetchRequestsByEmployee(employeeId);
+  // Wait until userData ready
+  while (auth.userData == null) {
+    await Future.delayed(const Duration(milliseconds: 100));
   }
 
-  if (role == 'manager') {
-    provider.fetchServiceRequests(forceRefresh: true);
-    provider.fetchRequestCounts(forceRefresh: true);
+  final role = auth.userData?['role']?.toString().toLowerCase();
+  final employeeId = auth.userData?['employeeId']?.toString();
+
+  
+
+  if (role != 'manager' && role != 'admin') {
+    if (employeeId != null) {
+      await provider.fetchRequestsByEmployee(employeeId);
+    }
+  }
+  if (role == 'manager' || role == 'admin') {
+    await provider.fetchServiceRequests(forceRefresh: true);
+    await provider.fetchRequestCounts(forceRefresh: true);
   }
 }
   @override
@@ -96,14 +100,14 @@ Future<void> _loadData() async {
     children: [
       _buildSearchBar(size),
 
-      // 🔹 COUNTS SECTION
+      //  COUNTS SECTION
       Container(
         color: Colors.white,
         padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
         child: _buildCountsSection(size),
       ),
 
-      // 🔹 EXPORT ICON ROW
+      //  EXPORT ICON ROW
       Padding(
         padding: EdgeInsets.symmetric(
           horizontal: size.width * 0.04,
@@ -138,7 +142,7 @@ Future<void> _loadData() async {
         ),
       ),
 
-      // 🔹 LIST SECTION
+      //  LIST SECTION
       _buildRequestsList(size),
     ],
   );
