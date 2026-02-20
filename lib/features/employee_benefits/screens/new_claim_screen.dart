@@ -114,12 +114,13 @@ class _NewClaimScreenState extends State<NewClaimScreen> {
       _showSnack("Receipt required");
       return;
     }
+    final provider =
+        Provider.of<BenefitsProvider>(context, listen: false);
 
     final uploaded = await _uploadFile();
     if (!uploaded) return;
 
-    final provider =
-        Provider.of<BenefitsProvider>(context, listen: false);
+    if(!mounted) return;
 
     final model = BenefitsClaimModel(
       id: "",
@@ -161,7 +162,7 @@ class _NewClaimScreenState extends State<NewClaimScreen> {
   );
 
   await Future.delayed(const Duration(seconds: 2));
-
+  if(!mounted) return;
   Navigator.pop(context);
 }
   }
@@ -525,39 +526,70 @@ class _NewClaimScreenState extends State<NewClaimScreen> {
         (val) => setState(() => _accountType = val));
   }
 
-  void _showDialog(String title, List<String> options,
-      Function(String) onChanged) {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(title,
-                  style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold)),
-            ),
-            ...options.map((e) => RadioListTile<String>(
-                  title: Text(e),
-                  value: e,
-                  groupValue:
-                      title.contains("Relation")
-                          ? _relation
-                          : _accountType,
-                  onChanged: (val) {
-                    onChanged(val!);
-                    Navigator.pop(context);
-                  },
-                ))
-          ],
-        ),
-      ),
-    );
-  }
+  void _showDialog(
+  String title,
+  List<String> options,
+  Function(String) onChanged,
+) {
+  showDialog(
+    context: context,
+    builder: (_) {
+      String selectedValue =
+          title.contains("Relation") ? _relation : _accountType;
 
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  /// ✅ NEW MODERN RADIO GROUP
+                  RadioGroup<String>(
+                    groupValue: selectedValue,
+                    onChanged: (val) {
+                      if (val == null) return;
+
+                      setStateDialog(() {
+                        selectedValue = val;
+                      });
+
+                      onChanged(val);
+                      Navigator.pop(context);
+                    },
+                    child: Column(
+                      children: options.map((e) {
+                        return ListTile(
+                          title: Text(e),
+                          leading: Radio<String>(
+                            value: e,
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
   void _viewSelectedFile() async {
   if (_selectedFile == null) return;
 

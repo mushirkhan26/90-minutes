@@ -8,7 +8,7 @@ import 'package:hrtz_hrms/core/shared/shimmer_tile.dart';
 import 'package:hrtz_hrms/features/employee_benefits/screens/new_claim_screen.dart';
 
 class BenefitsScreen extends StatefulWidget {
-  const BenefitsScreen({Key? key}) : super(key: key);
+  const BenefitsScreen({super.key});
 
   @override
   State<BenefitsScreen> createState() => _BenefitsScreenState();
@@ -49,7 +49,7 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
       body: Column(
         children: [
 
-          // ✅ Search Bar Below AppBar
+          //  Search Bar Below AppBar
           Container(
             width: double.infinity,
             color: Colors.white,
@@ -76,12 +76,12 @@ class _BenefitsScreenState extends State<BenefitsScreen> {
             ),
           ),
 
-          // ✅ Content Area
+          // Content Area
           Expanded(
             child: Builder(
               builder: (_) {
 
-                // 🔄 Loading → Shimmer
+                //  Loading → Shimmer
                 if (authProvider.isFetchingProfile) {
                   return ListView.builder(
                     padding: const EdgeInsets.all(16),
@@ -193,7 +193,7 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
             mainAxisSize: MainAxisSize.min,
             children: [
 
-              /// 🔹 Dynamic Heading
+            
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -241,13 +241,13 @@ void _showBenefitDialog(BuildContext context, EmployeeBenefit benefit) {
 
               const SizedBox(height: 12),
 
-              /// ✅ Apply For New Claim Button
+            
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white, // 👈 TEXT WHITE
+                    foregroundColor: Colors.white, 
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
