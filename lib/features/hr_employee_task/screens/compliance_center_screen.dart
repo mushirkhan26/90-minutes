@@ -333,6 +333,7 @@ Widget build(BuildContext context) {
                       compliance: compliance,
                       isAdmin: _isAdmin,
                       onSubmit: (docs) async {
+                        final messenger = ScaffoldMessenger.of(context);
                         final success =
                             await provider
                                 .submitCompliance(
@@ -342,9 +343,7 @@ Widget build(BuildContext context) {
                         if (!mounted) return;
 
                         if (success) {
-                          ScaffoldMessenger.of(
-                                  context)
-                              .showSnackBar(
+                        messenger.showSnackBar(
                             const SnackBar(
                               content: Text(
                                   "Compliance submitted successfully"),

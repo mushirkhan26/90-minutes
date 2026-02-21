@@ -100,23 +100,32 @@ class _NdaScreenState extends State<NdaScreen> {
                 child: CustomButton(
                   text: ndaProvider.isLoading ? "Submitting..." : "Submit NDA",
                   onPressed: (ndaProvider.isAccepted && !ndaProvider.isLoading)
-                      ? () async {
-                    if (_formKey.currentState!.validate()) {
-                      final success = await ndaProvider.submitNda(authProvider);
-                      if (success && context.mounted) {
-                        if (!authProvider.onboardingCompleted) {
-                          context.go(AppRoutes.onboardingRoute);
-                        } else {
-                          context.go(AppRoutes.homeRoute);
-                        }
-                      } else if (!success && ndaProvider.signatureFileName == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Please upload your signature")),
-                        );
-                      }
-                    }
-                  }
-                      : null,
+    ? () async {
+        final router = GoRouter.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+
+        if (_formKey.currentState!.validate()) {
+
+          final success = await ndaProvider.submitNda(authProvider);
+
+          if (!mounted) return;
+
+          if (success) {
+            if (!authProvider.onboardingCompleted) {
+              router.go(AppRoutes.onboardingRoute);
+            } else {
+              router.go(AppRoutes.homeRoute);
+            }
+          } else if (ndaProvider.signatureFileName == null) {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text("Please upload your signature"),
+              ),
+            );
+          }
+        }
+      }
+    : null,
                 ),
               ),
               const SizedBox(height: 20),

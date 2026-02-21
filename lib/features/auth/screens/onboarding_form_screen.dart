@@ -55,7 +55,7 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
               const Text("Mode of Work *", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: onboardingProvider.modeOfWork,
+                initialValue: onboardingProvider.modeOfWork,
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
@@ -89,18 +89,32 @@ class _OnboardingFormScreenState extends State<OnboardingFormScreen> {
                 width: double.infinity,
                 child: CustomButton(
                   text: onboardingProvider.isLoading ? "Submitting..." : "Submit Onboarding",
-                  onPressed: onboardingProvider.isLoading ? null : () async {
-                    if (_formKey.currentState!.validate()) {
-                      final success = await onboardingProvider.submitOnboarding(authProvider);
-                      if (success && context.mounted) {
-                        context.go(AppRoutes.homeRoute);
-                      } else if (!success) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Please upload required documents (Photo & Resume)")),
-                        );
-                      }
-                    }
-                  },
+                  onPressed: onboardingProvider.isLoading
+    ? null
+    : () async {
+        final router = GoRouter.of(context);
+        final messenger = ScaffoldMessenger.of(context);
+
+        if (_formKey.currentState!.validate()) {
+
+          final success =
+              await onboardingProvider.submitOnboarding(authProvider);
+
+          if (!mounted) return;
+
+          if (success) {
+            router.go(AppRoutes.homeRoute);
+          } else {
+            messenger.showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Please upload required documents (Photo & Resume)",
+                ),
+              ),
+            );
+          }
+        }
+      },
                 ),
               ),
               const SizedBox(height: 20),

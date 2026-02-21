@@ -193,8 +193,9 @@ class MailProvider extends ChangeNotifier {
     final original = mail.isStarred;
     mail.isStarred = !original;
     if (mail.isStarred) {
-      if (!_starredMails.any((m) => m.id == mail.id))
+      if (!_starredMails.any((m) => m.id == mail.id)){
         _starredMails.insert(0, mail);
+      }
     } else {
       _starredMails.removeWhere((m) => m.id == mail.id);
     }

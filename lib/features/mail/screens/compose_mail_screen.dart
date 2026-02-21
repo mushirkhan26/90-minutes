@@ -41,8 +41,8 @@ class _ComposeMailScreenState extends State<ComposeMailScreen> {
   double _uploadProgress = 0;
 
   // Change state variables module
-  List<EmployeeModel> _selectedCc = []; // for Cc
-  List<EmployeeModel> _selectedBcc = []; // for Bcc
+ final List<EmployeeModel> _selectedCc = []; // for Cc
+ final List<EmployeeModel> _selectedBcc = []; // for Bcc
 
   bool _showToDropdown = false;
   bool _showCcDropdown = false;

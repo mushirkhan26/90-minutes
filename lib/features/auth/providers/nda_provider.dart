@@ -102,8 +102,7 @@ class NdaProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // TODO: Implement actual API call to submit NDA data if needed
-      // Currently just following existing logic of updating status in AuthProvider
+      
       await authProvider.updateNdaStatus(true);
       await _local.removeString(_draftKey);
       _isLoading = false;

@@ -92,20 +92,22 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     }
   }
 
-  // --- Helper Methods ---
   Future<void> _editGroupName() async {
-    final TextEditingController nameController = TextEditingController(
-      text: _group.name,
-    );
+  final nameController = TextEditingController(text: _group.name);
 
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+  final parentContext = context; 
+  final messenger = ScaffoldMessenger.of(parentContext);
+  
+
+  await showDialog(
+    context: parentContext,
+    builder: (dialogContext) {
+      return AlertDialog(
         title: const Text('Edit Group Name'),
         content: TextField(controller: nameController),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -113,23 +115,22 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
               final newName = nameController.text.trim();
 
               if (newName.isEmpty) {
-                AlertHelper.snackBarWarning(
-                  context,
-                  'Group name cannot be empty',
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Group name cannot be empty'),
+                  ),
                 );
                 return;
               }
 
-              // 🔥 SAVE OLD NAME (for rollback if API fails)
               final oldName = _group.name;
 
-              // 🚀 OPTIMISTIC UI UPDATE
               setState(() {
                 _isLoading = true;
                 _group = _group.copyWith(name: newName);
               });
 
-              Navigator.pop(context);
+              Navigator.of(dialogContext).pop();
 
               try {
                 await _groupSocketProvider.editGroupName(
@@ -138,45 +139,62 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                   _currentUserId ?? '',
                 );
 
-                if (mounted) {
-                  AlertHelper.snackBarSuccess(context, 'Group name updated!');
-                }
-              } catch (e) {
-                // ❌ rollback if failed
-                if (mounted) {
-                  setState(() {
-                    _group = _group.copyWith(name: oldName);
-                  });
+                if (!mounted) return;
 
-                  AlertHelper.snackBarError(
-                    context,
-                    'Failed to update group name: $e',
-                  );
-                }
+                messenger.showSnackBar(
+                  const SnackBar(
+                    content: Text('Group name updated!'),
+                  ),
+                );
+
+              } catch (e) {
+                if (!mounted) return;
+
+                setState(() {
+                  _group = _group.copyWith(name: oldName);
+                });
+
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to update group name: $e'),
+                  ),
+                );
               } finally {
-                if (mounted) setState(() => _isLoading = false);
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                }
               }
             },
             child: const Text('Save'),
           ),
         ],
-      ),
+      );
+    },
+  );
+}
+  Future<void> _addMembers() async {
+  final parentContext = context;
+  final messenger = ScaffoldMessenger.of(parentContext);
+
+  if (_currentUserId == null) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('User ID not found')),
     );
+    return;
   }
 
-  Future<void> _addMembers() async {
-    if (_currentUserId == null) {
-      AlertHelper.snackBarError(context, 'User ID not found');
-      return;
-    }
-    if (_filteredEmployees.isEmpty) {
-      AlertHelper.snackBarWarning(context, 'No employees available to add');
-      return;
-    }
-    await showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
+  if (_filteredEmployees.isEmpty) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text('No employees available to add')),
+    );
+    return;
+  }
+
+  await showDialog(
+    context: parentContext,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
           return AlertDialog(
             title: const Text('Add Members'),
             content: SizedBox(
@@ -187,6 +205,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 itemBuilder: (context, index) {
                   final emp = _filteredEmployees[index];
                   final isSelected = _selectedMembers.contains(emp);
+
                   return CheckboxListTile(
                     title: Text(emp.name),
                     subtitle: Text(emp.employeeID),
@@ -206,39 +225,43 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: () => Navigator.of(dialogContext).pop(),
                 child: const Text('Cancel'),
               ),
               TextButton(
                 onPressed: () async {
                   if (_selectedMembers.isEmpty) {
-                    AlertHelper.snackBarWarning(
-                      context,
-                      'Please select at least one member',
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content:
+                            Text('Please select at least one member'),
+                      ),
                     );
                     return;
                   }
 
-                  // 🚀 Optimistic UI Update
-                  final previousMembers = List<String>.from(_group.members);
-                  final newMemberIds = _selectedMembers
-                      .map((e) => e.employeeID)
-                      .toList();
+                  final previousMembers =
+                      List<String>.from(_group.members);
+
+                  final newMemberIds =
+                      _selectedMembers.map((e) => e.employeeID).toList();
 
                   setState(() {
-                    _isLoading =
-                        true; // Set loading first to block stale socket updates
+                    _isLoading = true;
                     _group = _group.copyWith(
-                      members: [..._group.members, ...newMemberIds],
+                      members: [
+                        ..._group.members,
+                        ...newMemberIds,
+                      ],
                     );
+
                     _filteredEmployees = _employees
-                        .where(
-                          (emp) => !_group.members.contains(emp.employeeID),
-                        )
+                        .where((emp) =>
+                            !_group.members.contains(emp.employeeID))
                         .toList();
                   });
 
-                  Navigator.pop(context);
+                  Navigator.of(dialogContext).pop();
 
                   try {
                     await _groupSocketProvider.addGroupMembers(
@@ -247,29 +270,40 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                       _currentUserId!,
                     );
 
-                    if (mounted) {
-                      // ignore: use_build_context_synchronously
-                      AlertHelper.snackBarSuccess(context, 'Members added!');
-                    }
+                    if (!mounted) return;
+
+                    messenger.showSnackBar(
+                      const SnackBar(
+                        content: Text('Members added!'),
+                      ),
+                    );
+
                     _selectedMembers.clear();
+
                   } catch (e) {
-                    if (mounted) {
-                      setState(() {
-                        _group = _group.copyWith(members: previousMembers);
-                        _filteredEmployees = _employees
-                            .where(
-                              (emp) => !_group.members.contains(emp.employeeID),
-                            )
-                            .toList();
-                      });
-                      // ignore: use_build_context_synchronously
-                      AlertHelper.snackBarError(
-                        context,
-                        'Failed to add members: $e',
-                      );
-                    }
+                    if (!mounted) return;
+
+                    setState(() {
+                      _group = _group.copyWith(
+                          members: previousMembers);
+
+                      _filteredEmployees = _employees
+                          .where((emp) =>
+                              !_group.members.contains(emp.employeeID))
+                          .toList();
+                    });
+
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Failed to add members: $e',
+                        ),
+                      ),
+                    );
                   } finally {
-                    if (mounted) setState(() => _isLoading = false);
+                    if (mounted) {
+                      setState(() => _isLoading = false);
+                    }
                   }
                 },
                 child: const Text('Add'),
@@ -277,10 +311,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
             ],
           );
         },
-      ),
-    );
-  }
-
+      );
+    },
+  );
+}
   Future<void> _removeMember(String userId) async {
     final shouldRemove = await showDialog<bool>(
       context: context,

@@ -1,6 +1,6 @@
 import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
 import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
+
 
 class MeetService {
 
@@ -10,7 +10,6 @@ class MeetService {
   final ApiHelper _apiHelper =
       ApiHelper(baseUrl: meetingBaseUrl);
 
-  final LoggingService _logger = LoggingService.instance;
 
   // ================= ADD =================
   Future<ApiResponse<dynamic>> addMeet({
