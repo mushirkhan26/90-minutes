@@ -50,22 +50,32 @@ class _LeaveRequestFormScreenState extends State<LeaveRequestFormScreen> {
     'emergencyLeave',
   ];
   @override
-  void initState() {
-    super.initState();
-    _loadHolidays();
-    // Fetch leave info to show available balance
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LeaveProvider>().fetchLeaveInfo(employeeId: widget.employeeId);
-    });
-  }
+void initState() {
+  super.initState();
 
-  Future<void> _loadHolidays() async {
-    final holidayProvider = Provider.of<HolidayProvider>(context, listen: false);
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    if (!mounted) return;
+
+    // Fetch holidays safely
+    final holidayProvider =
+        context.read<HolidayProvider>();
+
     await holidayProvider.fetchHolidays();
+
+    if (!mounted) return;
+
     setState(() {
       _allHolidays = holidayProvider.holidays;
     });
-  }
+
+    // Fetch leave balance safely
+    await context.read<LeaveProvider>().fetchLeaveInfo(
+          employeeId: widget.employeeId,
+        );
+  });
+}
+
+  
   @override
   void dispose() {
     _reasonController.dispose();

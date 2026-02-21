@@ -20,19 +20,9 @@ class LeaveProvider extends ChangeNotifier {
   List<dynamic> get allLeaveRequests => _allLeaveRequests;
   bool get isLoading => _isLoading;
 
-  LeaveProvider() {
-    _bootstrap();
-  }
-
-  Future<void> _bootstrap() async {
-    final employeeId = await _localStorage.getEmployeeId();
-    if (employeeId != null) {
-      await fetchLeaveInfo(employeeId: employeeId);
-    }
-    // For admin, we could fetchAllLeaveRequests() here too if user is manager,
-    // but typically admin lists are large and better fetched when entering the screen
-    // or triggered via bootstrap if it's a primary dashboard item.
-  }
+  LeaveProvider();
+    
+ 
 
   Future<void> fetchLeaveInfo({
     required String employeeId,
