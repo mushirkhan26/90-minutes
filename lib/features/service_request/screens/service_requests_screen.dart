@@ -35,27 +35,28 @@ void initState() {
     _loadData();
   });
 }
-
 Future<void> _loadData() async {
   final auth = context.read<AuthProvider>();
   final provider = context.read<ServiceRequestProvider>();
 
-  // Wait until userData ready
   while (auth.userData == null) {
     await Future.delayed(const Duration(milliseconds: 100));
   }
 
-  final role = auth.userData?['role']?.toString().toLowerCase();
-  final employeeId = auth.userData?['employeeId']?.toString();
+  final role =
+      auth.userData?['role']?.toString().toLowerCase();
+  final employeeId =
+      auth.userData?['employeeId']?.toString();
 
-  
-
-  if (role != 'manager' && role != 'admin') {
+  if (role == 'employee') {
     if (employeeId != null) {
       await provider.fetchRequestsByEmployee(employeeId);
+          await provider.fetchRequestCounts(forceRefresh: true);
+
     }
   }
-  if (role == 'manager' || role == 'admin') {
+
+  else if (role == 'manager' || role == 'hr') {
     await provider.fetchServiceRequests(forceRefresh: true);
     await provider.fetchRequestCounts(forceRefresh: true);
   }
@@ -69,6 +70,8 @@ Future<void> _loadData() async {
         ?.toString()
         .toLowerCase();
 
+    final bool isManagerOrHr = role == 'manager' || role == 'hr';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
@@ -76,7 +79,9 @@ Future<void> _loadData() async {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          role == 'manager' ? 'Manage your Requests' : 'Service Requests',
+          isManagerOrHr
+          ? 'Manage your Requests'
+          : 'Service Requests',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -85,7 +90,8 @@ Future<void> _loadData() async {
       ),
       body: Consumer<ServiceRequestProvider>(
         builder: (_, provider, __) {
-          return role == 'manager'
+          final bool isManagerOrHr = role == 'manager' || role == 'hr';
+          return isManagerOrHr
               ? _managerView(size)
               : _userView(size);
         },

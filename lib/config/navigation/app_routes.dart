@@ -42,7 +42,7 @@ class AppRoutes {
   static const String leaderboard = '/leaderboard';
   static const String adminLeaderboard = '/admin-leaderboard';
   static const String serviceRequest = '/service-request';
-  
+
   static const String manageTasks = '/manage-tasks';
   static const String addProject = '/add-project';
   static const String employeeBenefits = '/employee-benefits';

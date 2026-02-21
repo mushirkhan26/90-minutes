@@ -85,6 +85,7 @@ class AuthProvider extends ChangeNotifier {
         employeeId: data['employeeId'].toString(),
         employeeName: data['username'],
       );
+      await _localStorage.saveUserRole(data['role']);
 
       // Save login state
       await _localStorage.setLoginState(true);

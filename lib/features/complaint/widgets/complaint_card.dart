@@ -242,7 +242,7 @@ if (complaint.attachments.isNotEmpty)
                       const SizedBox(height: 6),
 
                       DropdownButtonFormField<String>(
-                        value: selectedStatus,
+                        initialValue: selectedStatus,
                         items: const [
                           DropdownMenuItem(
                               value: 'Pending',

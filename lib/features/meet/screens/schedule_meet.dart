@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/models/employee_model.dart';
 import 'package:hrtz_hrms/core/services/local_storage_service.dart';
-import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_button.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
@@ -94,78 +93,104 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     return selected.isBefore(DateTime.now());
   }
 
-  Future<void> _pickDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null) {
-      if (_isSunday(picked)) {
-        AlertHelper.snackBarWarning(
-          context,
-          "Meetings cannot be scheduled on Sundays",
-        );
-        return;
-      }
+ Future<void> _pickDate() async {
+  final messenger = ScaffoldMessenger.of(context);
+  final currentContext = context;
 
-      setState(() {
-        _selectedDate = picked;
-        _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
-      });
-    }
+  final DateTime? picked = await showDatePicker(
+    context: currentContext,
+    initialDate: DateTime.now(),
+    firstDate: DateTime.now(),
+    lastDate: DateTime(2100),
+  );
+
+  if (!mounted || picked == null) return;
+
+  if (_isSunday(picked)) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Meetings cannot be scheduled on Sundays"),
+      ),
+    );
+    return;
   }
 
-  Future<void> _pickStartDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2100),
+  setState(() {
+    _selectedDate = picked;
+    _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+  });
+}
+ Future<void> _pickStartDate() async {
+  final messenger = ScaffoldMessenger.of(context);
+  final currentContext = context;
+
+  final DateTime? picked = await showDatePicker(
+    context: currentContext,
+    initialDate: DateTime.now(),
+    firstDate: DateTime.now(),
+    lastDate: DateTime(2100),
+  );
+
+  if (!mounted || picked == null) return;
+
+  if (_isSunday(picked)) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Meetings cannot start on Sundays"),
+      ),
     );
-    if (picked != null) {
-      if (_isSunday(picked)) {
-        AlertHelper.snackBarWarning(
-          context,
-          "Meetings cannot start on Sundays",
-        );
-        return;
-      }
-      setState(() {
-        _startDate = picked;
-        _startDateController.text = DateFormat('dd-MM-yyyy').format(picked);
-        if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-          _endDate = null;
-          _endDateController.clear();
-        }
-      });
-    }
+    return;
   }
 
+  setState(() {
+    _startDate = picked;
+    _startDateController.text =
+        DateFormat('dd-MM-yyyy').format(picked);
+
+    // Reset end date if it is before start date
+    if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+      _endDate = null;
+      _endDateController.clear();
+    }
+  });
+}
   Future<void> _pickEndDate() async {
-    if (_startDate == null) {
-      AlertHelper.snackBarWarning(context, "Please select Start Date first");
-      return;
-    }
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _startDate!,
-      firstDate: _startDate!,
-      lastDate: DateTime(2100),
+  final messenger = ScaffoldMessenger.of(context);
+  final currentContext = context;
+
+  if (_startDate == null) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Please select Start Date first"),
+      ),
     );
-    if (picked != null) {
-      if (_isSunday(picked)) {
-        AlertHelper.snackBarWarning(context, "Meetings cannot end on Sundays");
-        return;
-      }
-      setState(() {
-        _endDate = picked;
-        _endDateController.text = DateFormat('dd-MM-yyyy').format(picked);
-      });
-    }
+    return;
   }
 
+  final DateTime? picked = await showDatePicker(
+    context: currentContext,
+    initialDate: _startDate!,
+    firstDate: _startDate!,
+    lastDate: DateTime(2100),
+  );
+
+  if (!mounted || picked == null) return;
+
+  if (_isSunday(picked)) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Meetings cannot end on Sundays"),
+      ),
+    );
+    return;
+  }
+
+  setState(() {
+    _endDate = picked;
+    _endDateController.text =
+        DateFormat('dd-MM-yyyy').format(picked);
+  });
+}
   Future<void> _pickTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -198,37 +223,41 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   // }
 
   Future<void> _pickFiles() async {
-    if (_attachments.length >= 5) {
-      AlertHelper.snackBarWarning(
-        context,
-        "You can upload maximum 5 files only",
-      );
-      return;
-    }
+  final messenger = ScaffoldMessenger.of(context);
 
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      allowMultiple: true,
+  if (_attachments.length >= 5) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("You can upload maximum 5 files only"),
+      ),
     );
-
-    if (result == null) return;
-
-    final pickedFiles = result.paths
-        .where((p) => p != null)
-        .map((p) => File(p!))
-        .toList();
-
-    if (_attachments.length + pickedFiles.length > 5) {
-      AlertHelper.snackBarWarning(
-        context,
-        "You can upload maximum 5 files only",
-      );
-      return;
-    }
-
-    setState(() {
-      _attachments.addAll(pickedFiles);
-    });
+    return;
   }
+
+  final result = await FilePicker.platform.pickFiles(
+    allowMultiple: true,
+  );
+
+  if (!mounted || result == null) return;
+
+  final pickedFiles = result.paths
+      .where((p) => p != null)
+      .map((p) => File(p!))
+      .toList();
+
+  if (_attachments.length + pickedFiles.length > 5) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("You can upload maximum 5 files only"),
+      ),
+    );
+    return;
+  }
+
+  setState(() {
+    _attachments.addAll(pickedFiles);
+  });
+}
 
   List<DateTime> _calculateRecurrenceDates() {
     List<DateTime> dates = [];
@@ -276,105 +305,109 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   }
 
   Future<void> _scheduleMeeting() async {
-    if (!_formKey.currentState!.validate()) return;
+  final messenger = ScaffoldMessenger.of(context);
+  final navigator = Navigator.of(context);
+  final meetProvider = context.read<MeetProvider>();
 
-    if (_recurrence == 'One-time meeting') {
-      if (_selectedDate == null) {
-        AlertHelper.snackBarWarning(context, "Please select Date");
-        return;
-      }
-    } else {
-      if (_startDate == null || _endDate == null) {
-        AlertHelper.snackBarWarning(
-          context,
-          "Please select both Start and End Date",
-        );
-        return;
-      }
-    }
+  if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedTime == null) {
-      AlertHelper.snackBarWarning(context, "Please select Time");
-      return;
-    }
-    if (_selectedParticipants.isEmpty) {
-      AlertHelper.snackBarWarning(
-        context,
-        "Please add at least one participant",
+  // Date validation
+  if (_recurrence == 'One-time meeting') {
+    if (_selectedDate == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Please select Date")),
       );
       return;
     }
-
-    final List<DateTime> scheduledDates = _calculateRecurrenceDates();
-    if (scheduledDates.isEmpty) {
-      AlertHelper.snackBarWarning(context, "No valid dates to schedule");
+  } else {
+    if (_startDate == null || _endDate == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Please select both Start and End Date")),
+      );
       return;
-    }
-
-    /// 🔥 AM/PM COMPLETED TIME BLOCK
-    for (final date in scheduledDates) {
-      if (_isPastDateTime(date)) {
-        AlertHelper.snackBarWarning(
-          context,
-          "Selected time is already completed. Please choose a future time.",
-        );
-        return;
-      }
-    }
-    final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-
-    // Show loading
-    bool allSuccess = true;
-    for (var date in scheduledDates) {
-      final success = await meetProvider.addMeeting(
-        meetLink: _linkController.text,
-        description: _titleController.text,
-        time: date.toUtc().toIso8601String(), // ✅ Sending as UTC
-        participants: _selectedParticipants
-            .map((e) => {"employeeId": e.employeeID, "name": e.name})
-            .toList(),
-        agenda: _agendaController.text,
-        duration: int.tryParse(_durationController.text) ?? 30,
-      );
-      if (!success) allSuccess = false;
-    }
-    if (allSuccess && mounted) {
-      final meetProvider = Provider.of<MeetProvider>(context, listen: false);
-
-      await meetProvider.fetchUpcomingMeetings(forceRefresh: true);
-
-      AlertHelper.snackBarSuccess(
-        context,
-        "Meeting(s) scheduled successfully!",
-      );
-      Navigator.pop(context);
-    } else if (mounted) {
-      AlertHelper.snackBarError(context, "Some meetings failed to schedule.");
     }
   }
 
-  //   if (allSuccess && mounted) {
-  //     AlertHelper.snackBarSuccess(
-  //       context,
-  //       "Meeting(s) scheduled successfully!",
-  //     );
-  //     Navigator.pop(context);
-  //   } else if (mounted) {
-  //     AlertHelper.snackBarError(context, "Some meetings failed to schedule.");
-  //   }
-  // }
+  if (_selectedTime == null) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text("Please select Time")),
+    );
+    return;
+  }
 
-  //   if (allSuccess && mounted) {
-  //     AlertHelper.snackBarSuccess(
-  //       context,
-  //       "Meeting(s) scheduled successfully!",
-  //     );
-  //     Navigator.pop(context);
-  //   } else if (mounted) {
-  //     AlertHelper.snackBarError(context, "Some meetings failed to schedule.");
-  //   }
-  // }
+  if (_selectedParticipants.isEmpty) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text("Please add at least one participant")),
+    );
+    return;
+  }
 
+  final scheduledDates = _calculateRecurrenceDates();
+
+  if (scheduledDates.isEmpty) {
+    messenger.showSnackBar(
+      const SnackBar(content: Text("No valid dates to schedule")),
+    );
+    return;
+  }
+
+  // Prevent past date/time
+  for (final date in scheduledDates) {
+    if (_isPastDateTime(date)) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Selected time is already completed. Please choose a future time.",
+          ),
+        ),
+      );
+      return;
+    }
+  }
+
+  bool allSuccess = true;
+
+  for (final date in scheduledDates) {
+    final success = await meetProvider.addMeeting(
+      meetLink: _linkController.text,
+      description: _titleController.text,
+      time: date.toUtc().toIso8601String(),
+      participants: _selectedParticipants
+          .map((e) => {
+                "employeeId": e.employeeID,
+                "name": e.name,
+              })
+          .toList(),
+      agenda: _agendaController.text,
+      duration: int.tryParse(_durationController.text) ?? 30,
+    );
+
+    if (!success) {
+      allSuccess = false;
+    }
+  }
+
+  if (!mounted) return;
+
+  await meetProvider.fetchUpcomingMeetings(forceRefresh: true);
+
+  if (!mounted) return;
+
+  if (allSuccess) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Meeting(s) scheduled successfully!"),
+      ),
+    );
+    navigator.pop();
+  } else {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text("Some meetings failed to schedule."),
+      ),
+    );
+  }
+}
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -351,43 +351,45 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                   ),
                   const SizedBox(height: 8),
                   InkWell(
-                    onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now().add(
-                          const Duration(days: 1),
-                        ),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 30)),
-                      );
-                      if (date != null) {
-                        if (!mounted) return;
-                        final time = await showTimePicker(
-                          context: context,
-                          initialTime: TimeOfDay.now(),
-                        );
-                        if (time != null) {
-                          final selected = DateTime(
-                            date.year,
-                            date.month,
-                            date.day,
-                            time.hour,
-                            time.minute,
-                          );
-                          if (!mounted) return;
-                          if (selected.isBefore(DateTime.now())) {
-                            AlertHelper.snackBarWarning(
-                              context,
-                              "Selected time is already passed. Please choose a future time.",
-                            );
-                            return;
-                          }
-                          setState(() => _pollExpiry = selected);
-                        } else {
-                          return;
-                        }
-                      }
-                    },
+                   onTap: () async {
+  final date = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now().add(const Duration(days: 1)),
+    firstDate: DateTime.now(),
+    lastDate: DateTime.now().add(const Duration(days: 30)),
+  );
+
+  if (!mounted || date == null) return;
+
+  final time = await showTimePicker(
+    context: this.context,
+    initialTime: TimeOfDay.now(),
+  );
+
+  if (!mounted || time == null) return;
+
+  final selected = DateTime(
+    date.year,
+    date.month,
+    date.day,
+    time.hour,
+    time.minute,
+  );
+
+  if (selected.isBefore(DateTime.now())){
+    if(!mounted) return;
+
+    AlertHelper.snackBarWarning(
+      this.context,
+      "Selected time is already passed. Please choose a future time.",
+    );
+    return;
+  }
+
+  setState(() {
+    _pollExpiry = selected;
+  });
+},
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       width: double.infinity,
@@ -415,41 +417,27 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                   const SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
-                      final date = await showDatePicker(
-                        context: context,
-                        initialDate: DateTime.now(),
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime.now().add(const Duration(days: 365)),
-                      );
-                      if (date != null) {
-                        if (mounted) {
-                          final time = await showTimePicker(
-                            context: context,
-                            initialTime: TimeOfDay.now(),
-                          );
-                          if (!mounted) return;
-                          if (time != null) {
-                            final selected = DateTime(
-                              date.year,
-                              date.month,
-                              date.day,
-                              time.hour,
-                              time.minute,
-                            );
-                            if (selected.isBefore(DateTime.now())) {
-                              AlertHelper.snackBarWarning(
-                                context,
-                                "Selected time is already passed. Please choose a future time.",
-                              );
-                              return;
-                            }
-                            setState(() {
-                              _eventDate = selected.toUtc();
-                            });
-                          }
-                        }
-                      }
-                    },
+  final messenger = ScaffoldMessenger.of(context);
+
+  final selected = await _pickEventDateTime();
+
+  if (!mounted) return;
+
+  if (selected == null) {
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text(
+          "Selected time is already passed. Please choose a future time.",
+        ),
+      ),
+    );
+    return;
+  }
+
+  setState(() {
+    _eventDate = selected.toUtc();
+  });
+},
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       width: double.infinity,
@@ -709,4 +697,36 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
       }
     }
   }
+
+  Future<DateTime?> _pickEventDateTime() async {
+  final date = await showDatePicker(
+    context: context,
+    initialDate: DateTime.now(),
+    firstDate: DateTime.now(),
+    lastDate: DateTime.now().add(const Duration(days: 365)),
+  );
+
+  if (!mounted || date == null) return null;
+
+  final time = await showTimePicker(
+    context: context,
+    initialTime: TimeOfDay.now(),
+  );
+
+  if (!mounted || time == null) return null;
+
+  final selected = DateTime(
+    date.year,
+    date.month,
+    date.day,
+    time.hour,
+    time.minute,
+  );
+
+  if (selected.isBefore(DateTime.now())) {
+    return null;
+  }
+
+  return selected;
+}
 }
