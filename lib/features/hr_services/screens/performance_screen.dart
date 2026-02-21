@@ -23,7 +23,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final role = authProvider.userData?['role']?.toString().toLowerCase();
-    final isManagerOrAdmin = role == 'manager' || role == 'admin';
+    final isManagerOrAdminOrHr = role == 'manager' || role == 'admin' || role == 'hr';
 
     return Scaffold(
       appBar: AppBar(
@@ -36,7 +36,7 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
       ),
       body: Column(
         children: [
-          if (isManagerOrAdmin)
+          if (isManagerOrAdminOrHr)
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Container(
@@ -1237,3 +1237,4 @@ class _TeamReplyDialogState extends State<TeamReplyDialog> {
     );
   }
 }
+
