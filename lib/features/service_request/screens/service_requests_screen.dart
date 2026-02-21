@@ -22,45 +22,19 @@ class ServiceRequestsScreen extends StatefulWidget {
 }
 
 class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
-  String _searchQuery = '';
   int _currentPage = 1;
   final int _pageSize = 5;
   bool _showAll = false;
 
-@override
-void initState() {
-  super.initState();
-
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    _loadData();
-  });
-}
-Future<void> _loadData() async {
-  final auth = context.read<AuthProvider>();
-  final provider = context.read<ServiceRequestProvider>();
-
-  while (auth.userData == null) {
-    await Future.delayed(const Duration(milliseconds: 100));
+  @override
+  void initState() {
+    super.initState();
+    // Refresh data in background without showing full screen loader if we have cache
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ServiceRequestProvider>().refreshData();
+    });
   }
 
-  final role =
-      auth.userData?['role']?.toString().toLowerCase();
-  final employeeId =
-      auth.userData?['employeeId']?.toString();
-
-  if (role == 'employee') {
-    if (employeeId != null) {
-      await provider.fetchRequestsByEmployee(employeeId);
-          await provider.fetchRequestCounts(forceRefresh: true);
-
-    }
-  }
-
-  else if (role == 'manager' || role == 'hr') {
-    await provider.fetchServiceRequests(forceRefresh: true);
-    await provider.fetchRequestCounts(forceRefresh: true);
-  }
-}
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -79,9 +53,7 @@ Future<void> _loadData() async {
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
-          isManagerOrHr
-          ? 'Manage your Requests'
-          : 'Service Requests',
+          isManagerOrHr ? 'Manage your Requests' : 'Service Requests',
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -90,91 +62,93 @@ Future<void> _loadData() async {
       ),
       body: Consumer<ServiceRequestProvider>(
         builder: (_, provider, __) {
-          final bool isManagerOrHr = role == 'manager' || role == 'hr';
-          return isManagerOrHr
-              ? _managerView(size)
-              : _userView(size);
+          return RefreshIndicator(
+            onRefresh: () => provider.refreshData(forceRefresh: true),
+            child: isManagerOrHr ? _managerView(size, provider) : _userView(size, provider),
+          );
         },
       ),
     );
   }
 
-  // ================= MANAGER VIEW (UNCHANGED) =================
-  Widget _managerView(Size size) {
-  return ListView(
-    padding: EdgeInsets.zero,
-    children: [
-      _buildSearchBar(size),
-
-      //  COUNTS SECTION
-      Container(
-        color: Colors.white,
-        padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
-        child: _buildCountsSection(size),
-      ),
-
-      //  EXPORT ICON ROW
-      Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: size.width * 0.04,
-          vertical: size.height * 0.015,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.primary,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha:  0.08),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: IconButton(
-                onPressed: _exportToExcel,
-                icon: const Icon(
-                  Icons.insert_drive_file, // Excel style icon
-                  color: Colors.white,
-                  size: 26,
-                ),
-                tooltip: "Export Excel",
-              ),
-            ),
-          ],
-        ),
-      ),
-
-      //  LIST SECTION
-      _buildRequestsList(size),
-    ],
-  );
-}
-  // ================= USER VIEW =================
-  Widget _userView(Size size) {
+  // ================= MANAGER VIEW =================
+  Widget _managerView(Size size, ServiceRequestProvider provider) {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        _buildSearchBar(size),
+        _buildSearchBar(size, provider),
+
+        //  COUNTS SECTION
+        Container(
+          color: Colors.white,
+          padding: EdgeInsets.symmetric(vertical: size.height * 0.02),
+          child: _buildCountsSection(size, provider),
+        ),
+
+        //  EXPORT ICON ROW
+        Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: size.width * 0.04,
+            vertical: size.height * 0.015,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 6,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: _exportToExcel,
+                  icon: const Icon(
+                    Icons.insert_drive_file,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  tooltip: "Export Excel",
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        //  LIST SECTION
+        _buildRequestsList(size, provider),
+      ],
+    );
+  }
+
+  // ================= USER VIEW =================
+  Widget _userView(Size size, ServiceRequestProvider provider) {
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _buildSearchBar(size, provider),
         const SizedBox(height: 8),
-        _buildUserCategories(size),
+        _buildUserCategories(size, provider),
         const SizedBox(height: 20),
-        _buildUserPreviousRequests(size),
+        _buildUserPreviousRequests(size, provider),
+        const SizedBox(height: 20),
       ],
     );
   }
 
   // ================= SEARCH =================
-  Widget _buildSearchBar(Size size) {
+  Widget _buildSearchBar(Size size, ServiceRequestProvider provider) {
     return Padding(
       padding: EdgeInsets.all(size.width * 0.04),
       child: TextField(
         onChanged: (value) {
+          provider.setSearchQuery(value);
           setState(() {
-            _searchQuery = value.toLowerCase();
             _currentPage = 1;
           });
         },
@@ -193,324 +167,303 @@ Future<void> _loadData() async {
   }
 
   // ================= USER CATEGORIES =================
-  Widget _buildUserCategories(Size size) {
-    return Consumer<ServiceRequestProvider>(
-      builder: (_, provider, __) {
-        if (provider.requestCounts.isEmpty) {
-  return Padding(
-    padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-    child: const ShimmerTile(height: 120),
-  );
-}
+  Widget _buildUserCategories(Size size, ServiceRequestProvider provider) {
+    if (provider.requestCounts.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+        child: const ShimmerTile(height: 120),
+      );
+    }
 
-        final categories = provider.requestCounts.entries
-            .where((e) => e.key != 'Total Requests')
-            .toList();
+    final categories = provider.requestCounts.entries
+        .where((e) => e.key != 'Total Requests')
+        .toList();
 
-        IconData getIcon(String type) {
-          switch (type.toLowerCase()) {
-            case 'hardware':
-              return Icons.build;
-            case 'software':
-              return Icons.computer;
-            case 'backup':
-              return Icons.backup;
-            case 'document':
-              return Icons.description;
-            default:
-              return Icons.miscellaneous_services;
-          }
-        }
+    IconData getIcon(String type) {
+      switch (type.toLowerCase()) {
+        case 'hardware':
+          return Icons.build;
+        case 'software':
+          return Icons.computer;
+        case 'backup':
+          return Icons.backup;
+        case 'document':
+          return Icons.description;
+        default:
+          return Icons.miscellaneous_services;
+      }
+    }
 
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: categories.length,
-            gridDelegate:
-                const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.9,
-            ),
-            itemBuilder: (_, index) {
-              final category = categories[index];
-              return GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ChangeNotifierProvider.value(
-                        value: context.read<ServiceRequestProvider>(),
-                        child: AddServiceRequestScreen(
-                      
-
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: categories.length,
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: size.width > 600 ? 4 : 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: size.width > 600 ? 1.1 : 0.85,
+        ),
+        itemBuilder: (_, index) {
+          final category = categories[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider.value(
+                      value: context.read<ServiceRequestProvider>(),
+                      child: AddServiceRequestScreen(
                         requestType: category.key,
                       ),
                     ),
-                  )
-                  );
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.grey.shade300),
-                  ),
+                  ));
+            },
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(
                         getIcon(category.key),
-                        size: 36,
+                        size: 30,
                         color: AppColors.primary,
                       ),
-                      const SizedBox(height: 10),
+                      const SizedBox(height: 8),
                       Text(
                         category.key,
                         textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 14,
+                          fontSize: 13,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      const Text(
-                        'Click here if you need help',
+                      const SizedBox(height: 4),
+                      Text(
+                        'Click for help',
                         textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey,
+                          fontSize: 10,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
                 ),
-              );
-            },
-          ),
-        );
-      },
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
-  // ================= USER PREVIOUS REQUESTS (WEB STYLE) =================
-  Widget _buildUserPreviousRequests(Size size) {
-  final employeeId =
-      context.read<AuthProvider>().userData?['employeeId'];
+  // ================= USER PREVIOUS REQUESTS =================
+  Widget _buildUserPreviousRequests(Size size, ServiceRequestProvider provider) {
+    final myRequests = provider.myFilteredRequests;
 
-  return Consumer<ServiceRequestProvider>(
-    builder: (_, provider, __) {
-      final myRequests = provider.allRequests
-    .where((r) => r.employeeId == employeeId)
-    .where((r) =>
-        r.name.toLowerCase().contains(_searchQuery) ||
-        r.description.toLowerCase().contains(_searchQuery) ||
-        r.department.toLowerCase().contains(_searchQuery) ||
-        r.requestId.toLowerCase().contains(_searchQuery))
-    .toList();
+    if (provider.isUserRequestLoading && myRequests.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+        child: const ShimmerTile(height: 160),
+      );
+    }
 
-      if (provider.isUserRequestLoading) {
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-          child: const ShimmerTile(height: 160),
-        );
-      }
-
-      if (myRequests.isEmpty) {
-        return Padding(
-          padding: EdgeInsets.all(size.width * 0.08),
-          child: const Text(
+    if (myRequests.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(size.width * 0.08),
+        child: const Center(
+          child: Text(
             'No previous requests',
             style: TextStyle(color: Colors.grey),
           ),
-        );
-      }
-
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  children: [
-    const Text(
-      'Your Previous Requests',
-      style: TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
-    ),
-    if (myRequests.length > 3)
-      TextButton(
-        onPressed: () {
-          setState(() {
-            _showAll = !_showAll;
-          });
-        },
-        child: Text(
-          _showAll
-              ? 'Show Less'
-              : 'Show All (${myRequests.length})',
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-  ],
-),
-const SizedBox(height: 12),
-
-
-...(_showAll
-    ? myRequests
-    : myRequests.take(3)).map(_userWebCard),
-          ],
         ),
       );
-    },
-  );
-}
-  Widget _userWebCard(ServiceRequest r) {
+    }
 
-  // 🔹 Decide status colors
-  Color statusTextColor;
-  Color statusBgColor;
-
-  switch (r.requestStatus.toLowerCase()) {
-    case 'rejected':
-      statusTextColor = Colors.red;
-      statusBgColor = Colors.red.shade50;
-      break;
-
-    case 'approved':
-    case 'accepted':
-      statusTextColor = Colors.green;
-      statusBgColor = Colors.green.shade50;
-      break;
-
-    default: // Waiting
-      statusTextColor = Colors.blue;
-      statusBgColor = Colors.blue.shade50;
-  }
-
-  return Container(
-    margin: const EdgeInsets.only(bottom: 16),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: Colors.grey.shade300),
-    ),
-    child: Column(
-      children: [
-        // 🔹 STATUS HEADER
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: statusBgColor,
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(16)),
-          ),
-          child: Center(
-            child: Text(
-              'Status: ${r.requestStatus}',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: statusTextColor,
-              ),
-            ),
-          ),
-        ),
-
-        // 🔹 BODY
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                r.department,
-                style: const TextStyle(
+              const Text(
+                'Your Previous Requests',
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                _formatDate(r.createdOn),
-                style: const TextStyle(color: Colors.grey),
-              ),
-              const Divider(height: 24),
-              _row('Request ID', r.requestId),
-              _row('Name', r.name),
-              _row('Employee ID', r.employeeId),
-              _row('Email', r.email),
-              const SizedBox(height: 10),
-
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(r.description),
-              ),
-
-              // 🔹 ATTACHMENT
-              if (r.attachmentUrl.isNotEmpty &&
-                  r.attachmentUrl.first.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: GestureDetector(
-                    onTap: () => _openAttachment(r.attachmentUrl.first),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.attach_file,
-                          size: 18,
-                          color: AppColors.primary,
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          "View Attachment",
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
+              if (myRequests.length > 3)
+                TextButton(
+                  onPressed: () {
+                    setState(() {
+                      _showAll = !_showAll;
+                    });
+                  },
+                  child: Text(
+                    _showAll ? 'Show Less' : 'Show All (${myRequests.length})',
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
             ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+          const SizedBox(height: 12),
+          ...(_showAll ? myRequests : myRequests.take(3)).map(_userWebCard),
+        ],
+      ),
+    );
+  }
+
+  Widget _userWebCard(ServiceRequest r) {
+    Color statusTextColor;
+    Color statusBgColor;
+
+    switch (r.requestStatus.toLowerCase()) {
+      case 'rejected':
+        statusTextColor = Colors.red;
+        statusBgColor = Colors.red.shade50;
+        break;
+      case 'approved':
+      case 'accepted':
+        statusTextColor = Colors.green;
+        statusBgColor = Colors.green.shade50;
+        break;
+      default:
+        statusTextColor = Colors.blue;
+        statusBgColor = Colors.blue.shade50;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: statusBgColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Center(
+              child: Text(
+                'Status: ${r.requestStatus}',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: statusTextColor,
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  r.department,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatDate(r.createdOn),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const Divider(height: 24),
+                _row('Request ID', r.requestId),
+                _row('Name', r.name),
+                _row('Employee ID', r.employeeId),
+                _row('Email', r.email),
+                const SizedBox(height: 10),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    r.description,
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                if (r.attachmentUrl.isNotEmpty && r.attachmentUrl.first.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: GestureDetector(
+                      onTap: () => _openAttachment(r.attachmentUrl.first),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.attach_file,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            "View Attachment",
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _row(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 110,
+            width: 100,
             child: Text(
               '$label:',
-              style: const TextStyle(color: Colors.grey),
+              style: const TextStyle(color: Colors.grey, fontSize: 13),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontWeight: FontWeight.w500),
+              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13),
             ),
           ),
         ],
@@ -519,43 +472,35 @@ const SizedBox(height: 12),
   }
 
   String _formatDate(DateTime date) {
-    const months = [
-      'Jan','Feb','Mar','Apr','May','Jun',
-      'Jul','Aug','Sep','Oct','Nov','Dec'
-    ];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return '${date.day} ${months[date.month - 1]}, ${date.year}';
   }
 
- 
   // ================= COUNTS =================
-  Widget _buildCountsSection(Size size) {
-    return Consumer<ServiceRequestProvider>(
-      builder: (_, provider, __) {
-        if (provider.state == ServiceRequestState.loading &&
-            provider.requestCounts.isEmpty) {
-          return _buildCountsShimmer(size);
-        }
+  Widget _buildCountsSection(Size size, ServiceRequestProvider provider) {
+    if (provider.state == ServiceRequestState.loading && provider.requestCounts.isEmpty) {
+      return _buildCountsShimmer(size);
+    }
 
-        return Padding(
-          padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-          child: GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            mainAxisSpacing: size.height * 0.02,
-            crossAxisSpacing: size.width * 0.04,
-            childAspectRatio: 1.6,
-            children: provider.requestCounts.entries
-                .map(
-                  (e) => _buildCountCard(
-                    title: e.key,
-                    count: e.value,
-                  ),
-                )
-                .toList(),
-          ),
-        );
-      },
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: size.width > 600 ? 3 : 2,
+        mainAxisSpacing: size.height * 0.02,
+        crossAxisSpacing: size.width * 0.04,
+        childAspectRatio: size.width > 600 ? 2.0 : 1.6,
+        children: provider.requestCounts.entries
+            .map(
+              (e) => _buildCountCard(
+                title: e.key,
+                count: e.value,
+                size: size,
+              ),
+            )
+            .toList(),
+      ),
     );
   }
 
@@ -567,158 +512,147 @@ const SizedBox(height: 12),
         itemCount: 6,
         physics: const NeverScrollableScrollPhysics(),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
+          crossAxisCount: size.width > 600 ? 3 : 2,
           crossAxisSpacing: size.width * 0.04,
           mainAxisSpacing: size.height * 0.02,
-          childAspectRatio: 1.6,
+          childAspectRatio: size.width > 600 ? 2.0 : 1.6,
         ),
         itemBuilder: (_, __) => const ShimmerTile(height: 70),
       ),
     );
   }
 
- Widget _buildCountCard({required String title, required int count}) {
-  return GestureDetector(
-    onTap: () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-         builder: (_) => ChangeNotifierProvider.value(
-          value: context.read<ServiceRequestProvider>(),
-          child: ServiceRequestListScreen(
-            title: title,
-            filterType: title == 'Total Requests'
-            ? null
-            : title.split(' ')[0],
-          ),
-
-         ),
-        ),
-      );
-    },
-    child: Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$count',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppColors.primary,
+  Widget _buildCountCard({required String title, required int count, required Size size}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ChangeNotifierProvider.value(
+              value: context.read<ServiceRequestProvider>(),
+              child: ServiceRequestListScreen(
+                title: title,
+                filterType: title == 'Total Requests' ? null : title.split(' ')[0],
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(fontSize: 12),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-  // ================= REQUEST LIST =================
-  Widget _buildRequestsList(Size size) {
-  return Consumer<ServiceRequestProvider>(
-    builder: (_, provider, __) {
-      if (provider.state == ServiceRequestState.loading &&
-          provider.allRequests.isEmpty) {
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 6,
-          padding: EdgeInsets.all(size.width * 0.04),
-          itemBuilder: (_, __) => Padding(
-            padding: EdgeInsets.only(bottom: size.height * 0.02),
-            child: const ShimmerTile(height: 90),
-          ),
         );
-      }
-
-      final filtered = provider.allRequests.where((r) {
-        return r.name.toLowerCase().contains(_searchQuery) ||
-        r.description.toLowerCase().contains(_searchQuery) ||
-            r.type.toLowerCase().contains(_searchQuery) ||
-            r.managerName.toLowerCase().contains(_searchQuery);
-      }).toList();
-
-      // 🔍 SEARCH RESULT EMPTY STATE (LIST ONLY)
-if (_searchQuery.isNotEmpty && filtered.isEmpty) {
-  return Padding(
-    padding: EdgeInsets.all(size.width * 0.08),
-    child: Column(
-      children: const [
-        Icon(Icons.search_off, size: 56, color: Colors.grey),
-        SizedBox(height: 10),
-        Text(
-          'No matching requests',
-          style: TextStyle(
-            fontSize: 15,
-            color: Colors.grey,
+      },
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade300),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.18),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '$count',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 11),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
-    ),
-  );
-}
+      ),
+    );
+  }
 
-      // ✅ PAGINATION LOGIC
-      final totalItems = filtered.length;
-      final totalPages = (totalItems / _pageSize).ceil();
+  // ================= REQUEST LIST =================
+  Widget _buildRequestsList(Size size, ServiceRequestProvider provider) {
+    final filtered = provider.allFilteredRequests;
 
-      final startIndex = (_currentPage - 1) * _pageSize;
-      final endIndex =
-          (_currentPage * _pageSize).clamp(0, totalItems);
+    if (provider.state == ServiceRequestState.loading && filtered.isEmpty) {
+      return ListView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 6,
+        padding: EdgeInsets.all(size.width * 0.04),
+        itemBuilder: (_, __) => Padding(
+          padding: EdgeInsets.only(bottom: size.height * 0.02),
+          child: const ShimmerTile(height: 90),
+        ),
+      );
+    }
 
-      final paginatedList =
-          totalItems > 0 ? filtered.sublist(startIndex, endIndex) : [];
-
-      return Column(
-        children: [
-          ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.fromLTRB(
-              size.width * 0.04,
-              size.width * 0.04,
-              size.width * 0.04,
-              12,
+    if (filtered.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.all(size.width * 0.08),
+        child: Column(
+          children: const [
+            Icon(Icons.search_off, size: 56, color: Colors.grey),
+            SizedBox(height: 10),
+            Text(
+              'No matching requests',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey,
+              ),
             ),
-            itemCount: paginatedList.length,
-            itemBuilder: (_, index) =>
-                _buildRequestCard(paginatedList[index], size, index, startIndex),
-          ),
+          ],
+        ),
+      );
+    }
 
-          // ✅ PAGINATION FOOTER (WEB STYLE)
-          if (totalPages > 1)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
+    final totalItems = filtered.length;
+    final totalPages = (totalItems / _pageSize).ceil();
+    final startIndex = (_currentPage - 1) * _pageSize;
+    final endIndex = (_currentPage * _pageSize).clamp(0, totalItems);
+    final paginatedList = totalItems > 0 ? filtered.sublist(startIndex, endIndex) : [];
+
+    return Column(
+      children: [
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.fromLTRB(
+            size.width * 0.04,
+            size.width * 0.04,
+            size.width * 0.04,
+            12,
+          ),
+          itemCount: paginatedList.length,
+          itemBuilder: (_, index) => _buildRequestCard(paginatedList[index], size, index, startIndex),
+        ),
+        if (totalPages > 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
                     'Showing ${startIndex + 1}–$endIndex of $totalItems',
-                    style: const TextStyle(color: Colors.grey),
+                    style: const TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(width: 10),
-
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
                     onPressed: _currentPage > 1
@@ -729,13 +663,10 @@ if (_searchQuery.isNotEmpty && filtered.isEmpty) {
                           }
                         : null,
                   ),
-
                   Text(
                     'Page $_currentPage of $totalPages',
-                    style:
-                        const TextStyle(fontWeight: FontWeight.w500),
+                    style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 12),
                   ),
-
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
                     onPressed: _currentPage < totalPages
@@ -749,12 +680,12 @@ if (_searchQuery.isNotEmpty && filtered.isEmpty) {
                 ],
               ),
             ),
-        ],
-      );
-    },
-  );
-}
-  // ================= REQUEST CARD (WEB STYLE) =================
+          ),
+      ],
+    );
+  }
+
+  // ================= REQUEST CARD =================
   Widget _buildRequestCard(ServiceRequest request, Size size, int index, int startIndex) {
     return Container(
       margin: EdgeInsets.only(bottom: size.height * 0.02),
@@ -764,7 +695,7 @@ if (_searchQuery.isNotEmpty && filtered.isEmpty) {
         borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha:  0.06),
+            color: Colors.black.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -775,53 +706,52 @@ if (_searchQuery.isNotEmpty && filtered.isEmpty) {
         children: [
           Text(
             request.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
-              fontSize: 18,
+              fontSize: 17,
               fontWeight: FontWeight.bold,
             ),
           ),
-
           const SizedBox(height: 10),
-
           Container(
-
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha:  0.15),
+              color: AppColors.primary.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.computer,
-                    size: 16, color: AppColors.primary),
+                const Icon(Icons.computer, size: 16, color: AppColors.primary),
                 const SizedBox(width: 6),
-                Text(
-                  request.type,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w600,
+                Flexible(
+                  child: Text(
+                    request.type,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-
           const SizedBox(height: 14),
-
-          Text('Dept: ${request.department}'),
-          Text('Employee ID: ${request.employeeId}'),
-          Text('Mobile: ${request.mobile}'),
-
+          Text('Dept: ${request.department}', style: const TextStyle(fontSize: 13)),
+          Text('Employee ID: ${request.employeeId}', style: const TextStyle(fontSize: 13)),
+          Text('Mobile: ${request.mobile}', style: const TextStyle(fontSize: 13)),
           const SizedBox(height: 18),
-
           Align(
             alignment: Alignment.centerLeft,
             child: CircleAvatar(
-              radius: 22,
-              backgroundColor: AppColors.primary.withValues(alpha:  0.15),
+              radius: 20,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
               child: IconButton(
-                icon: const Icon(Icons.remove_red_eye),
+                icon: const Icon(Icons.remove_red_eye, size: 20),
                 color: AppColors.primary,
                 onPressed: () {
                   showModalBottomSheet(
@@ -838,96 +768,67 @@ if (_searchQuery.isNotEmpty && filtered.isEmpty) {
       ),
     );
   }
+
   Future<void> _openAttachment(String url) async {
-  final uri = Uri.parse(url);
-
-  if (!await launchUrl(
-    uri,
-    mode: LaunchMode.externalApplication,
-  )) {
-    throw Exception('Could not open attachment');
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not open attachment');
+    }
   }
-}
 
-Future<void> _exportToExcel() async {
-  try {
-    final provider = context.read<ServiceRequestProvider>();
-    final requests = provider.allRequests;
+  Future<void> _exportToExcel() async {
+    try {
+      final provider = context.read<ServiceRequestProvider>();
+      final requests = provider.allRequests;
 
-    if (requests.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No data to export")),
-      );
-      return;
+      if (requests.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No data to export")));
+        return;
+      }
+
+      final workbook = xlsio.Workbook();
+      final sheet = workbook.worksheets[0];
+      sheet.name = "Requests";
+
+      final headers = [
+        'Department', 'Employee ID', 'Name', 'Email', 'Mobile', 'Manager Name',
+        'Admin Comment', 'Request ID', 'Status', 'Type', 'Created On', 'Description', 'Attachment URL'
+      ];
+
+      for (int col = 0; col < headers.length; col++) {
+        sheet.getRangeByIndex(1, col + 1).setText(headers[col]);
+        sheet.getRangeByIndex(1, col + 1).cellStyle.bold = true;
+      }
+
+      for (int row = 0; row < requests.length; row++) {
+        final r = requests[row];
+        sheet.getRangeByIndex(row + 2, 1).setText(r.department);
+        sheet.getRangeByIndex(row + 2, 2).setText(r.employeeId);
+        sheet.getRangeByIndex(row + 2, 3).setText(r.name);
+        sheet.getRangeByIndex(row + 2, 4).setText(r.email);
+        sheet.getRangeByIndex(row + 2, 5).setText(r.mobile);
+        sheet.getRangeByIndex(row + 2, 6).setText(r.managerName);
+        sheet.getRangeByIndex(row + 2, 7).setText(r.adminComment);
+        sheet.getRangeByIndex(row + 2, 8).setText(r.requestId);
+        sheet.getRangeByIndex(row + 2, 9).setText(r.requestStatus);
+        sheet.getRangeByIndex(row + 2, 10).setText(r.type);
+        sheet.getRangeByIndex(row + 2, 11).setText(r.createdOn.toString());
+        sheet.getRangeByIndex(row + 2, 12).setText(r.description);
+        sheet.getRangeByIndex(row + 2, 13).setText(r.attachmentUrl.join(", "));
+      }
+
+      final bytes = workbook.saveAsStream();
+      workbook.dispose();
+      final directory = await getApplicationDocumentsDirectory();
+      final filePath = "${directory.path}/requests_${DateTime.now().millisecondsSinceEpoch}.xlsx";
+      final file = File(filePath);
+      await file.writeAsBytes(bytes, flush: true);
+      await OpenFile.open(filePath);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Excel Downloaded Successfully")));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Export failed: $e")));
     }
-
-    final workbook = xlsio.Workbook();
-    final sheet = workbook.worksheets[0];
-    sheet.name = "Requests";
-
-    // 🔹 Headers
-    final headers = [
-      'Department',
-      'Employee ID',
-      'Name',
-      'Email',
-      'Mobile',
-      'Manager Name',
-      'Admin Comment',
-      'Request ID',
-      'Status',
-      'Type',
-      'Created On',
-      'Description',
-      'Attachment URL',
-    ];
-
-    for (int col = 0; col < headers.length; col++) {
-      sheet.getRangeByIndex(1, col + 1).setText(headers[col]);
-      sheet.getRangeByIndex(1, col + 1).cellStyle.bold = true;
-    }
-
-    // 🔹 Rows
-    for (int row = 0; row < requests.length; row++) {
-      final r = requests[row];
-
-      sheet.getRangeByIndex(row + 2, 1).setText(r.department);
-      sheet.getRangeByIndex(row + 2, 2).setText(r.employeeId);
-      sheet.getRangeByIndex(row + 2, 3).setText(r.name);
-      sheet.getRangeByIndex(row + 2, 4).setText(r.email);
-      sheet.getRangeByIndex(row + 2, 5).setText(r.mobile);
-      sheet.getRangeByIndex(row + 2, 6).setText(r.managerName);
-      sheet.getRangeByIndex(row + 2, 7).setText(r.adminComment);
-      sheet.getRangeByIndex(row + 2, 8).setText(r.requestId);
-      sheet.getRangeByIndex(row + 2, 9).setText(r.requestStatus);
-      sheet.getRangeByIndex(row + 2, 10).setText(r.type);
-      sheet.getRangeByIndex(row + 2, 11).setText(r.createdOn.toString());
-      sheet.getRangeByIndex(row + 2, 12).setText(r.description);
-      sheet.getRangeByIndex(row + 2, 13)
-          .setText(r.attachmentUrl.join(", "));
-    }
-
-    final bytes = workbook.saveAsStream();
-    workbook.dispose();
-
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath =
-        "${directory.path}/requests_${DateTime.now().millisecondsSinceEpoch}.xlsx";
-
-    final file = File(filePath);
-    await file.writeAsBytes(bytes, flush: true);
-
-    await OpenFile.open(filePath);
-    if(!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Excel Downloaded Successfully")),
-    );
-  } catch (e) {
-    if(!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("Export failed: $e")),
-    );
   }
-}
 }
