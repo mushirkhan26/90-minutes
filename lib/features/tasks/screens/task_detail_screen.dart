@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
+import 'package:hrtz_hrms/core/utils/url_launcher_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:hrtz_hrms/core/models/task_model.dart';
 import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
 import 'package:provider/provider.dart';
 import '../widgets/add_subtask_dialog.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:photo_view/photo_view.dart';
 
@@ -44,16 +45,12 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
   ];
 
   bool _isEditingPriority = false;
-  bool _isEditingDueDate = false;
-  DateTime? _tempDeadline;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
 
-    // UI is "dumb" - it just tells the smart provider to prepare data for this specific task.
-    // The provider decides what to fetch, what to load from cache, and manages the state.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TasksProvider>().loadTaskDetails(widget.task);
       context.read<AuthProvider>().fetchAndCacheEmployeeList();
@@ -84,16 +81,12 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
       _showImagePreview(url);
       return;
     }
-    final uri = Uri.parse(url);
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      await UrlLauncherHelper.launchUrlString(url);
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Cannot open file: $rawUrl")));
+      if (mounted) {
+        AlertHelper.snackBarError(context, "Cannot open file");
+      }
     }
   }
 
@@ -393,7 +386,7 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.3),
+              color: Colors.blue.withValues(alpha: 0.3),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -505,13 +498,14 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
       );
     }
 
-    if (provider.currentComments.isEmpty)
+    if (provider.currentComments.isEmpty){
       return const Center(
         child: Padding(
           padding: EdgeInsets.all(20),
           child: Text("No comments yet.", style: TextStyle(color: Colors.grey)),
         ),
       );
+      }
 
     return ListView.builder(
       shrinkWrap: true,
@@ -521,9 +515,9 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
         final comment = provider.currentComments[index];
         final List<dynamic> likes = comment['likes'] as List? ?? [];
         final bool isLiked = likes.any((like) {
-          if (like is Map)
+          if (like is Map){
             return like['employeeId']?.toString() ==
-                currentEmployeeId.toString();
+                currentEmployeeId.toString();}
           return like.toString() == currentEmployeeId.toString();
         });
 
@@ -534,7 +528,7 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: const Color(0xFF673AB7).withOpacity(0.1),
+                backgroundColor: const Color(0xFF673AB7).withValues(alpha: 0.1),
                 child: Text(
                   comment['employeeName']?[0].toUpperCase() ?? "U",
                   style: const TextStyle(
@@ -792,12 +786,12 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
     if (provider.isLogLoading && logs.isEmpty) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
-    if (logs.isEmpty)
+    if (logs.isEmpty) {
       return const Text(
         "No logs available",
         style: TextStyle(fontSize: 12, color: Colors.grey),
       );
-
+    }
     return ListView.builder(
       itemCount: logs.length,
       itemBuilder: (context, index) {
@@ -939,8 +933,8 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
     if (provider.isSubtaskLoading && provider.currentSubtasks.isEmpty) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2));
     }
-    if (provider.currentSubtasks.isEmpty)
-      return _buildEmptySection("No subtasks created.");
+    if (provider.currentSubtasks.isEmpty){
+      return _buildEmptySection("No subtasks created.");}
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
@@ -1010,7 +1004,7 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: _getStatusColor(subtask['status']).withOpacity(0.1),
+          color: _getStatusColor(subtask['status']).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(4),
         ),
         child: Row(
@@ -1052,7 +1046,7 @@ class _TaskDetailDialogState extends State<TaskDetailDialog>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
-
 import 'package:hrtz_hrms/config/theme/app_text_styles.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/features/mail/widgets/attachment_tile.dart';
 import 'package:intl/intl.dart';
-
 class MailDetailsScreen extends StatefulWidget {
   final MailModel mail;
 
@@ -22,10 +20,15 @@ class _MailDetailsScreenState extends State<MailDetailsScreen> {
     final now = DateTime.now();
     final diff = now.difference(date);
 
-    if (diff.inDays >= 1) return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
-    if (diff.inHours >= 1) return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
-    if (diff.inMinutes >= 1) return '${diff.inMinutes} min ago';
-    return 'Just now';
+    if (diff.inDays >= 1) {
+      return '${diff.inDays} day${diff.inDays > 1 ? 's' : ''} ago';
+    }
+    if (diff.inHours >= 1) {
+      return '${diff.inHours} hour${diff.inHours > 1 ? 's' : ''} ago';
+    }
+    if (diff.inMinutes >= 1) {
+      return '${diff.inMinutes} min ago';
+    }return 'Just now';
   }
 
   @override

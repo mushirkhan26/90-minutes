@@ -12,12 +12,6 @@ class SocialHubScreen extends StatefulWidget {
 }
 
 class _SocialHubScreenState extends State<SocialHubScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Logic for fetching posts moved to Provider constructor/bootstrap.
-    // UI simply consumes the current state.
-  }
 
   final List<Map<String, dynamic>> _tabs = [
     {'type': 'all', 'label': 'All', 'icon': Icons.groups_outlined},

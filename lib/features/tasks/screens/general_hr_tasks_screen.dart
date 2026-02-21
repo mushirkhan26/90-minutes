@@ -141,7 +141,7 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFF26A69A).withOpacity(0.1) : Colors.grey[100],
+                                  color: isSelected ? const Color(0xFF26A69A).withValues(alpha: 0.1) : Colors.grey[100],
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Text(
@@ -217,7 +217,7 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
                   decoration: BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
                   ),
                   child: _getStatusIcon(status, Colors.grey[400]!, size: 50),
                 ),
@@ -267,7 +267,7 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4)),
+            BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 4)),
           ],
         ),
         child: Column(
@@ -350,7 +350,7 @@ class _GeneralHRTasksScreenState extends State<GeneralHRTasksScreen> with Single
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

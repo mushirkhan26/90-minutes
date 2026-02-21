@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/core/constants/app_constants.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/payroll_documents/provider/payroll_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:pdf/pdf.dart';
@@ -73,9 +74,6 @@ class PayrollDocumentsScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     ElevatedButton(
                       onPressed: () {
-                        // For force refresh, we might need a way to trigger it. 
-                        // But usually, selection update is enough. 
-                        // If we want a dedicated refresh:
                         payrollProvider.fetchPayroll(
                           employeeId: payrollProvider.payrollData?.employeeId ?? '', 
                           year: payrollProvider.selectedYear, 
@@ -113,7 +111,7 @@ class PayrollDocumentsScreen extends StatelessWidget {
                         Text(payrollProvider.errorMessage ?? 'Error loading payroll'),
                         TextButton(
                           onPressed: () => payrollProvider.fetchPayroll(
-                            employeeId: '', // Ideally retrieved internally or passed
+                            employeeId: '', 
                             year: payrollProvider.selectedYear,
                             month: payrollProvider.selectedMonth,
                             forceRefresh: true,
@@ -157,7 +155,7 @@ class PayrollDocumentsScreen extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -218,7 +216,7 @@ class PayrollDocumentsScreen extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black.withOpacity(0.8),
+                              color: Colors.black.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -238,7 +236,7 @@ class PayrollDocumentsScreen extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black.withOpacity(0.8),
+                              color: Colors.black.withValues(alpha: 0.8),
                             ),
                           ),
                         ],
@@ -445,9 +443,7 @@ class PayrollDocumentsScreen extends StatelessWidget {
       await OpenFile.open(file.path);
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to generate PDF: $e')),
-        );
+        AlertHelper.snackBarError(context, 'Failed to generate PDF: $e');
       }
     }
   }

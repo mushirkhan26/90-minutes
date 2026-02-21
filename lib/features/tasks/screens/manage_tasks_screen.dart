@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/models/project_model.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/core/utils/url_launcher_helper.dart';
 import 'package:hrtz_hrms/features/tasks/providers/project_provider.dart';
 import 'package:hrtz_hrms/features/tasks/screens/add_project_screen.dart';
@@ -36,9 +35,7 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
     if (_isValidUrl(url)) {
       UrlLauncherHelper.launchUrlString(url!);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Invalid or missing URL")),
-      );
+      AlertHelper.snackBarError(context, "Invalid or missing URL");
     }
   }
 
@@ -57,14 +54,14 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
             onPressed: () async {
               Navigator.pop(context);
               final success = await context.read<ProjectProvider>().deleteProject(project.id);
-              if (success && mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Project deleted successfully")),
-                );
-              } else if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(context.read<ProjectProvider>().errorMessage ?? "Failed to delete project")),
-                );
+
+              // Safe check before using context after an async operation
+              if (!context.mounted) return;
+
+              if (success) {
+                AlertHelper.snackBarSuccess(context, "Project deleted successfully");
+              } else {
+                AlertHelper.snackBarError(context, context.read<ProjectProvider>().errorMessage ?? "Failed to delete project");
               }
             },
             child: const Text("Delete", style: TextStyle(color: Colors.red)),
@@ -444,7 +441,7 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
         border: Border.all(color: Colors.grey[100]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           )
@@ -582,7 +579,7 @@ class _ManageTasksScreenState extends State<ManageTasksScreen> {
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 4,
               offset: const Offset(0, 2),
             )

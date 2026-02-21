@@ -1,8 +1,8 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
+import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/profile_provider.dart';
 import 'package:hrtz_hrms/widgets/custom_textfield.dart';
 import 'package:image_picker/image_picker.dart';
@@ -15,33 +15,31 @@ class ProfileScreen extends StatelessWidget {
   final List<String> _genderOptions = const ['Male', 'Female', 'Other'];
 
   Future<void> _pickAndUploadImage(BuildContext context, ProfileProvider provider) async {
-    final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 70,
-    );
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70,
+      );
 
-    if (image == null) return;
-    await provider.uploadImage(File(image.path));
+      if (image == null) return;
+      await provider.uploadImage(File(image.path));
+    } catch (e) {
+      if (context.mounted) {
+        AlertHelper.snackBarError(context, 'Failed to upload image');
+      }
+    }
   }
 
   Future<void> _saveProfile(BuildContext context, ProfileProvider profileProvider, AuthProvider authProvider) async {
     final success = await profileProvider.saveProfile(authProvider);
 
+    if (!context.mounted) return;
+
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile updated successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      AlertHelper.snackBarSuccess(context, 'Profile updated successfully!');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Failed to update profile'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AlertHelper.snackBarError(context, authProvider.errorMessage ?? 'Failed to update profile');
     }
   }
 
@@ -171,7 +169,7 @@ class ProfileScreen extends StatelessWidget {
                     // Gender Field
                     profileProvider.isEditing
                         ? DropdownButtonFormField<String>(
-                            value: _genderOptions.contains(profileProvider.genderController.text)
+                            initialValue: _genderOptions.contains(profileProvider.genderController.text)
                                 ? profileProvider.genderController.text
                                 : null,
                             decoration: InputDecoration(

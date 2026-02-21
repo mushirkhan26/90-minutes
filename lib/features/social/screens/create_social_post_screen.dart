@@ -56,7 +56,9 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthProvider>().fetchAndCacheEmployeeList();
+      if (mounted) {
+        context.read<AuthProvider>().fetchAndCacheEmployeeList();
+      }
     });
   }
 
@@ -80,16 +82,15 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
         final url = await _fileUploadService.uploadFile(
           File(result.files.single.path!),
         );
+        if (!mounted) return;
         setState(() {
           _uploadedImageUrl = url;
           _isUploading = false;
         });
       } catch (e) {
-        setState(() => _isUploading = false);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to upload image')),
-          );
+          setState(() => _isUploading = false);
+          AlertHelper.snackBarError(context, 'Failed to upload image');
         }
       }
     }
@@ -360,6 +361,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                         lastDate: DateTime.now().add(const Duration(days: 30)),
                       );
                       if (date != null) {
+                        if (!mounted) return;
                         final time = await showTimePicker(
                           context: context,
                           initialTime: TimeOfDay.now(),
@@ -372,6 +374,7 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                             time.hour,
                             time.minute,
                           );
+                          if (!mounted) return;
                           if (selected.isBefore(DateTime.now())) {
                             AlertHelper.snackBarWarning(
                               context,
@@ -395,7 +398,6 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                       child: Text(
                         _pollExpiry == null
                             ? 'Select Expiry Date'
-                            // : _pollExpiry.toString().split(' ')[0],
                             : DateFormat(
                                 'MMM dd, yyyy • hh:mm a',
                               ).format(_pollExpiry!),
@@ -571,8 +573,8 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
                           )
                         : Column(
                             children: [
-                              CircleAvatar(
-                                backgroundColor: const Color(0xFF26A69A),
+                              const CircleAvatar(
+                                backgroundColor: Color(0xFF26A69A),
                                 child: Icon(Icons.upload, color: Colors.white),
                               ),
                               const SizedBox(height: 8),
@@ -642,77 +644,67 @@ class _CreateSocialPostScreenState extends State<CreateSocialPostScreen> {
   Future<void> _handlePost() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedType == 'Poll' && _pollExpiry == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select poll expiry date')),
-        );
+        AlertHelper.snackBarError(context, 'Please select poll expiry date');
         return;
       }
 
       if (_selectedType == 'Event' && _eventDate == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select event date')),
-        );
+        AlertHelper.snackBarError(context, 'Please select event date');
         return;
       }
 
       if (_selectedType == 'Birthday' && _selectedEmployee == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select an employee')),
-        );
+        AlertHelper.snackBarError(context, 'Please select an employee');
         return;
       }
 
       setState(() => _isPosting = true);
 
-      final authProvider = context.read<AuthProvider>();
-      final socialProvider = context.read<SocialProvider>();
+      try {
+        final authProvider = context.read<AuthProvider>();
+        final socialProvider = context.read<SocialProvider>();
 
-      final newPost = SocialPostModel(
-        id: '',
-        type: _selectedType.toLowerCase().replaceAll(' ', ''),
-        title: _titleController.text,
-        userName: authProvider.userData?['username'],
-        userId: authProvider.userData?['employeeId'],
-        employeeName: _selectedType == 'Birthday'
-            ? _selectedEmployee!.name
-            : null,
-        message: _messageController.text,
-        imageUrl: _uploadedImageUrl,
-        createdBy: authProvider.userData?['employeeId'] ?? 'Unknown',
-        createdAt: DateTime.now().toUtc(),
+        final newPost = SocialPostModel(
+          id: '',
+          type: _selectedType.toLowerCase().replaceAll(' ', ''),
+          title: _titleController.text,
+          userName: authProvider.userData?['username'],
+          userId: authProvider.userData?['employeeId'],
+          employeeName: _selectedType == 'Birthday'
+              ? _selectedEmployee!.name
+              : null,
+          message: _messageController.text,
+          imageUrl: _uploadedImageUrl,
+          createdBy: authProvider.userData?['employeeId'] ?? 'Unknown',
+          createdAt: DateTime.now().toUtc(),
 
-        likes: [],
-        comments: [],
-        question: _selectedType == 'Poll' ? _questionController.text : null,
-        expiry: _selectedType == 'Poll' && _pollExpiry != null
-            ? _pollExpiry!.toUtc()
-            // DateTime(
-            //     _pollExpiry!.year,
-            //     _pollExpiry!.month,
-            //     _pollExpiry!.day,
-            //     23,
-            //     59,
-            //     59,
-            //   ).toUtc()
-            : null,
+          likes: [],
+          comments: [],
+          question: _selectedType == 'Poll' ? _questionController.text : null,
+          expiry: _selectedType == 'Poll' && _pollExpiry != null
+              ? _pollExpiry!.toUtc()
+              : null,
 
-        options: _selectedType == 'Poll'
-            ? _optionControllers.map((c) => PollOption(label: c.text)).toList()
-            : null,
-        eventDate: _selectedType == 'Event' ? _eventDate : null,
-      );
+          options: _selectedType == 'Poll'
+              ? _optionControllers.map((c) => PollOption(label: c.text)).toList()
+              : null,
+          eventDate: _selectedType == 'Event' ? _eventDate : null,
+        );
 
-      final success = await socialProvider.createPost(newPost);
+        final success = await socialProvider.createPost(newPost);
 
-      setState(() => _isPosting = false);
+        if (!mounted) return;
+        setState(() => _isPosting = false);
 
-      if (success) {
-        if (mounted) Navigator.pop(context);
-      } else {
+        if (success) {
+          Navigator.pop(context);
+        } else {
+          AlertHelper.snackBarError(context, 'Failed to create post');
+        }
+      } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to create post')),
-          );
+          setState(() => _isPosting = false);
+          AlertHelper.snackBarError(context, 'An unexpected error occurred');
         }
       }
     }
