@@ -14,6 +14,7 @@ import 'package:hrtz_hrms/core/models/document_model.dart';
 import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:hrtz_hrms/core/models/benefits_claim_model.dart';
+import 'package:hrtz_hrms/core/models/compliance_model.dart';
 
 
 class LocalStorageService {
@@ -34,6 +35,7 @@ class LocalStorageService {
   static const String _keyEmployeeName = 'employee_name';
   static const String _keyEmployeeList = 'employee_list';
   static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
+  static const String _keyUserRole = 'user_role';
   // meet caching data related keys
   static const String keyMeetList = 'meet_list';
   static const String keyMeetListTimestamp = 'meet_list_timestamp';
@@ -91,6 +93,13 @@ class LocalStorageService {
 
   static const String keyAllClaims = 'benefits_all_claims';
   static const String keyAllClaimsTimestamp = 'benefits_all_claims_ts';
+
+  // hr management task
+
+  static const String keyCompliancePrefix = 'compliance_';
+ static const String keyComplianceTimestampPrefix = 'compliance_ts_';
+
+
 
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
@@ -265,6 +274,15 @@ class LocalStorageService {
     await prefs.remove(_keyEmployeeListTimestamp);
     _logger.logStorage('Cleared employee list cache');
   }
+
+  Future<void> saveUserRole(String role) async {
+  await prefs.setString(_keyUserRole, role);
+  _logger.logStorage('Saved user role: $role');
+}
+
+Future<String?> getUserRole() async {
+  return prefs.getString(_keyUserRole);
+}
 
   // mail related save methods
 
@@ -924,4 +942,58 @@ Future<DateTime?> getAllClaimsTimestamp() async {
     final ts = prefs.getInt('${key}_timestamp');
     return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
   }
+
+  Future<void> saveComplianceList(
+    String employeeId,
+    List<Compliance> compliances) async {
+
+  final key = '$keyCompliancePrefix$employeeId';
+  final tsKey = '$keyComplianceTimestampPrefix$employeeId';
+
+  final jsonList =
+      compliances.map((e) => e.toJson()).toList();
+
+  await prefs.setString(key, jsonEncode(jsonList));
+  await prefs.setInt(
+      tsKey, DateTime.now().millisecondsSinceEpoch);
+
+  _logger.logStorage(
+      'Saved ${compliances.length} compliances for $employeeId');
+}
+
+Future<List<Compliance>?> getComplianceList(
+    String employeeId) async {
+
+  final key = '$keyCompliancePrefix$employeeId';
+  final jsonString = prefs.getString(key);
+
+  if (jsonString == null) return null;
+
+  try {
+    final List<dynamic> list =
+        jsonDecode(jsonString);
+
+    return list
+        .map((json) => Compliance.fromJson(json))
+        .toList();
+  } catch (e) {
+    _logger.error(
+      'LOCAL_STORAGE',
+      'Failed to parse compliance list',
+      error: e,
+    );
+    return null;
+  }
+}
+
+Future<DateTime?> getComplianceTimestamp(
+    String employeeId) async {
+
+  final tsKey = '$keyComplianceTimestampPrefix$employeeId';
+  final ts = prefs.getInt(tsKey);
+
+  return ts != null
+      ? DateTime.fromMillisecondsSinceEpoch(ts)
+      : null;
+}
 }
