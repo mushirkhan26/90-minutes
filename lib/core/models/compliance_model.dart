@@ -24,13 +24,12 @@ class Compliance {
 
   factory Compliance.fromJson(Map<String, dynamic> json) {
     return Compliance(
-      id: json['complianceId'] ?? json['_id'] ?? '',
+      id: json['complianceId'] ?? json['_id'] ?? json['id'] ?? '',
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       status: json['status'] ?? 'pending',
       dueDate: json['dueDate'] != null ? DateTime.parse(json['dueDate']) : DateTime.now(),
       note: json['note'],
-      // API sends list of strings for requiredDocuments
       requiredDocuments: (json['requiredDocuments'] as List?)
               ?.map((i) => RequiredDocument(name: i.toString()))
               .toList() ??
@@ -39,12 +38,25 @@ class Compliance {
               ?.map((i) => ActionLink.fromJson(i))
               .toList() ??
           [],
-      // API sends list of strings (URLs) for submittedDocuments
       submittedDocuments: (json['submittedDocuments'] as List?)
               ?.map((i) => SubmittedDocument(name: i.toString().split('/').last, url: i.toString()))
               .toList() ??
           [],
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'title': title,
+      'description': description,
+      'status': status,
+      'dueDate': dueDate.toIso8601String(),
+      'note': note,
+      'requiredDocuments': requiredDocuments.map((e) => e.name).toList(),
+      'actionLinks': actionLinks.map((e) => e.toJson()).toList(),
+      'submittedDocuments': submittedDocuments.map((e) => e.url).toList(),
+    };
   }
 }
 
@@ -65,6 +77,13 @@ class ActionLink {
       title: json['label'] ?? json['title'] ?? '',
       url: json['url'] ?? '',
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'url': url,
+    };
   }
 }
 
