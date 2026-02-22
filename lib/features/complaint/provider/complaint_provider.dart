@@ -93,7 +93,7 @@ class ComplaintProvider extends ChangeNotifier {
     ("\x1B[31m👤 Username: $loggedInName \x1B[0m");
 
 
-    isManager = userData?['role']?.toString().toLowerCase() == 'manager';
+    isManager = ['manager', 'admin', 'hr'].contains(userData?['role']?.toString().toLowerCase());
 
     isUserLoaded = true;
     ("SETTING CONTROLLERS NOW");
@@ -351,3 +351,4 @@ class ComplaintProvider extends ChangeNotifier {
     notifyListeners();
   }
 }
+

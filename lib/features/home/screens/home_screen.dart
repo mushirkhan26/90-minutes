@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_initicon/flutter_initicon.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
@@ -10,51 +8,54 @@ import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import '../widgets/home_chart.dart';
+import '../widgets/home_drawer.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  Future<void> _showLogoutDialog(BuildContext context, AuthProvider authProvider) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Logout'),
+          content: const Text('Do you really want to log out?'),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('No'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Yes'),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await authProvider.logout();
+                if (context.mounted) {
+                  context.go(AppRoutes.loginRoute);
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final clockProvider = Provider.of<ClockProvider>(context);
-    final secureStorage = SecureStorageService();
-
-    Future<void> showLogoutDialog(
-      BuildContext context,
-      AuthProvider authProvider,
-    ) async {
-      return showDialog<void>(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: const Text('Logout'),
-            content: const Text('Do you really want to log out?'),
-            actions: <Widget>[
-              TextButton(
-                child: const Text('No'),
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-              ),
-              TextButton(
-                child: const Text('Yes'),
-                onPressed: () async {
-                  Navigator.of(context).pop();
-                  await authProvider.logout();
-                  if (context.mounted) {
-                    context.go(AppRoutes.loginRoute);
-                  }
-                },
-              ),
-            ],
-          );
-        },
-      );
-    }
 
     // void showFaceVerificationDialog({required bool isClockIn}) {
     //   showDialog(
@@ -100,287 +101,15 @@ class HomeScreen extends StatelessWidget {
     // }
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: const Text("Home"),
         actions: [Image.asset(AppConstants.logo, height: 60)],
       ),
-      drawer: Drawer(
-        child: FutureBuilder<Map<String, dynamic>?>(
-          future: secureStorage.getUserData(),
-          builder: (context, snapshot) {
-            final userData = snapshot.data;
-            final userRole = authProvider.userData?['role']?.toString().toLowerCase();
-            final isEmployee = userRole != 'manager' && userRole != 'admin';
-
-            return Column(
-              // Changed ListView to Column to use Spacer
-              children: [
-                DrawerHeader(
-                  decoration: BoxDecoration(color: AppColors.primary),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min, // Added min
-                    children: [
-                      Initicon(text: " ${userData?['username'] ?? 'User'}"),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Welcome ${userData?['username'] ?? 'User'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  // Added Expanded for scrollable part if needed
-                  child: ListView(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    children: [
-                      ListTile(
-                        leading: const Icon(Icons.person),
-                        title: const Text('Profile'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.userProfile();
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.event_busy),
-                        title: const Text('Leave Request'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.leaveRequest();
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.calendar_month),
-                        title: const Text('Holiday Calendar'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.holidayCalendar();
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.groups_outlined),
-                        title: const Text('Social Hub'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.goToSocialHub();
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.task_sharp),
-                        title: const Text('Tasks'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.goToTasks();
-                        },
-                      ),
-                      ListTile(
-                        leading: const Icon(Icons.bar_chart),
-                        title: const Text('Performance'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.goToPerformance();
-                        },
-                      ),
-                      if (!isEmployee)
-                         ListTile(
-                           leading: const Icon(Icons.checklist_rtl_outlined),
-                           title: const Text('Manage Tasks'),
-                           onTap: () {
-                              Navigator.pop(context);
-                              context.goToManageTasks();
-                              },
-                             ),
-                      if (isEmployee)
-                         ListTile(
-                           leading: const Icon(Icons.emoji_events_outlined),
-                           title: const Text('Leaderboard'),
-                           onTap: () {
-                             Navigator.pop(context);
-                             context.goToLeaderboard();
-                           },
-                         ),
-                      if (!isEmployee)
-                        ListTile(
-                          leading: const Icon(Icons.emoji_events),
-                          title: const Text('Admin Leaderboard'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            context.goToAdminLeaderboard();
-                          },
-                        ),
-                      if (userRole == 'manager' || userRole == 'admin')
-                        ListTile(
-                          leading: const Icon(Icons.people_alt_outlined),
-                          title: const Text('Employee Directory'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            context.goToEmployeeDirectory();
-                          },
-                        ),
-                      if (userRole == 'manager' || userRole == 'admin')
-                        ListTile(
-                          leading: const Icon(Icons.person_add_alt_1),
-                          title: const Text('New Registrations'),
-                          onTap: () {
-                            Navigator.pop(context);
-                            context.push(AppRoutes.newRegistrations);
-                          },
-                        ),
-                      Theme(
-  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-  child: ExpansionTile(
-    leading: const Icon(Icons.work_outline, color: Colors.black87,),
-    title: const Text('HR Services'),
-    childrenPadding: const EdgeInsets.only(left: 16),
-    children: [
-
-    
-      ListTile(
-        leading: const Icon(Icons.person_remove_alt_1, color: Colors.black87),
-        title: const Text('Resignation'),
-        onTap: () {
-          Navigator.pop(context);
-
-          final role = context
-              .read<AuthProvider>()
-              .userData?['role']
-              ?.toString()
-              .toLowerCase();
-
-          context.push(
-            AppRoutes.resignation,
-            extra: {
-              'openManagement': role == 'manager',
-            },
-          );
-        },
-      ),
-      
-        ListTile(
-          leading: const Icon(Icons.headset_mic),
-          title: const Text('Service Request'),
-          onTap: () {
-            Navigator.pop(context);
-            context.push(AppRoutes.serviceRequest);
-          },
-        ),
-
-      
-      ListTile(
-        leading: const Icon(Icons.report_problem_outlined,
-            color: Colors.black87),
-        title: const Text('Complaint'),
-        onTap: () {
-          Navigator.pop(context);
-          context.push(AppRoutes.complaint);
-        },
-      ),
-      ListTile(
-        leading: const Icon(Icons.description_outlined,
-            color: Colors.black87),
-        title: const Text('Payroll Documents'),
-        onTap: () {
-          Navigator.pop(context);
-          context.goToPayrollDocuments();
-        },
-      ),
-      ListTile(
-        leading: const Icon(Icons.assignment_outlined,
-            color: Colors.black87),
-        title: const Text('HR Employee Task'),
-        onTap: () {
-          Navigator.pop(context);
-          context.goToComplianceCenter();
-        },
-      ),
-      ListTile(
-        leading: const Icon(Icons.folder_shared_outlined,
-            color: Colors.black87),
-        title: const Text('Documents'),
-        onTap: () {
-          Navigator.pop(context);
-          context.goToMyDocuments();
-        },
-      ),
-    ],
-  ),
-),
-
-      
-      Theme(
-  data: Theme.of(context).copyWith(
-    dividerColor: Colors.transparent, 
-  ),
-  child: ExpansionTile(
-    leading: const Icon(Icons.school, color: Colors.black87),
-    title: const Text('Learning & Growth'),
-    childrenPadding: const EdgeInsets.only(left: 16),
-    children: [
-      ListTile(
-        leading: const Icon(
-          Icons.menu_book,
-          color: Colors.black87,
-        ),
-        title: const Text('Learning Studio'),
-        onTap: () {
-          Navigator.pop(context);
-          context.push(AppRoutes.learningStudio);
-        },
-      ),
-      ListTile(
-        leading: const Icon(
-          Icons.card_giftcard,
-          color: Colors.black87,
-        ),
-        title: const Text('Employee Benefits'),
-        onTap: () {
-          Navigator.pop(context);
-          context.push(AppRoutes.employeeBenefits);
-        },
-      ),
-    ],
-  ),
-),
-    
-
-
-                      ListTile(
-                        leading: const Icon(Icons.settings),
-                        title: const Text('Settings'),
-                        onTap: () {
-                          Navigator.pop(context);
-                          context.goToPermissions();
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text(
-                    'Logout',
-                    style: TextStyle(color: Colors.red),
-                  ),
-                  onTap: () async {
-                    Navigator.pop(context);
-                    showLogoutDialog(context, authProvider);
-                  },
-                ),
-                const SizedBox(height: 20), // Bottom padding
-              ],
-            );
-          },
-        ),
+      drawer: HomeDrawer(
+        hostContext: context,
+        scaffoldKey: _scaffoldKey,
+        onLogout: () => _showLogoutDialog(context, authProvider),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -441,11 +170,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 15),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.timer_outlined,
-                        size: 20,
-                        color: Colors.green,
-                      ),
+                      const Icon(Icons.timer_outlined, size: 20, color: Colors.green),
                       const SizedBox(width: 8),
                       Text(
                         'Start Time: ${clockProvider.startTime ?? '00:00:00'}',
@@ -456,11 +181,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.timer_off_outlined,
-                        size: 20,
-                        color: Colors.blue,
-                      ),
+                      const Icon(Icons.timer_off_outlined, size: 20, color: Colors.blue),
                       const SizedBox(width: 8),
                       Text(
                         'End Time: ${clockProvider.endTime ?? '00:00:00'}',
@@ -471,11 +192,7 @@ class HomeScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.access_time,
-                        size: 20,
-                        color: Colors.purple,
-                      ),
+                      const Icon(Icons.access_time, size: 20, color: Colors.purple),
                       const SizedBox(width: 8),
                       Text(
                         'Worked Duration: ${clockProvider.workedDuration ?? '00:00:00'}',
@@ -496,13 +213,8 @@ class HomeScreen extends StatelessWidget {
                         ? const Color(0xFF64748B) // Light grey when disabled
                         : AppColors.primary,
                     disabledBackgroundColor: const Color(0xFF64748B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 35,
-                      vertical: 15,
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 15),
                   ),
 
                   onPressed: clockProvider.isClockedIn
@@ -515,17 +227,14 @@ class HomeScreen extends StatelessWidget {
                           // comment face recognizaton
                           //
                           await clockProvider.clockIn(
-                            department:
-                                authProvider.userData?['department'] ??
-                                'Department',
+                            department: authProvider.userData?['department'] ?? 'Department',
                             imageUrl: '', // Face recognition is off
                           );
                           if (context.mounted) {
                             if (clockProvider.state == ClockState.error) {
                               AlertHelper.snackBarError(
                                 context,
-                                clockProvider.errorMessage ??
-                                    'An error occurred',
+                                clockProvider.errorMessage ?? 'An error occurred',
                               );
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -540,7 +249,11 @@ class HomeScreen extends StatelessWidget {
                   //
                   child: const Text(
                     'Clock In',
-                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -550,13 +263,8 @@ class HomeScreen extends StatelessWidget {
                         ? const Color(0xFF64748B) // Light grey when disabled
                         : AppColors.primary,
                     disabledBackgroundColor: const Color(0xFF64748B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 15,
-                    ),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
                   ),
                   onPressed: !clockProvider.isClockedOut
                       ? () async {
@@ -565,10 +273,7 @@ class HomeScreen extends StatelessWidget {
                             if (clockProvider.state == ClockState.error) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text(
-                                    clockProvider.errorMessage ??
-                                        'An error occurred',
-                                  ),
+                                  content: Text(clockProvider.errorMessage ?? 'An error occurred'),
                                   backgroundColor: Colors.red,
                                 ),
                               );
@@ -585,7 +290,11 @@ class HomeScreen extends StatelessWidget {
                       : null,
                   child: const Text(
                     'Clock Out',
-                    style: TextStyle(fontSize: 16, color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],

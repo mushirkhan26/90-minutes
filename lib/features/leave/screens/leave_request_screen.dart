@@ -67,7 +67,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.read<AuthProvider>();
     final userRole = authProvider.userData?['role']?.toString().toLowerCase() ?? "";
-    final bool isAdmin = userRole == 'manager';
+    final bool isAdmin = userRole == 'manager' || userRole == "hr";
 
     return Scaffold(
       appBar: AppBar(
@@ -94,7 +94,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           final historyData = (leaveHistory?['message']?['data'] as List?) ?? [];
 
           return RefreshIndicator(
-            onRefresh: () => leaveProvider.fetchLeaveInfo(employeeId: _employeeId, forceRefresh: true),
+            onRefresh: () =>
+                leaveProvider.fetchLeaveInfo(employeeId: _employeeId, forceRefresh: true),
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
@@ -111,10 +112,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => LeaveRequestFormScreen(
-                                name: _name,
-                                employeeId: _employeeId,
-                              ),
+                              builder: (context) =>
+                                  LeaveRequestFormScreen(name: _name, employeeId: _employeeId),
                             ),
                           );
                         },
@@ -160,16 +159,30 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             const SizedBox(height: 12),
                             Card(
                               elevation: 4,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.all(16),
                                 child: Column(
                                   children: [
-                                    _buildLeaveInfoRow('Casual/Sick Leave', '${availableLeave['available']?['casualOrSickLeave'] ?? 0}', Colors.blue),
+                                    _buildLeaveInfoRow(
+                                      'Casual/Sick Leave',
+                                      '${availableLeave['available']?['casualOrSickLeave'] ?? 0}',
+                                      Colors.blue,
+                                    ),
                                     const Divider(),
-                                    _buildLeaveInfoRow('Earned Leave', '${availableLeave['available']?['earnedLeave'] ?? 0}', Colors.green),
+                                    _buildLeaveInfoRow(
+                                      'Earned Leave',
+                                      '${availableLeave['available']?['earnedLeave'] ?? 0}',
+                                      Colors.green,
+                                    ),
                                     const Divider(),
-                                    _buildLeaveInfoRow('Emergency Leave', '${availableLeave['available']?['emergencyLeave'] ?? 0}', Colors.orange),
+                                    _buildLeaveInfoRow(
+                                      'Emergency Leave',
+                                      '${availableLeave['available']?['emergencyLeave'] ?? 0}',
+                                      Colors.orange,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -213,7 +226,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             color: color.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+          child: Text(
+            value,
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color),
+          ),
         ),
       ],
     );
@@ -240,7 +256,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 Text(leave['type'] ?? 'Leave', style: const TextStyle(fontWeight: FontWeight.bold)),
                 Row(
                   children: [
-                    Text(status, style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold)),
+                    Text(
+                      status,
+                      style: TextStyle(color: _getStatusColor(status), fontWeight: FontWeight.bold),
+                    ),
                     if (status.toLowerCase() == 'pending' || status.toLowerCase() == 'waiting')
                       IconButton(
                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
@@ -263,11 +282,16 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Color _getStatusColor(String? status) {
     if (status == null) return Colors.grey;
     switch (status.toLowerCase()) {
-      case 'approved': return Colors.green;
-      case 'rejected': return Colors.red;
-      case 'waiting': return Colors.orange;
-      case 'pending': return Colors.grey;
-      default: return Colors.grey;
+      case 'approved':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      case 'waiting':
+        return Colors.orange;
+      case 'pending':
+        return Colors.grey;
+      default:
+        return Colors.grey;
     }
   }
 }
