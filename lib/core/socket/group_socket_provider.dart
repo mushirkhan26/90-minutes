@@ -193,7 +193,57 @@ class GroupSocketProvider extends ChangeNotifier {
       await _localStorage.saveGroupChats(_groupChats);
       notifyListeners();
     });
+
+    _manager.registerGroupEvent('adminAdded', (data) async {
+  final groupId = data['groupId'];
+  final userId = data['userId'];
+
+  final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+  if (index != -1) {
+    final updatedAdmins = List<String>.from(_groupChats[index].admins)
+      ..add(userId);
+
+    _groupChats[index] =
+        _groupChats[index].copyWith(admins: updatedAdmins);
+
+    await _localStorage.saveGroupChats(_groupChats);
+    notifyListeners();
   }
+});
+
+_manager.registerGroupEvent('adminRemoved', (data) async {
+  final groupId = data['groupId'];
+  final userId = data['userId'];
+
+  final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+  if (index != -1) {
+    final updatedAdmins = List<String>.from(_groupChats[index].admins)
+      ..remove(userId);
+
+    _groupChats[index] =
+        _groupChats[index].copyWith(admins: updatedAdmins);
+
+    await _localStorage.saveGroupChats(_groupChats);
+    notifyListeners();
+  }
+});
+
+_manager.registerGroupEvent('adminOnlyMessagingUpdated', (data) async {
+  final groupId = data['groupId'];
+  final value = data['adminOnlyMessaging'] ?? false;
+
+  final index = _groupChats.indexWhere((g) => g.groupId == groupId);
+  if (index != -1) {
+    _groupChats[index] =
+        _groupChats[index].copyWith(adminOnlyMessaging: value);
+
+    await _localStorage.saveGroupChats(_groupChats);
+    notifyListeners();
+  }
+});
+
+  }
+  
 
   Future<void> fetchUserGroups() async {
     final userId = await _secureStorage.getEmployeeId();
@@ -408,4 +458,111 @@ class GroupSocketProvider extends ChangeNotifier {
     _groupChats.removeAt(index);
     _groupChats.insert(0, updatedGroup);
   }
+ Future<void> makeGroupAdmin({
+  required String groupId,
+  required String userId,
+  required String updatedBy,
+}) async {
+
+  final index =
+      _groupChats.indexWhere((g) => g.groupId == groupId);
+
+  if (index != -1) {
+    final updatedAdmins =
+        List<String>.from(_groupChats[index].admins);
+
+    if (!updatedAdmins.contains(userId)) {
+      updatedAdmins.add(userId);
+    }
+
+    _groupChats[index] =
+        _groupChats[index].copyWith(
+      admins: updatedAdmins,
+    );
+
+    notifyListeners(); 
+  }
+
+  await _manager.makeGroupAdmin(
+    groupId: groupId,
+    userId: userId,
+    updatedBy: updatedBy,
+  );
+}
+
+Future<void> removeGroupAdmin({
+  required String groupId,
+  required String userId,
+  required String updatedBy,
+}) async {
+
+  final index =
+      _groupChats.indexWhere((g) => g.groupId == groupId);
+
+  if (index != -1) {
+    final updatedAdmins =
+        List<String>.from(_groupChats[index].admins)
+          ..remove(userId);
+
+    _groupChats[index] =
+        _groupChats[index].copyWith(
+      admins: updatedAdmins,
+    );
+
+    notifyListeners();
+  }
+
+  await _manager.removeGroupAdmin(
+    groupId: groupId,
+    userId: userId,
+    updatedBy: updatedBy,
+  );
+}
+Future<void> toggleAdminOnlyMessaging({
+  required String groupId,
+  required bool value,
+  required String userId,
+}) async {
+
+  final index =
+      _groupChats.indexWhere((g) => g.groupId == groupId);
+
+  if (index != -1) {
+    _groupChats[index] =
+        _groupChats[index].copyWith(
+      adminOnlyMessaging: value,
+    );
+
+    notifyListeners(); 
+  }
+
+  await _manager.toggleAdminOnlyMessaging(
+    groupId: groupId,
+    enabled: value,
+    userId: userId,
+  );
+}
+
+Future<void> updateGroupIcon({
+  required String groupId,
+  required String iconUrl,
+  required String updatedBy,
+}) async {
+
+  final index =
+      _groupChats.indexWhere((g) => g.groupId == groupId);
+
+  if (index != -1) {
+    _groupChats[index] =
+        _groupChats[index].copyWith(icon: iconUrl);
+
+    notifyListeners();
+  }
+
+  await _manager.updateGroupIcon(
+    groupId: groupId,
+    icon: iconUrl,
+    updatedBy: updatedBy,
+  );
+}
 }

@@ -6,8 +6,11 @@ class GroupChatModel {
   final List<String> members;
   final String createdBy;
   final DateTime createdAt;
+
   final String? lastMessage;
   final DateTime? lastMessageTime;
+  final List<String> admins;
+  final bool adminOnlyMessaging;
 
   GroupChatModel({
     required this.groupId,
@@ -19,9 +22,10 @@ class GroupChatModel {
     required this.createdAt,
     this.lastMessage,
     this.lastMessageTime,
+    this.admins = const [],
+    this.adminOnlyMessaging = false,
   });
 
-  // 🏗️ Create from backend/server map
   factory GroupChatModel.fromMap(Map<String, dynamic> map) {
     return GroupChatModel(
       groupId: map['_id']?.toString() ?? map['groupId']?.toString() ?? '',
@@ -33,16 +37,17 @@ class GroupChatModel {
       createdAt: map['createdAt'] is String
           ? DateTime.parse(map['createdAt'])
           : DateTime.fromMillisecondsSinceEpoch(map['createdAt'] ?? 0),
-      lastMessage: map['lastMessage'], // ✅ ADD
-      lastMessageTime:
-          map['lastMessageTime'] !=
-              null // ✅ ADD
+
+      lastMessage: map['lastMessage'],
+      lastMessageTime: map['lastMessageTime'] != null
           ? DateTime.parse(map['lastMessageTime'])
           : null,
+
+      admins: List<String>.from(map['admins'] ?? []),
+      adminOnlyMessaging: map['adminOnlyMessaging'] ?? false,
     );
   }
 
-  // 💾 Convert to local storage map
   Map<String, dynamic> toLocalMap() {
     return {
       'groupId': groupId,
@@ -54,10 +59,11 @@ class GroupChatModel {
       'createdAt': createdAt.toIso8601String(),
       'lastMessage': lastMessage,
       'lastMessageTime': lastMessageTime?.toIso8601String(),
+      'admins': admins,
+      'adminOnlyMessaging': adminOnlyMessaging,
     };
   }
 
-  // 🧩 Create from local storage map
   factory GroupChatModel.fromLocalMap(Map<String, dynamic> map) {
     return GroupChatModel(
       groupId: map['groupId'],
@@ -67,13 +73,16 @@ class GroupChatModel {
       members: List<String>.from(map['members'] ?? []),
       createdBy: map['createdBy'],
       createdAt: DateTime.parse(map['createdAt']),
-      lastMessage: map['lastMessage'], // ✅ ADD
+      lastMessage: map['lastMessage'],
       lastMessageTime: map['lastMessageTime'] != null
           ? DateTime.parse(map['lastMessageTime'])
           : null,
+
+      admins: List<String>.from(map['admins'] ?? []),
+      adminOnlyMessaging: map['adminOnlyMessaging'] ?? false,
     );
   }
-  // ✏️ Copy existing model with changes
+
   GroupChatModel copyWith({
     String? groupId,
     String? name,
@@ -84,6 +93,8 @@ class GroupChatModel {
     DateTime? createdAt,
     String? lastMessage,
     DateTime? lastMessageTime,
+    List<String>? admins,
+    bool? adminOnlyMessaging,
   }) {
     return GroupChatModel(
       groupId: groupId ?? this.groupId,
@@ -95,6 +106,10 @@ class GroupChatModel {
       createdAt: createdAt ?? this.createdAt,
       lastMessage: lastMessage ?? this.lastMessage,
       lastMessageTime: lastMessageTime ?? this.lastMessageTime,
+
+      admins: admins ?? this.admins,
+      adminOnlyMessaging:
+          adminOnlyMessaging ?? this.adminOnlyMessaging,
     );
   }
 }

@@ -574,4 +574,127 @@ class SocketManager {
     socket.off(eventName);
     LoggingService.instance.logNetwork('Unregistered group socket event: $eventName');
   }
+  /// Make a member as group admin
+Future<void> makeGroupAdmin({
+  required String groupId,
+  required String userId,
+  required String updatedBy,
+}) async {
+  if (!SocketService.instance.isConnected) {
+    LoggingService.instance.error("Socket", "Cannot make admin: socket not connected");
+    return;
+  }
+
+  socket.emitWithAck(
+    'makeGroupAdmin',
+    {
+      'groupId': groupId,
+      'userId': userId,
+      'madeBy': updatedBy,
+    },
+    ack: ([dynamic res]) {
+      if (res is String) {
+        LoggingService.instance.error("Socket", "Failed to make admin: $res");
+        return;
+      }
+      LoggingService.instance.logNetwork("Admin added in group: $groupId → $userId");
+    },
+  );
+}
+/// Remove admin role from a member
+Future<void> removeGroupAdmin({
+  required String groupId,
+  required String userId,
+  required String updatedBy,
+}) async {
+  if (!SocketService.instance.isConnected) {
+    LoggingService.instance.error("Socket", "Cannot remove admin: socket not connected");
+    return;
+  }
+
+  socket.emitWithAck(
+    'removeGroupAdmin',
+    {
+      'groupId': groupId,
+      'userId': userId,
+      'removedBy': updatedBy,
+    },
+    ack: ([dynamic res]) {
+      if (res is String) {
+        LoggingService.instance.error("Socket", "Failed to remove admin: $res");
+        return;
+      }
+      LoggingService.instance.logNetwork("Admin removed in group: $groupId → $userId");
+    },
+  );
+}
+
+/// Enable / Disable Admin Only Messaging
+Future<void> toggleAdminOnlyMessaging({
+  required String groupId,
+  required bool enabled,
+  required String userId,
+}) async {
+  if (!SocketService.instance.isConnected) {
+    LoggingService.instance.error("Socket", "Cannot toggle adminOnlyMessaging: socket not connected");
+    return;
+  }
+
+  socket.emitWithAck(
+    'toggleAdminOnlyMessaging',
+    {
+      'groupId': groupId,
+      'userId' : userId,
+      'enabled' : enabled,
+    },
+    ack: ([dynamic res]) {
+      if (res is String) {
+        LoggingService.instance.error("Socket", "Failed to update adminOnlyMessaging: $res");
+        return;
+      }
+      LoggingService.instance.logNetwork(
+          "AdminOnlyMessaging updated: $groupId → $enabled");
+    },
+  );
+}
+Future<void> updateGroupProfileImage({
+  required String groupId,
+  required String imageUrl,
+  required String updatedBy,
+}) async {
+
+  socket.emitWithAck(
+    'updateGroupProfileImage',
+    {
+      'groupId': groupId,
+      'imageUrl': imageUrl,
+      'updatedBy': updatedBy,
+    },
+    ack: (res) {
+      LoggingService.instance.logNetwork(
+        "Group profile updated: $groupId",
+      );
+    },
+  );
+}
+Future<void> updateGroupIcon({
+  required String groupId,
+  required String icon,
+  required String updatedBy,
+}) async {
+
+  socket.emitWithAck(
+    'updateGroupIcon',
+    {
+      'groupId': groupId,
+      'icon': icon,
+      'updatedBy': updatedBy,
+    },
+    ack: (res) {
+      LoggingService.instance.logNetwork(
+          "Group icon updated: $groupId");
+    },
+  );
+}
+  
 }

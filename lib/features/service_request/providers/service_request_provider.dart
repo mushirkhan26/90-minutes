@@ -123,7 +123,7 @@ class ServiceRequestProvider extends ChangeNotifier {
       await fetchRequestCounts(forceRefresh: forceRefresh);
       await fetchDepartments(forceRefresh: forceRefresh);
 
-      if (r == 'employee') {
+      if (r == 'employee' || r == 'intern') {
         await fetchRequestsByEmployee(_currentUserEmployeeId!,
             forceRefresh: forceRefresh);
       } else if (r == 'manager' || r == 'hr') {
@@ -185,46 +185,46 @@ class ServiceRequestProvider extends ChangeNotifier {
 
   // ================= GET REQUESTS BY EMPLOYEE =================
   Future<void> fetchRequestsByEmployee(String employeeId,
-      {bool forceRefresh = false}) async {
-    try {
-      final lastFetched = await _localStorage.getServiceRequestTimestamp();
-      final now = DateTime.now();
+    {bool forceRefresh = false}) async {
+  try {
+    _currentUserEmployeeId = employeeId;
 
-      final shouldRefresh = forceRefresh ||
-          lastFetched == null ||
-          now.difference(lastFetched) > _cacheValidity;
+    _isUserRequestsLoading = true;
+    notifyListeners();
 
-      if (!shouldRefresh && _allRequests.isNotEmpty) {
-        return;
-      }
+    _logger.logGeneral("Fetching service requests for employee → $employeeId");
 
-      _isUserRequestsLoading = true;
-      notifyListeners();
+    final response = await _service.getRequestsByEmployee(employeeId);
 
-      final response = await _service.getRequestsByEmployee(employeeId);
+    if (response.success && response.data is Map<String, dynamic>) {
+      final List list = response.data['message'] ?? [];
 
-      if (response.success && response.data is Map<String, dynamic>) {
-        final List list = response.data['message'] ?? [];
-        _allRequests = list.map((e) => ServiceRequest.fromJson(e)).toList();
+      _allRequests =
+          list.map((e) => ServiceRequest.fromJson(e)).toList();
 
-        await _localStorage.saveServiceRequests(
-          _allRequests.map((e) => e.toJson()).toList(),
-        );
-        await _localStorage.saveServiceRequestTimestamp(DateTime.now());
+      await _localStorage.saveServiceRequests(
+        _allRequests.map((e) => e.toJson()).toList(),
+      );
 
-        _state = ServiceRequestState.success;
-        _logger.logNetwork("✅ Employee service requests fetched and cached");
-      }
-    } catch (e, s) {
-      _logger.error(
-          "SERVICE_REQUEST_PROVIDER", "fetchRequestsByEmployee failed",
-          error: e, stackTrace: s);
-    } finally {
-      _isUserRequestsLoading = false;
-      notifyListeners();
+      _state = ServiceRequestState.success;
+
+      _logger.logNetwork(
+          "✅ Employee service requests fetched and cached (${_allRequests.length})");
+    } else {
+      _error = response.message;
+      _state = ServiceRequestState.error;
     }
-  }
+  } catch (e, s) {
+    _logger.error(
+        "SERVICE_REQUEST_PROVIDER", "fetchRequestsByEmployee failed",
+        error: e, stackTrace: s);
 
+    _state = ServiceRequestState.error;
+  } finally {
+    _isUserRequestsLoading = false;
+    notifyListeners();
+  }
+}
     // ================= GET REQUEST COUNTS =================
   Future<void> fetchRequestCounts({bool forceRefresh = false}) async {
     try {
