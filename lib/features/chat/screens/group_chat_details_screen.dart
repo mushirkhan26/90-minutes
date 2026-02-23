@@ -118,20 +118,26 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   // ================= PROFILE EDIT =================
 
   Future<void> _editProfile(
-    GroupSocketProvider provider,
-    GroupChatModel group) async {
+  GroupSocketProvider provider,
+  GroupChatModel group,
+) async {
+
+  final navigator = Navigator.of(context);
+  final messenger = ScaffoldMessenger.of(context);
+  final dialogContext = context;   // ✅ store context safely
 
   final picker = ImagePicker();
-
   final pickedFile =
       await picker.pickImage(source: ImageSource.gallery);
 
   if (pickedFile == null) return;
+  if (!mounted) return;
 
   final imageFile = File(pickedFile.path);
 
   showDialog(
-    context: context,
+    // ignore: use_build_context_synchronously
+    context: dialogContext, 
     barrierDismissible: false,
     builder: (_) => const Center(
       child: CircularProgressIndicator(),
@@ -141,12 +147,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
   final uploadService = FileUploadService();
   final uploadedUrl =
       await uploadService.uploadFile(imageFile);
-      if(!mounted) return;
 
-  Navigator.pop(context); // remove loader
+  if (!mounted) return;
+
+  navigator.pop(); // close loader
 
   if (uploadedUrl == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       const SnackBar(
         content: Text("Image upload failed"),
       ),
@@ -159,9 +166,10 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
     iconUrl: uploadedUrl,
     updatedBy: _currentUserId ?? '',
   );
-  if(!mounted) return;
 
-  ScaffoldMessenger.of(context).showSnackBar(
+  if (!mounted) return;
+
+  messenger.showSnackBar(
     const SnackBar(
       content: Text("Group icon updated successfully"),
     ),
@@ -499,6 +507,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                 title:
                     const Text("Delete Group"),
                 onTap: () async {
+                  final navigator = Navigator.of(context);
                   await provider.deleteGroup(
                     groupId:
                         group.groupId,
@@ -506,7 +515,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen> {
                         _currentUserId ??
                             '',
                   );
-                  Navigator.pop(context);
+                  if(!mounted) return;
+                  navigator.pop();
                 },
               ),
 
