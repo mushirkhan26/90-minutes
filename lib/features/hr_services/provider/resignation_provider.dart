@@ -49,7 +49,7 @@ class ResignationProvider extends ChangeNotifier {
 
   Future<void> _checkUserRole() async {
     final userData = await _storage.getUserData();
-    isManager = userData?['role']?.toString().toLowerCase() == 'manager';
+    isManager = ['manager', 'hr'].contains(userData?['role']?.toString().toLowerCase());
     notifyListeners();
   }
 
@@ -194,3 +194,4 @@ class ResignationProvider extends ChangeNotifier {
     return response.success;
   }
 }
+
