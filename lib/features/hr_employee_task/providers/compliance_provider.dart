@@ -27,7 +27,7 @@ class ComplianceProvider with ChangeNotifier {
 
   String? _employeeId;
 
-  static const Duration _cacheDuration = Duration(minutes: 10);
+  
 
   // ---------------- CONSTRUCTOR ----------------
   ComplianceProvider() {
@@ -53,63 +53,61 @@ class ComplianceProvider with ChangeNotifier {
 
   // ---------------- FETCH (CACHE FIRST) ----------------
   Future<void> fetchCompliances({bool forceRefresh = false}) async {
-    if (_employeeId == null) return;
+  if (_employeeId == null) return;
 
-    try {
-      if (!forceRefresh) {
-        final cached = await _local.getComplianceList(_employeeId!);
-        final timestamp =
-            await _local.getComplianceTimestamp(_employeeId!);
+  try {
+    // Always show cache instantly if available
+    final cached = await _local.getComplianceList(_employeeId!);
+    if (cached != null && !forceRefresh) {
+      _compliances = cached;
+      _state = ComplianceState.success;
+      notifyListeners();
+      _logger.logStorage("✅ Compliance shown from cache (instant UI)");
+    }
 
-        if (cached != null &&
-            timestamp != null &&
-            DateTime.now().difference(timestamp) < _cacheDuration) {
-          _compliances = cached;
-          _state = ComplianceState.success;
-          notifyListeners();
-          _logger.logStorage("✅ Compliance loaded from cache");
-          return;
-        }
-      }
+    //Always call API (important change)
+    _logger.logNetwork("🌐 Fetching compliance from API (force sync)");
 
-      if (_compliances.isEmpty) {
-        _state = ComplianceState.loading;
-        notifyListeners();
-      }
+    if (_compliances.isEmpty) {
+      _state = ComplianceState.loading;
+      notifyListeners();
+    }
 
-      _logger.logNetwork("🌐 Fetching compliance from API");
+    final response =
+        await _service.getEmployeeCompliance(_employeeId!);
 
-      final response =
-          await _service.getEmployeeCompliance(_employeeId!);
+    if (response.success && response.data != null) {
+      _compliances = response.data!;
 
-      if (response.success && response.data != null) {
-        _compliances = response.data!;
+      // Save fresh data
+      await _local.saveComplianceList(
+        _employeeId!,
+        _compliances,
+      );
 
-        await _local.saveComplianceList(
-            _employeeId!, _compliances);
+      _errorMessage = null;
+      _state = ComplianceState.success;
 
-        _errorMessage = null;
-        _state = ComplianceState.success;
-      } else {
-        _errorMessage = response.message;
-        _state = _compliances.isNotEmpty
-            ? ComplianceState.success
-            : ComplianceState.error;
-      }
-    } catch (e) {
-      _logger.error(
-          "COMPLIANCE_PROVIDER", "Fetch failed",
-          error: e);
-
-      _errorMessage = e.toString();
+      _logger.logNetwork("✅ Compliance updated from API");
+    } else {
+      _errorMessage = response.message;
       _state = _compliances.isNotEmpty
           ? ComplianceState.success
           : ComplianceState.error;
     }
+  } catch (e) {
+    _logger.error(
+        "COMPLIANCE_PROVIDER", "Fetch failed",
+        error: e);
 
-    notifyListeners();
+    _errorMessage = e.toString();
+    _state = _compliances.isNotEmpty
+        ? ComplianceState.success
+        : ComplianceState.error;
   }
 
+  notifyListeners();
+}
   // ---------------- COUNTS ----------------
 
   int get totalCount => _compliances.length;

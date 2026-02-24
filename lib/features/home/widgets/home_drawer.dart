@@ -143,7 +143,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                       ),
                     ),
                     _buildTile(
-                      icon: Icons.groups_outlined,
+                      icon: Icons.photo_library_outlined,
                       title: 'Social Hub',
                       onTap: () => _navigateFromDrawer(
                         drawerContext: context,

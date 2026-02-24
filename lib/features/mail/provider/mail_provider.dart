@@ -19,6 +19,7 @@ class MailProvider extends ChangeNotifier {
   List<MailModel> _sentMails = [];
   List<MailModel> _trashMails = [];
   List<MailModel> _starredMails = [];
+  Set<String> _starredIds = {};
 
   String _activeFolder = 'Inbox';
   String _searchQuery = '';
@@ -81,6 +82,7 @@ class MailProvider extends ChangeNotifier {
     _sentMails = [];
     _trashMails = [];
     _starredMails = [];
+    _starredIds = {};
     notifyListeners();
   }
 
@@ -100,6 +102,9 @@ class MailProvider extends ChangeNotifier {
         _inboxMails = mailsJson
             .map((json) => MailModel.fromJson(json))
             .toList();
+
+        // Apply known starred state so inbox shows star flags
+        _applyStarredStatus();
 
         await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
 
@@ -132,6 +137,9 @@ class MailProvider extends ChangeNotifier {
             .where((m) => m.sender == _currentUserId)
             .toList();
 
+        // Apply known starred state
+        _applyStarredStatus();
+
         await _local.saveMails(LocalStorageService.keySentMails, _sentMails);
         _state = MailState.loaded;
       }
@@ -155,8 +163,10 @@ class MailProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         final List<dynamic> mailsJson = response.data!['data'] ?? [];
         _trashMails = mailsJson
-            .map((json) => MailModel.fromJson(json))
-            .toList();
+          .map((json) => MailModel.fromJson(json))
+          .toList();
+        // Ensure trash retains star flags
+        _applyStarredStatus();
         await _local.saveMails(LocalStorageService.keyTrashMails, _trashMails);
         _state = MailState.loaded;
       }
@@ -179,8 +189,11 @@ class MailProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         final List<dynamic> mailsJson = response.data!['data'] ?? [];
         _starredMails = mailsJson
-            .map((json) => MailModel.fromJson(json))
-            .toList();
+          .map((json) => MailModel.fromJson(json))
+          .toList();
+        // Track starred ids for syncing across lists
+        _starredIds = _starredMails.map((m) => m.id).toSet();
+        _applyStarredStatus();
         _state = MailState.loaded;
       }
     } catch (e) {
@@ -199,6 +212,9 @@ class MailProvider extends ChangeNotifier {
     } else {
       _starredMails.removeWhere((m) => m.id == mail.id);
     }
+    // keep quick local index in sync so views (including Trash) reflect the change immediately
+    _starredIds = _starredMails.map((m) => m.id).toSet();
+    _applyStarredStatus();
     notifyListeners();
 
     try {
@@ -225,6 +241,9 @@ class MailProvider extends ChangeNotifier {
         _starredMails.removeWhere((m) => m.id == mail.id);
       }
 
+      // keep starred ids in sync after rollback
+      _starredIds = _starredMails.map((m) => m.id).toSet();
+      _applyStarredStatus();
       notifyListeners();
     }
   }
@@ -238,9 +257,11 @@ class MailProvider extends ChangeNotifier {
       for (var m in mailsToMove) {
         _inboxMails.removeWhere((x) => x.id == m.id);
         _sentMails.removeWhere((x) => x.id == m.id);
-        _starredMails.removeWhere((x) => x.id == m.id);
+        // Keep starred mails in starred list — star is a per-user flag and should persist
         if (!_trashMails.any((x) => x.id == m.id)) _trashMails.insert(0, m);
       }
+      // Ensure starred flags are synced after moving
+      _applyStarredStatus();
       notifyListeners();
       await _ensureUserId();
       await _mailService.moveManyToTrash(
@@ -279,6 +300,8 @@ class MailProvider extends ChangeNotifier {
         await _saveTrashLocally();
 
 
+        // Refresh starred first so other lists can reflect correct starred flags
+        await fetchStarredMails(forceRefresh: true);
         await Future.wait([
           fetchInbox(forceRefresh: true),
           fetchSent(forceRefresh: true),
@@ -358,6 +381,38 @@ class MailProvider extends ChangeNotifier {
     await _local.saveMails(LocalStorageService.keyInboxMails, _inboxMails);
     await _local.saveMails(LocalStorageService.keySentMails, _sentMails);
     await _local.saveMails(LocalStorageService.keyTrashMails, _trashMails);
+  }
+
+  void _applyStarredStatus() {
+    // If we don't have starred ids from the server yet, derive from available local data
+    if (_starredIds.isEmpty) {
+      if (_starredMails.isNotEmpty) {
+        _starredIds = _starredMails.map((m) => m.id).toSet();
+      } else {
+        final idsFromLists = <String>{}
+          ..addAll(_inboxMails.where((m) => m.isStarred).map((m) => m.id))
+          ..addAll(_sentMails.where((m) => m.isStarred).map((m) => m.id))
+          ..addAll(_trashMails.where((m) => m.isStarred).map((m) => m.id));
+        _starredIds = idsFromLists;
+      }
+    }
+
+    for (var m in _inboxMails) {
+      m.isStarred = _starredIds.contains(m.id) || m.isStarred;
+    }
+    for (var m in _sentMails) {
+      m.isStarred = _starredIds.contains(m.id) || m.isStarred;
+    }
+    for (var m in _trashMails) {
+      m.isStarred = _starredIds.contains(m.id) || m.isStarred;
+    }
+
+    // Keep starred list consistent with the ids we have locally
+    _starredMails = [
+      ..._inboxMails.where((m) => _starredIds.contains(m.id)),
+      ..._sentMails.where((m) => _starredIds.contains(m.id)),
+      ..._trashMails.where((m) => _starredIds.contains(m.id)),
+    ];
   }
 
   Future<void> _saveTrashLocally() async =>

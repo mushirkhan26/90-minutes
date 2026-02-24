@@ -30,9 +30,9 @@ class _ServiceRequestsScreenState extends State<ServiceRequestsScreen> {
   void initState() {
     super.initState();
     // Refresh data in background without showing full screen loader if we have cache
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ServiceRequestProvider>().refreshData();
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   context.read<ServiceRequestProvider>().refreshData(forceRefresh: true);
+    // });
   }
 
   @override

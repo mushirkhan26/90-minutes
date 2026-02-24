@@ -24,6 +24,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     final authProvider = context.read<AuthProvider>();
     _name = authProvider.userData?['username'] ?? '';
     _employeeId = authProvider.userData?['employeeId']?.toString() ?? '';
+    
+    // Fetch leave info on screen open
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LeaveProvider>().fetchLeaveInfo(employeeId: _employeeId);
+    });
   }
 
   Future<void> _deleteLeave(String leaveId) async {
@@ -145,66 +150,70 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       ),
                     ),
                     const SizedBox(height: 20),
-                    if (leaveProvider.isLoading && leaveHistory == null)
-                      const Center(child: CircularProgressIndicator())
-                    else
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          if (availableLeave != null) ...[
-                            const Text(
-                              'Available Leave',
-                              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 12),
-                            Card(
-                              elevation: 4,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(16),
-                                child: Column(
-                                  children: [
-                                    _buildLeaveInfoRow(
-                                      'Casual/Sick Leave',
-                                      '${availableLeave['available']?['casualOrSickLeave'] ?? 0}',
-                                      Colors.blue,
-                                    ),
-                                    const Divider(),
-                                    _buildLeaveInfoRow(
-                                      'Earned Leave',
-                                      '${availableLeave['available']?['earnedLeave'] ?? 0}',
-                                      Colors.green,
-                                    ),
-                                    const Divider(),
-                                    _buildLeaveInfoRow(
-                                      'Emergency Leave',
-                                      '${availableLeave['available']?['emergencyLeave'] ?? 0}',
-                                      Colors.orange,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 20),
-                          ],
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (availableLeave != null) ...[
                           const Text(
-                            'Leave History',
+                            'Available Leave',
                             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
                           const SizedBox(height: 12),
-                          if (historyData.isNotEmpty)
-                            ...historyData.map((leave) => _buildLeaveHistoryCard(leave))
-                          else if (!leaveProvider.isLoading)
-                            const Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(20.0),
-                                child: Text('No leave history found'),
+                          Card(
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                children: [
+                                  _buildLeaveInfoRow(
+                                    'Casual/Sick Leave',
+                                    '${availableLeave['available']?['casualOrSickLeave'] ?? 0}',
+                                    Colors.blue,
+                                  ),
+                                  const Divider(),
+                                  _buildLeaveInfoRow(
+                                    'Earned Leave',
+                                    '${availableLeave['available']?['earnedLeave'] ?? 0}',
+                                    Colors.green,
+                                  ),
+                                  const Divider(),
+                                  _buildLeaveInfoRow(
+                                    'Emergency Leave',
+                                    '${availableLeave['available']?['emergencyLeave'] ?? 0}',
+                                    Colors.orange,
+                                  ),
+                                ],
                               ),
                             ),
+                          ),
+                          const SizedBox(height: 20),
                         ],
-                      ),
+                        const Text(
+                          'Leave History',
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 12),
+                        if (historyData.isNotEmpty)
+                          ...historyData.map((leave) => _buildLeaveHistoryCard(leave))
+                        else if (leaveProvider.isLoading)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        else
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20.0),
+                              child: Text('No leave history found'),
+                            ),
+                          ),
+                      ],
+                    ),
                   ],
                 ),
               ),

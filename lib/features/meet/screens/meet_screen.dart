@@ -408,11 +408,13 @@ class _MeetScreenState extends State<MeetScreen> {
       }
 
       if (recurrence == "Daily") {
-        return _selectedDate.isAfter(mDate);
+        // include occurrences on the same day or any day after the original meeting date
+        return !_selectedDate.isBefore(mDate);
       }
 
       if (recurrence == "Weekly") {
-        return _selectedDate.isAfter(mDate) && _selectedDate.weekday == mDate.weekday;
+        // include weekly occurrences on or after the original meeting date
+        return (!_selectedDate.isBefore(mDate)) && _selectedDate.weekday == mDate.weekday;
       }
 
       return false;
@@ -438,8 +440,10 @@ class _MeetScreenState extends State<MeetScreen> {
 
         final hourMeets = dailyMeets.where((m) {
           final meetingTime = DateTime.parse(m.time).toLocal();
-          return meetingTime.hour == hour;
-        }).toList()..sort((a, b) => DateTime.parse(a.time).compareTo(DateTime.parse(b.time)));
+          final int cmpHour = hour == 24 ? 0 : hour;
+          return meetingTime.hour == cmpHour;
+        }).toList()
+          ..sort((a, b) => DateTime.parse(a.time).toLocal().compareTo(DateTime.parse(b.time).toLocal()));
 
         return Container(
           height: 70,

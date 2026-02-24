@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>HrZ-HRMS App — Full Stack Architecture Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:#f8fafc;color:#1e293b;font-size:13px;line-height:1.6;}
+  .cover{background:linear-gradient(135deg,#1e3a5f 0%,#0f4c81 40%,#1a6b9a 100%);color:#fff;padding:60px 50px;min-height:220px;position:relative;overflow:hidden;}
+  .cover::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.05);}
+  .cover::after{content:'';position:absolute;bottom:-80px;left:-40px;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,0.04);}
+  .cover h1{font-size:32px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
+  .cover .subtitle{font-size:15px;opacity:0.8;font-weight:300;margin-bottom:20px;}
+  .cover .meta{display:flex;gap:30px;font-size:12px;opacity:0.7;}
+  .cover .meta span{display:flex;align-items:center;gap:6px;}
+  .container{max-width:900px;margin:0 auto;padding:30px 40px;}
+  h2{font-size:18px;font-weight:700;color:#0f4c81;margin:32px 0 12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px;}
+  h2 .num{background:#0f4c81;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+  h3{font-size:13px;font-weight:600;color:#334155;margin:16px 0 8px;}
+  p{margin-bottom:10px;color:#475569;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;}
+  th{background:#0f4c81;color:#fff;padding:8px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+  td{padding:7px 12px;border-bottom:1px solid #e2e8f0;color:#334155;}
+  tr:nth-child(even) td{background:#f8fafc;}
+  tr:hover td{background:#eff6ff;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;margin:1px;}
+  .badge-blue{background:#dbeafe;color:#1d4ed8;}
+  .badge-green{background:#dcfce7;color:#15803d;}
+  .badge-purple{background:#f3e8ff;color:#7e22ce;}
+  .badge-orange{background:#ffedd5;color:#c2410c;}
+  .badge-red{background:#fee2e2;color:#b91c1c;}
+  .code-block{background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;font-family:'Fira Code',monospace;font-size:11px;line-height:1.7;margin:12px 0;overflow-x:auto;white-space:pre;}
+  .code-block .comment{color:#64748b;}
+  .code-block .key{color:#7dd3fc;}
+  .code-block .val{color:#86efac;}
+  .info-box{background:#eff6ff;border-left:4px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:12px;color:#1e40af;}
+  .warn-box{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:12px;color:#92400e;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:12px 0;}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .card h4{font-size:12px;font-weight:700;color:#0f4c81;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+  .card ul{list-style:none;padding:0;}
+  .card ul li{font-size:11px;color:#475569;padding:3px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:6px;}
+  .card ul li:last-child{border-bottom:none;}
+  .card ul li::before{content:'▸';color:#3b82f6;font-size:10px;flex-shrink:0;}
+  .arch-diagram{background:#1e293b;border-radius:10px;padding:20px;margin:12px 0;font-family:'Fira Code',monospace;font-size:11px;color:#e2e8f0;line-height:1.8;}
+  .arch-diagram .box{color:#7dd3fc;}
+  .arch-diagram .arrow{color:#64748b;}
+  .arch-diagram .label{color:#86efac;}
+  .page-break{page-break-before:always;}
+  .toc{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin:20px 0;}
+  .toc h3{color:#0f4c81;margin-bottom:12px;font-size:14px;}
+  .toc ol{padding-left:20px;}
+  .toc li{padding:4px 0;font-size:12px;color:#475569;}
+  .toc a{color:#0f4c81;text-decoration:none;}
+  .footer{background:#1e293b;color:#94a3b8;text-align:center;padding:20px;font-size:11px;margin-top:40px;}
+  .highlight{background:#fef9c3;padding:1px 4px;border-radius:3px;font-weight:600;color:#854d0e;}
+  @media print{
+    body{background:#fff;}
+    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page-break{page-break-before:always;}
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>🏗️ HrZ-HRMS App</h1>
+  <div class="subtitle">Complete Full-Stack Architecture & Technical Analysis Report</div>
+  <div class="meta">
+    <span>📱 Flutter Mobile App</span>
+    <span>📅 February 2026</span>
+    <span>🔖 Version 0.1.0</span>
+    <span>🌐 Android + iOS</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- TOC -->
+<div class="toc">
+  <h3>📋 Table of Contents</h3>
+  <ol>
+    <li>Project Overview</li>
+    <li>Architecture Pattern</li>
+    <li>State Management</li>
+    <li>Networking / API Layer</li>
+    <li>Real-Time Communication (WebSocket)</li>
+    <li>Storage Strategy</li>
+    <li>Push Notifications</li>
+    <li>Navigation System</li>
+    <li>Firebase Integration</li>
+    <li>Theme & UI</li>
+    <li>Authentication Flow</li>
+    <li>Feature Modules</li>
+    <li>Key Packages Summary</li>
+    <li>Architecture Diagram</li>
+  </ol>
+</div>
+
+<!-- 1. OVERVIEW -->
+<h2><span class="num">1</span> Project Overview</h2>
+<p><strong>HrZ_hrms</strong> is a production-grade <strong>Human Resource Management System (HRMS)</strong> mobile application built with Flutter. It serves as an internal employee portal for organizations, supporting real-time chat, leave management, attendance tracking, internal mail, meetings, and more.</p>
+
+<table>
+  <tr><th>Property</th><th>Value</th></tr>
+  <tr><td>App Name</td><td>HrZ_hrms</td></tr>
+  <tr><td>Package Name</td><td>hrtz_hrms</td></tr>
+  <tr><td>Version</td><td>0.1.0</td></tr>
+  <tr><td>Framework</td><td>Flutter (Dart SDK ^3.9.0)</td></tr>
+  <tr><td>Platforms</td><td>Android + iOS</td></tr>
+  <tr><td>Backend REST</td><td>AWS API Gateway (us-east-1)</td></tr>
+  <tr><td>Backend Socket</td><td>Render.com (Socket.IO)</td></tr>
+  <tr><td>Push Notifications</td><td>Firebase Cloud Messaging (FCM)</td></tr>
+  <tr><td>Crash Reporting</td><td>Firebase Crashlytics</td></tr>
+</table>
+
+<!-- 2. ARCHITECTURE -->
+<h2><span class="num">2</span> Architecture Pattern</h2>
+<p>The project follows a <strong>Feature-First Clean Architecture</strong> with a clear separation of concerns across 4 top-level layers.</p>
+
+<div class="code-block"><span class="key">lib/</span>
+├── <span class="val">config/</span>              <span class="comment"># App-wide configuration</span>
+│   ├── navigation/      <span class="comment"># GoRouter setup + route constants</span>
+│   └── theme/           <span class="comment"># AppTheme (light mode)</span>
+│
+├── <span class="val">core/</span>                <span class="comment"># Shared infrastructure</span>
+│   ├── api/             <span class="comment"># HTTP layer (ApiHelper + services)</span>
+│   ├── constants/       <span class="comment"># AppConstants (URLs, sizes, durations)</span>
+│   ├── errors/          <span class="comment"># Custom exceptions + error screen</span>
+│   ├── models/          <span class="comment"># 12 shared data models</span>
+│   ├── services/        <span class="comment"># Storage, notifications, logging</span>
+│   ├── socket/          <span class="comment"># Real-time socket layer</span>
+│   └── utils/           <span class="comment"># Utility helpers</span>
+│
+├── <span class="val">features/</span>            <span class="comment"># 12 feature modules</span>
+│   ├── auth/            <span class="comment"># Login, OTP, password, NDA, onboarding</span>
+│   ├── chat/            <span class="comment"># 1-on-1 & group chat</span>
+│   ├── complaint/       <span class="comment"># Complaint management</span>
+│   ├── holiday/         <span class="comment"># Holiday calendar</span>
+│   ├── home/            <span class="comment"># Dashboard, attendance clock-in/out</span>
+│   ├── hr_services/     <span class="comment"># Resignation</span>
+│   ├── leave/           <span class="comment"># Leave requests & admin approval</span>
+│   ├── mail/            <span class="comment"># Internal mail system</span>
+│   ├── meet/            <span class="comment"># Meeting scheduling</span>
+│   ├── settings/        <span class="comment"># Permissions screen</span>
+│   ├── social/          <span class="comment"># Social hub / posts</span>
+│   └── tasks/           <span class="comment"># Task management</span>
+│
+└── <span class="val">widgets/</span>             <span class="comment"># Global reusable widgets</span></div>
+
+<p>Each feature follows an internal <strong>Provider → Service → ApiHelper</strong> pattern:</p>
+<div class="info-box">Screen (UI) → Provider (state) → Service (API calls) → ApiHelper (HTTP) → Backend</div>
+
+<!-- 3. STATE MANAGEMENT -->
+<h2><span class="num">3</span> State Management</h2>
+<p>Uses <strong>Provider</strong> (<code>provider: ^6.1.5+1</code>) with the <strong>ChangeNotifier</strong> pattern throughout the app.</p>
+
+<table>
+  <tr><th>Provider</th><th>Responsibility</th><th>Scope</th></tr>
+  <tr><td>AppStateProvider</td><td>App readiness flag (splash → main)</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>AuthProvider</td><td>Login, logout, session, profile, employee list</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>SocketProvider</td><td>1-on-1 chat messages, online users, typing, unread counts</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>GroupSocketProvider</td><td>Group chat messages and group management</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>MeetProvider</td><td>Meeting list state</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>LeaveProvider</td><td>Leave requests & history</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>HolidayProvider</td><td>Holiday list</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>TasksProvider</td><td>Task list</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>SocialProvider</td><td>Social posts feed</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>ComplaintProvider</td><td>Complaint list</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>MailProvider</td><td>Inbox (auto-fetched on startup)</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>ClockProvider</td><td>Attendance clock-in/out (auto-fetched on startup)</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>ResignationProvider</td><td>Resignation form state</td><td><span class="badge badge-green">Route-scoped</span></td></tr>
+</table>
+
+<!-- 4. NETWORKING -->
+<div class="page-break"></div>
+<h2><span class="num">4</span> Networking / API Layer</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>🌐 REST API</h4>
+    <ul>
+      <li>Package: <code>http: ^1.5.0</code></li>
+      <li>Base URL: AWS API Gateway</li>
+      <li>Region: us-east-1</li>
+      <li>Auth: Bearer JWT token</li>
+      <li>Methods: GET, POST, PUT, PATCH, DELETE</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🔌 Socket Server</h4>
+    <ul>
+      <li>Package: socket_io_client ^3.1.2</li>
+      <li>Host: Render.com</li>
+      <li>URL: hrms-socket.onrender.com</li>
+      <li>Protocol: Socket.IO (WebSocket)</li>
+      <li>Auto-reconnect on disconnect</li>
+    </ul>
+  </div>
+</div>
+
+<h3>ApiHelper — Generic HTTP Client</h3>
+<p>A single <code>ApiHelper</code> class wraps all HTTP calls with automatic token injection, request/response logging, and error handling:</p>
+
+<table>
+  <tr><th>Feature</th><th>Detail</th></tr>
+  <tr><td>Token injection</td><td>Auto-reads JWT from SecureStorage and adds <code>Authorization: Bearer</code> header</td></tr>
+  <tr><td>Response wrapper</td><td>Generic <code>ApiResponse&lt;T&gt;</code> with success, data, message, statusCode</td></tr>
+  <tr><td>Error handling</td><td>Custom exceptions: BadRequest, Unauthorized, Forbidden, NotFound, Server</td></tr>
+  <tr><td>Log sanitization</td><td>Redacts password, token, otp, secret from logs</td></tr>
+  <tr><td>Network error</td><td>Catches SocketException → returns "No Internet Connection"</td></tr>
+</table>
+
+<h3>Network Service Classes</h3>
+<table>
+  <tr><th>Service</th><th>Key Endpoints</th></tr>
+  <tr><td>AuthService</td><td>login, getOTP, verifyOTP, changePassword, getEmployeeList, getEmployeeInfo, updateProfile, updateFCMToken, leave CRUD, attendance</td></tr>
+  <tr><td>ClockService</td><td>Clock-in / Clock-out</td></tr>
+  <tr><td>MailService</td><td>Inbox, sent, trash, compose, reply, delete</td></tr>
+  <tr><td>MeetService</td><td>Get meets, schedule meet</td></tr>
+  <tr><td>SocialService</td><td>Get posts, create post</td></tr>
+  <tr><td>TaskService</td><td>Get tasks, update task</td></tr>
+  <tr><td>HolidayService</td><td>Get holidays</td></tr>
+  <tr><td>ComplaintService</td><td>Get / submit complaints</td></tr>
+  <tr><td>ResignationService</td><td>Submit resignation</td></tr>
+</table>
+
+<!-- 5. WEBSOCKET -->
+<h2><span class="num">5</span> Real-Time Communication (WebSocket)</h2>
+<p>A 3-layer socket architecture separates connection management, event abstraction, and UI state:</p>
+
+<div class="code-block"><span class="key">SocketService</span>  (singleton)   <span class="comment">→ Raw socket.io connection + reconnect logic</span>
+      ↓
+<span class="key">SocketManager</span> (singleton)   <span class="comment">→ Emit/listen event abstraction</span>
+      ↓
+<span class="key">SocketProvider</span>              <span class="comment">→ 1-on-1 chat UI state (ChangeNotifier)</span>
+<span class="key">GroupSocketProvider</span>         <span class="comment">→ Group chat UI state (ChangeNotifier)</span></div>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>📤 Emitted Events (1-on-1)</h4>
+    <ul>
+      <li>join</li>
+      <li>sendMessage</li>
+      <li>typing</li>
+      <li>messageRead</li>
+      <li>markConversationAsRead</li>
+      <li>deleteMessage</li>
+      <li>clearConversation</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>📥 Listened Events (1-on-1)</h4>
+    <ul>
+      <li>onlineUsers</li>
+      <li>receiveMessage</li>
+      <li>userTyping</li>
+      <li>messageStatusUpdate</li>
+      <li>messageDeleted</li>
+      <li>conversationCleared</li>
+    </ul>
+  </div>
+</div>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>📤 Emitted Events (Group)</h4>
+    <ul>
+      <li>joinGroup / leaveGroup</li>
+      <li>createGroup / deleteGroup</li>
+      <li>sendGroupMessage</li>
+      <li>getUserGroups</li>
+      <li>editGroupName</li>
+      <li>addGroupMembers</li>
+      <li>removeGroupMember</li>
+      <li>groupTyping</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>📥 Listened Events (Group)</h4>
+    <ul>
+      <li>groupCreated / groupDeleted</li>
+      <li>receiveGroupMessage</li>
+      <li>groupMessageRead</li>
+      <li>groupMessageDeleted</li>
+      <li>groupTyping</li>
+      <li>groupMembersAdded</li>
+      <li>groupMemberRemoved</li>
+      <li>groupNameEdited</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 6. STORAGE -->
+<div class="page-break"></div>
+<h2><span class="num">6</span> Storage Strategy</h2>
+<p>The app uses a <strong>3-tier local storage strategy</strong> — no on-device SQL/NoSQL database. All persistent data lives on the backend; local storage is purely for caching and session management.</p>
+
+<h3>Tier 1 — SecureStorageService (Encrypted)</h3>
+<p>Package: <code>flutter_secure_storage: ^9.2.4</code> — stores sensitive data in the OS keychain/keystore.</p>
+<table>
+  <tr><th>Key</th><th>Data</th></tr>
+  <tr><td>auth_token</td><td>JWT Bearer token</td></tr>
+  <tr><td>employee_id</td><td>Logged-in employee ID</td></tr>
+  <tr><td>username, email, role</td><td>User identity fields</td></tr>
+  <tr><td>app_token</td><td>FCM push notification token</td></tr>
+  <tr><td>mobile, alter_mobile, gender, address, profile_image</td><td>Profile fields</td></tr>
+  <tr><td>nda_submitted, onboarding_completed</td><td>Onboarding flags</td></tr>
+</table>
+
+<h3>Tier 2 — LocalStorageService (JSON Cache)</h3>
+<p>Package: <code>shared_preferences: ^2.5.3</code> — stores non-sensitive cached data as JSON strings.</p>
+<table>
+  <tr><th>Key</th><th>Data</th><th>TTL</th></tr>
+  <tr><td>employee_list</td><td>Full employee list (JSON array)</td><td>1 hour</td></tr>
+  <tr><td>chat_messages_{conversationId}</td><td>Messages per conversation</td><td>Persistent</td></tr>
+  <tr><td>group_chats</td><td>Group chat list</td><td>Persistent</td></tr>
+  <tr><td>group_messages_{groupId}</td><td>Messages per group</td><td>Persistent</td></tr>
+  <tr><td>meet_list</td><td>Meeting list</td><td>Timestamped</td></tr>
+  <tr><td>inbox_mails, sent_mails, trash_mails</td><td>Mail cache</td><td>Timestamped</td></tr>
+  <tr><td>leave_history, available_leave</td><td>Leave data</td><td>Persistent</td></tr>
+  <tr><td>attendance_data</td><td>Attendance records</td><td>Persistent</td></tr>
+  <tr><td>recent_chats</td><td>Ordered list of recent chat user IDs</td><td>Persistent</td></tr>
+  <tr><td>is_logged_in</td><td>Boolean login flag</td><td>Session</td></tr>
+</table>
+
+<h3>Tier 3 — Remote Backend Database</h3>
+<div class="info-box">The backend (AWS + Render) manages the actual persistent database. The app treats it as the source of truth and caches locally for offline access and performance optimization.</div>
+
+<!-- 7. PUSH NOTIFICATIONS -->
+<h2><span class="num">7</span> Push Notifications</h2>
+<p>A dual notification system handles both remote (FCM) and local notifications:</p>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>☁️ Firebase Cloud Messaging</h4>
+    <ul>
+      <li>Package: firebase_messaging ^16.0.3</li>
+      <li>Handles background + terminated state</li>
+      <li>FCM token synced to backend on login</li>
+      <li>Token auto-refreshes on change</li>
+      <li>Stored in SecureStorage</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🔔 Local Notifications</h4>
+    <ul>
+      <li>Package: flutter_local_notifications ^19.5.0</li>
+      <li>Shows in-app foreground notifications</li>
+      <li>Consolidated chat badge (e.g. "3 unread")</li>
+      <li>Tap navigates to correct chat screen</li>
+      <li>Supports Android + iOS</li>
+    </ul>
+  </div>
+</div>
+
+<table>
+  <tr><th>Notification Type</th><th>Navigation Target</th></tr>
+  <tr><td>Message (1-on-1 chat)</td><td>/chat/:otherUserId</td></tr>
+  <tr><td>GroupMessage (group chat)</td><td>/chat/group/:groupId</td></tr>
+</table>
+
+<!-- 8. NAVIGATION -->
+<div class="page-break"></div>
+<h2><span class="num">8</span> Navigation System</h2>
+<p>Package: <code>go_router: ^16.2.4</code> — declarative, URL-based routing with shell routes and auth guards.</p>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>⚙️ Router Features</h4>
+    <ul>
+      <li>ShellRoute for persistent bottom nav</li>
+      <li>Auth guard (authGuard function)</li>
+      <li>Fade + Slide transitions (300ms)</li>
+      <li>rootNavigatorKey for global navigation</li>
+      <li>Extra params for passing objects</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🏠 Shell Routes (Bottom Nav)</h4>
+    <ul>
+      <li>/home → HomeScreen</li>
+      <li>/chat → ChatListScreen</li>
+      <li>/meet-view → MeetScreen</li>
+      <li>/mail → MailScreen</li>
+      <li>/mail_detail → MailDetailsScreen</li>
+    </ul>
+  </div>
+</div>
+
+<h3>All Application Routes</h3>
+<table>
+  <tr><th>Route</th><th>Screen</th><th>Type</th></tr>
+  <tr><td>/splash</td><td>SplashScreen</td><td><span class="badge badge-purple">Public</span></td></tr>
+  <tr><td>/login</td><td>LoginScreen</td><td><span class="badge badge-purple">Public</span></td></tr>
+  <tr><td>/forgot-password</td><td>ForgotPasswordScreen</td><td><span class="badge badge-purple">Public</span></td></tr>
+  <tr><td>/verify-otp</td><td>VerifyOtpScreen</td><td><span class="badge badge-purple">Public</span></td></tr>
+  <tr><td>/change-password</td><td>ChangePasswordScreen</td><td><span class="badge badge-purple">Public</span></td></tr>
+  <tr><td>/nda</td><td>NdaScreen</td><td><span class="badge badge-orange">Onboarding</span></td></tr>
+  <tr><td>/onboarding</td><td>OnboardingFormScreen</td><td><span class="badge badge-orange">Onboarding</span></td></tr>
+  <tr><td>/home</td><td>HomeScreen</td><td><span class="badge badge-blue">Shell</span></td></tr>
+  <tr><td>/chat</td><td>ChatListScreen</td><td><span class="badge badge-blue">Shell</span></td></tr>
+  <tr><td>/meet-view</td><td>MeetScreen</td><td><span class="badge badge-blue">Shell</span></td></tr>
+  <tr><td>/mail</td><td>MailScreen</td><td><span class="badge badge-blue">Shell</span></td></tr>
+  <tr><td>/chat/:otherUserId</td><td>ChatScreen (1-on-1)</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/chat/group/:groupId</td><td>GroupChatScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/chat/group/:groupId/details</td><td>GroupDetailsScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/scedule-meet</td><td>ScheduleMeet</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/compose-mail</td><td>ComposeMailScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/permissions</td><td>PermissionsScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/face-verification</td><td>FaceVerification</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/user-profile</td><td>ProfileScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/leave-request</td><td>LeaveRequestScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/admin-leave-approval</td><td>AdminLeaveApprovalScreen</td><td><span class="badge badge-red">Admin</span></td></tr>
+  <tr><td>/holiday-calendar</td><td>HolidayCalendarScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/tasks</td><td>TasksScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/social-hub</td><td>SocialHubScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/resignation</td><td>ResignationScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+  <tr><td>/complaint</td><td>MyComplaintsScreen</td><td><span class="badge badge-green">Protected</span></td></tr>
+</table>
+
+<!-- 9. FIREBASE -->
+<h2><span class="num">9</span> Firebase Integration</h2>
+<table>
+  <tr><th>Package</th><th>Version</th><th>Purpose</th></tr>
+  <tr><td>firebase_core</td><td>^4.2.0</td><td>Firebase initialization</td></tr>
+  <tr><td>firebase_messaging</td><td>^16.0.3</td><td>Push notifications (FCM)</td></tr>
+  <tr><td>firebase_crashlytics</td><td>^5.0.2</td><td>Crash reporting & monitoring</td></tr>
+</table>
+<div class="info-box">Configured via <code>firebase_options.dart</code> (auto-generated by FlutterFire CLI). <code>firebase.json</code> present at project root.</div>
+
+<!-- 10. THEME & UI -->
+<h2><span class="num">10</span> Theme & UI</h2>
+<table>
+  <tr><th>Feature</th><th>Detail</th></tr>
+  <tr><td>Theme Mode</td><td>Light mode only (ThemeMode.light)</td></tr>
+  <tr><td>Material Design</td><td>uses-material-design: true</td></tr>
+  <tr><td>Font Scaling</td><td>Clamped 0.8x – 1.2x to prevent layout breaks</td></tr>
+  <tr><td>Splash Screen</td><td>flutter_native_splash (white bg + logo, fullscreen)</td></tr>
+  <tr><td>App Icon</td><td>flutter_launcher_icons (adaptive icon for Android)</td></tr>
+  <tr><td>Charts</td><td>syncfusion_flutter_charts ^31.2.4</td></tr>
+  <tr><td>Shimmer Loading</td><td>shimmer ^3.0.0</td></tr>
+  <tr><td>Image Caching</td><td>cached_network_image ^3.4.1</td></tr>
+  <tr><td>Photo Viewer</td><td>photo_view ^0.15.0</td></tr>
+  <tr><td>Video Player</td><td>video_player ^2.10.0</td></tr>
+  <tr><td>OTP Input</td><td>pinput ^5.0.2</td></tr>
+  <tr><td>Loading Animations</td><td>loading_animation_widget ^1.3.0</td></tr>
+</table>
+
+<!-- 11. AUTH FLOW -->
+<div class="page-break"></div>
+<h2><span class="num">11</span> Authentication Flow</h2>
+
+<div class="code-block"><span class="comment">── LOGIN FLOW ──────────────────────────────────────────────</span>
+<span class="key">1.</span> User enters employeeId + password
+<span class="key">2.</span> POST /employee/login
+<span class="key">3.</span> JWT token → SecureStorageService (auth_token)
+<span class="key">4.</span> FCM token synced → backend (employee/profile/:id)
+<span class="key">5.</span> Socket joined (userId + username)
+<span class="key">6.</span> Navigate based on flags:
+   ndaSubmitted = false    → /nda
+   onboardingCompleted = false → /onboarding
+   else                    → /home
+
+<span class="comment">── FORGOT PASSWORD FLOW ────────────────────────────────────</span>
+<span class="key">1.</span> GET  /employee/getOTP/:employeeId
+<span class="key">2.</span> POST /employee/verifyOtp  { employeeId, otp }
+<span class="key">3.</span> POST /employee/changePassword { employeeId, password }
+
+<span class="comment">── SESSION RESTORE ─────────────────────────────────────────</span>
+<span class="key">1.</span> App start → LocalStorageService.isLoggedIn()
+<span class="key">2.</span> If true → SecureStorageService.getUserData()
+<span class="key">3.</span> AuthState.authenticated → navigate to /home
+
+<span class="comment">── LOGOUT FLOW ─────────────────────────────────────────────</span>
+<span class="key">1.</span> SocketManager.leave() → disconnect socket
+<span class="key">2.</span> SecureStorageService.clearUserData()
+<span class="key">3.</span> LocalStorageService.setLoginState(false)
+<span class="key">4.</span> Navigate to /login</div>
+
+<!-- 12. FEATURE MODULES -->
+<h2><span class="num">12</span> Feature Modules</h2>
+<table>
+  <tr><th>Feature</th><th>Screens</th><th>Key Capabilities</th></tr>
+  <tr><td>Auth</td><td>Login, ForgotPassword, VerifyOTP, ChangePassword, NDA, Onboarding, Profile</td><td>JWT auth, OTP flow, profile update, face verification</td></tr>
+  <tr><td>Chat</td><td>ChatList, ChatScreen, GroupChatScreen, GroupDetails</td><td>Real-time 1-on-1 & group chat, file sharing, read receipts, typing indicators, delete messages</td></tr>
+  <tr><td>Home</td><td>HomeScreen, ProfileScreen</td><td>Dashboard, clock-in/out with face verification, attendance tracking</td></tr>
+  <tr><td>Mail</td><td>MailScreen, MailDetail, ComposeMail</td><td>Internal email system with inbox/sent/trash</td></tr>
+  <tr><td>Meet</td><td>MeetScreen, ScheduleMeet</td><td>Meeting list and scheduling</td></tr>
+  <tr><td>Leave</td><td>LeaveRequest, AdminLeaveApproval</td><td>Leave requests, history, admin approval/rejection</td></tr>
+  <tr><td>Holiday</td><td>HolidayCalendar</td><td>Company holiday calendar</td></tr>
+  <tr><td>Tasks</td><td>TasksScreen</td><td>Task management and tracking</td></tr>
+  <tr><td>Social</td><td>SocialHubScreen</td><td>Social feed / company posts</td></tr>
+  <tr><td>Complaint</td><td>MyComplaintsScreen</td><td>Submit and track complaints</td></tr>
+  <tr><td>HR Services</td><td>ResignationScreen</td><td>Submit resignation</td></tr>
+  <tr><td>Settings</td><td>PermissionsScreen</td><td>App permission management</td></tr>
+</table>
+
+<!-- 13. PACKAGES -->
+<h2><span class="num">13</span> Key Packages Summary</h2>
+<table>
+  <tr><th>Category</th><th>Package</th><th>Version</th></tr>
+  <tr><td>State Management</td><td>provider</td><td>^6.1.5+1</td></tr>
+  <tr><td>Navigation</td><td>go_router</td><td>^16.2.4</td></tr>
+  <tr><td>HTTP Client</td><td>http</td><td>^1.5.0</td></tr>
+  <tr><td>HTTP Client (alt)</td><td>dio</td><td>^5.9.0</td></tr>
+  <tr><td>WebSocket</td><td>socket_io_client</td><td>^3.1.2</td></tr>
+  <tr><td>Secure Storage</td><td>flutter_secure_storage</td><td>^9.2.4</td></tr>
+  <tr><td>Local Cache</td><td>shared_preferences</td><td>^2.5.3</td></tr>
+  <tr><td>Firebase Core</td><td>firebase_core</td><td>^4.2.0</td></tr>
+  <tr><td>Push Notifications</td><td>firebase_messaging</td><td>^16.0.3</td></tr>
+  <tr><td>Crash Reporting</td><td>firebase_crashlytics</td><td>^5.0.2</td></tr>
+  <tr><td>Local Notifications</td><td>flutter_local_notifications</td><td>^19.5.0</td></tr>
+  <tr><td>File Picker</td><td>file_picker</td><td>^10.3.3</td></tr>
+  <tr><td>Image Picker</td><td>image_picker</td><td>^1.2.0</td></tr>
+  <tr><td>File Opener</td><td>open_file</td><td>^3.5.10</td></tr>
+  <tr><td>Path Provider</td><td>path_provider</td><td>^2.1.5</td></tr>
+  <tr><td>Video Player</td><td>video_player</td><td>^2.10.0</td></tr>
+  <tr><td>Photo Viewer</td><td>photo_view</td><td>^0.15.0</td></tr>
+  <tr><td>Image Cache</td><td>cached_network_image</td><td>^3.4.1</td></tr>
+  <tr><td>Charts</td><td>syncfusion_flutter_charts</td><td>^31.2.4</td></tr>
+  <tr><td>Shimmer</td><td>shimmer</td><td>^3.0.0</td></tr>
+  <tr><td>OTP Input</td><td>pinput</td><td>^5.0.2</td></tr>
+  <tr><td>Loading Animations</td><td>loading_animation_widget</td><td>^1.3.0</td></tr>
+  <tr><td>UUID Generator</td><td>uuid</td><td>^4.5.1</td></tr>
+  <tr><td>Internationalization</td><td>intl</td><td>^0.20.2</td></tr>
+  <tr><td>Crypto</td><td>crypto</td><td>^3.0.6</td></tr>
+  <tr><td>MIME Types</td><td>mime</td><td>^2.0.0</td></tr>
+  <tr><td>Logger</td><td>logger</td><td>^2.6.2</td></tr>
+  <tr><td>Environment</td><td>flutter_dotenv</td><td>^6.0.0</td></tr>
+  <tr><td>Permissions</td><td>permission_handler</td><td>^12.0.1</td></tr>
+  <tr><td>URL Launcher</td><td>url_launcher</td><td>^6.3.2</td></tr>
+  <tr><td>Audio Player</td><td>audioplayers</td><td>^6.5.1</td></tr>
+  <tr><td>Splash Screen</td><td>flutter_native_splash</td><td>^2.4.7</td></tr>
+  <tr><td>App Icon</td><td>flutter_launcher_icons</td><td>^0.14.4</td></tr>
+</table>
+
+<!-- 14. ARCHITECTURE DIAGRAM -->
+<div class="page-break"></div>
+<h2><span class="num">14</span> Architecture Diagram</h2>
+
+<div class="arch-diagram">
+<span class="box">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="box">│                    Flutter App (UI Layer)                   │</span>
+<span class="box">│         Screens → Widgets → Providers (ChangeNotifier)      │</span>
+<span class="box">└──────────────────────┬──────────────────────────────────────┘</span>
+                       │
+          <span class="arrow">┌────────────┴────────────┐</span>
+          │                         │
+<span class="box">┌─────────▼──────┐         ┌────────▼────────┐</span>
+<span class="box">│   REST API     │         │   WebSocket     │</span>
+<span class="box">│  (http pkg)    │         │ (socket_io)     │</span>
+<span class="box">│  ApiHelper     │         │ SocketManager   │</span>
+<span class="box">└─────────┬──────┘         └────────┬────────┘</span>
+          │                         │
+          <span class="arrow">└────────────┬────────────┘</span>
+                       │
+          <span class="box">┌────────────▼────────────┐</span>
+          <span class="box">│     Backend Services    │</span>
+          <span class="box">│  AWS API Gateway (REST) │</span>
+          <span class="box">│  Render.com (Socket.IO) │</span>
+          <span class="box">└─────────────────────────┘</span>
+
+<span class="label">Local Storage (3-Tier):</span>
+  <span class="box">SecureStorage</span> (encrypted)  → JWT, FCM token, profile data
+  <span class="box">SharedPreferences</span> (JSON)   → Messages, mails, employees, meets
+  <span class="box">Remote Backend DB</span>          → Source of truth (all persistent data)
+
+<span class="label">Push Notifications:</span>
+  <span class="box">FCM (Firebase)</span>             → Background / terminated state
+  <span class="box">flutter_local_notifications</span> → Foreground in-app notifications
+
+<span class="label">Auth State Machine:</span>
+  idle → loading → authenticated → unauthenticated / error
+</div>
+
+<div class="warn-box">
+  <strong>Note:</strong> The app uses <code>keys.env</code> (flutter_dotenv) for environment configuration. Ensure this file is present and not committed to version control. The socket server on Render.com may have cold-start delays (~30s) after inactivity.
+</div>
+
+</div><!-- end container -->
+
+<div class="footer">
+  HrZ-HRMS App — Architecture Report &nbsp;|&nbsp; Generated February 2026 &nbsp;|&nbsp; Flutter ^3.9.0 &nbsp;|&nbsp; Confidential
+</div>
+
+<script>
+  // Auto-trigger print dialog for PDF saving
+  window.onload = function() {
+    // Small delay to ensure fonts load
+    setTimeout(() => {
+      window.print();
+    }, 1500);
+  };
+</script>
+</body>
+</html>
