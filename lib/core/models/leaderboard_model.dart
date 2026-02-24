@@ -42,6 +42,46 @@ class LeaderboardModel {
   }
 }
 
+class RecentCompletion {
+  final String type;
+  final String id;
+  final String name;
+  final String key;
+  final int points;
+  final String completedAt;
+
+  RecentCompletion({
+    required this.type,
+    required this.id,
+    required this.name,
+    required this.key,
+    required this.points,
+    required this.completedAt,
+  });
+
+  factory RecentCompletion.fromJson(Map<String, dynamic> json) {
+    return RecentCompletion(
+      type: json['type']?.toString() ?? '',
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      key: json['key']?.toString() ?? '',
+      points: json['points'] ?? 0,
+      completedAt: json['completedAt']?.toString() ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type,
+      'id': id,
+      'name': name,
+      'key': key,
+      'points': points,
+      'completedAt': completedAt,
+    };
+  }
+}
+
 class UserStatsModel {
   final int rank;
   final String percentile;
@@ -50,6 +90,7 @@ class UserStatsModel {
   final int subtasksDone;
   final int toNextRank;
   final int nextRank;
+  final List<RecentCompletion> recentCompletions;
 
   UserStatsModel({
     required this.rank,
@@ -59,12 +100,16 @@ class UserStatsModel {
     required this.subtasksDone,
     required this.toNextRank,
     required this.nextRank,
+    required this.recentCompletions,
   });
 
   factory UserStatsModel.fromJson(Map<String, dynamic> json) {
     // API returns nested objects: stats and progression
     final stats = json['stats'] ?? {};
     final progression = json['progression'] ?? {};
+    final completionsList = (json['recentCompletions'] as List? ?? [])
+        .map((e) => RecentCompletion.fromJson(e))
+        .toList();
     
     return UserStatsModel(
       rank: stats['currentRank'] ?? 0,
@@ -74,6 +119,7 @@ class UserStatsModel {
       subtasksDone: stats['completedSubtasks'] ?? 0,
       toNextRank: progression['pointsToNextRank'] ?? 0,
       nextRank: progression['nextRank'] ?? 0,
+      recentCompletions: completionsList,
     );
   }
 
@@ -86,6 +132,7 @@ class UserStatsModel {
       'subtasksDone': subtasksDone,
       'toNextRank': toNextRank,
       'nextRank': nextRank,
+      'recentCompletions': recentCompletions.map((e) => e.toJson()).toList(),
     };
   }
 }
