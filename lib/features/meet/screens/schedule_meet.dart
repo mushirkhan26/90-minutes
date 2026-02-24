@@ -93,104 +93,99 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
     return selected.isBefore(DateTime.now());
   }
 
- Future<void> _pickDate() async {
-  final messenger = ScaffoldMessenger.of(context);
-  final currentContext = context;
+  Future<void> _pickDate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final currentContext = context;
 
-  final DateTime? picked = await showDatePicker(
-    context: currentContext,
-    initialDate: DateTime.now(),
-    firstDate: DateTime.now(),
-    lastDate: DateTime(2100),
-  );
-
-  if (!mounted || picked == null) return;
-
-  if (_isSunday(picked)) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Meetings cannot be scheduled on Sundays"),
-      ),
+    final DateTime? picked = await showDatePicker(
+      context: currentContext,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
     );
-    return;
-  }
 
-  setState(() {
-    _selectedDate = picked;
-    _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
-  });
-}
- Future<void> _pickStartDate() async {
-  final messenger = ScaffoldMessenger.of(context);
-  final currentContext = context;
+    if (!mounted || picked == null) return;
 
-  final DateTime? picked = await showDatePicker(
-    context: currentContext,
-    initialDate: DateTime.now(),
-    firstDate: DateTime.now(),
-    lastDate: DateTime(2100),
-  );
-
-  if (!mounted || picked == null) return;
-
-  if (_isSunday(picked)) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Meetings cannot start on Sundays"),
-      ),
-    );
-    return;
-  }
-
-  setState(() {
-    _startDate = picked;
-    _startDateController.text =
-        DateFormat('dd-MM-yyyy').format(picked);
-
-    // Reset end date if it is before start date
-    if (_endDate != null && _endDate!.isBefore(_startDate!)) {
-      _endDate = null;
-      _endDateController.clear();
+    if (_isSunday(picked)) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text("Meetings cannot be scheduled on Sundays"),
+        ),
+      );
+      return;
     }
-  });
-}
+
+    setState(() {
+      _selectedDate = picked;
+      _dateController.text = DateFormat('dd-MM-yyyy').format(picked);
+    });
+  }
+
+  Future<void> _pickStartDate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final currentContext = context;
+
+    final DateTime? picked = await showDatePicker(
+      context: currentContext,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2100),
+    );
+
+    if (!mounted || picked == null) return;
+
+    if (_isSunday(picked)) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Meetings cannot start on Sundays")),
+      );
+      return;
+    }
+
+    setState(() {
+      _startDate = picked;
+      _startDateController.text = DateFormat('dd-MM-yyyy').format(picked);
+
+      // Reset end date if it is before start date
+      if (_endDate != null && _endDate!.isBefore(_startDate!)) {
+        _endDate = null;
+        _endDateController.clear();
+      }
+    });
+  }
+
   Future<void> _pickEndDate() async {
-  final messenger = ScaffoldMessenger.of(context);
-  final currentContext = context;
+    final messenger = ScaffoldMessenger.of(context);
+    final currentContext = context;
 
-  if (_startDate == null) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Please select Start Date first"),
-      ),
+    if (_startDate == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Please select Start Date first")),
+      );
+      return;
+    }
+
+    final DateTime? picked = await showDatePicker(
+      context: currentContext,
+      initialDate: _startDate!,
+      firstDate: _startDate!,
+      lastDate: DateTime(2100),
     );
-    return;
+
+    if (!mounted || picked == null) return;
+
+    if (_isSunday(picked)) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Meetings cannot end on Sundays")),
+      );
+      return;
+    }
+
+    setState(() {
+      _endDate = picked;
+      _endDateController.text = DateFormat('dd-MM-yyyy').format(picked);
+    });
   }
 
-  final DateTime? picked = await showDatePicker(
-    context: currentContext,
-    initialDate: _startDate!,
-    firstDate: _startDate!,
-    lastDate: DateTime(2100),
-  );
-
-  if (!mounted || picked == null) return;
-
-  if (_isSunday(picked)) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Meetings cannot end on Sundays"),
-      ),
-    );
-    return;
-  }
-
-  setState(() {
-    _endDate = picked;
-    _endDateController.text =
-        DateFormat('dd-MM-yyyy').format(picked);
-  });
-}
   Future<void> _pickTime() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -223,41 +218,35 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   // }
 
   Future<void> _pickFiles() async {
-  final messenger = ScaffoldMessenger.of(context);
+    final messenger = ScaffoldMessenger.of(context);
 
-  if (_attachments.length >= 5) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("You can upload maximum 5 files only"),
-      ),
-    );
-    return;
+    if (_attachments.length >= 5) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("You can upload maximum 5 files only")),
+      );
+      return;
+    }
+
+    final result = await FilePicker.platform.pickFiles(allowMultiple: true);
+
+    if (!mounted || result == null) return;
+
+    final pickedFiles = result.paths
+        .where((p) => p != null)
+        .map((p) => File(p!))
+        .toList();
+
+    if (_attachments.length + pickedFiles.length > 5) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("You can upload maximum 5 files only")),
+      );
+      return;
+    }
+
+    setState(() {
+      _attachments.addAll(pickedFiles);
+    });
   }
-
-  final result = await FilePicker.platform.pickFiles(
-    allowMultiple: true,
-  );
-
-  if (!mounted || result == null) return;
-
-  final pickedFiles = result.paths
-      .where((p) => p != null)
-      .map((p) => File(p!))
-      .toList();
-
-  if (_attachments.length + pickedFiles.length > 5) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("You can upload maximum 5 files only"),
-      ),
-    );
-    return;
-  }
-
-  setState(() {
-    _attachments.addAll(pickedFiles);
-  });
-}
 
   List<DateTime> _calculateRecurrenceDates() {
     List<DateTime> dates = [];
@@ -305,109 +294,105 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
   }
 
   Future<void> _scheduleMeeting() async {
-  final messenger = ScaffoldMessenger.of(context);
-  final navigator = Navigator.of(context);
-  final meetProvider = context.read<MeetProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final meetProvider = context.read<MeetProvider>();
 
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  // Date validation
-  if (_recurrence == 'One-time meeting') {
-    if (_selectedDate == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Please select Date")),
-      );
-      return;
-    }
-  } else {
-    if (_startDate == null || _endDate == null) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text("Please select both Start and End Date")),
-      );
-      return;
-    }
-  }
-
-  if (_selectedTime == null) {
-    messenger.showSnackBar(
-      const SnackBar(content: Text("Please select Time")),
-    );
-    return;
-  }
-
-  if (_selectedParticipants.isEmpty) {
-    messenger.showSnackBar(
-      const SnackBar(content: Text("Please add at least one participant")),
-    );
-    return;
-  }
-
-  final scheduledDates = _calculateRecurrenceDates();
-
-  if (scheduledDates.isEmpty) {
-    messenger.showSnackBar(
-      const SnackBar(content: Text("No valid dates to schedule")),
-    );
-    return;
-  }
-
-  // Prevent past date/time
-  for (final date in scheduledDates) {
-    if (_isPastDateTime(date)) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            "Selected time is already completed. Please choose a future time.",
+    // Date validation
+    if (_recurrence == 'One-time meeting') {
+      if (_selectedDate == null) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text("Please select Date")),
+        );
+        return;
+      }
+    } else {
+      if (_startDate == null || _endDate == null) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text("Please select both Start and End Date"),
           ),
-        ),
+        );
+        return;
+      }
+    }
+
+    if (_selectedTime == null) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Please select Time")),
       );
       return;
     }
-  }
 
-  bool allSuccess = true;
+    if (_selectedParticipants.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Please add at least one participant")),
+      );
+      return;
+    }
 
-  for (final date in scheduledDates) {
-    final success = await meetProvider.addMeeting(
-      meetLink: _linkController.text,
-      description: _titleController.text,
-      time: date.toUtc().toIso8601String(),
-      participants: _selectedParticipants
-          .map((e) => {
-                "employeeId": e.employeeID,
-                "name": e.name,
-              })
-          .toList(),
-      agenda: _agendaController.text,
-      duration: int.tryParse(_durationController.text) ?? 30,
-    );
+    final scheduledDates = _calculateRecurrenceDates();
 
-    if (!success) {
-      allSuccess = false;
+    if (scheduledDates.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("No valid dates to schedule")),
+      );
+      return;
+    }
+
+    // Prevent past date/time
+    for (final date in scheduledDates) {
+      if (_isPastDateTime(date)) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Selected time is already completed. Please choose a future time.",
+            ),
+          ),
+        );
+        return;
+      }
+    }
+
+    bool allSuccess = true;
+
+    for (final date in scheduledDates) {
+      final success = await meetProvider.addMeeting(
+        meetLink: _linkController.text,
+        description: _titleController.text,
+        time: date.toUtc().toIso8601String(),
+        participants: _selectedParticipants
+            .map((e) => {"employeeId": e.employeeID, "name": e.name})
+            .toList(),
+        agenda: _agendaController.text,
+        duration: int.tryParse(_durationController.text) ?? 30,
+      );
+
+      if (!success) {
+        allSuccess = false;
+      }
+    }
+
+    if (!mounted) return;
+
+    await meetProvider.fetchUpcomingMeetings(forceRefresh: true);
+
+    if (!mounted) return;
+
+    if (allSuccess) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Meeting(s) scheduled successfully!")),
+      );
+      navigator.pop();
+    } else {
+      messenger.showSnackBar(
+        const SnackBar(content: Text("Some meetings failed to schedule.")),
+      );
     }
   }
 
-  if (!mounted) return;
-
-  await meetProvider.fetchUpcomingMeetings(forceRefresh: true);
-
-  if (!mounted) return;
-
-  if (allSuccess) {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Meeting(s) scheduled successfully!"),
-      ),
-    );
-    navigator.pop();
-  } else {
-    messenger.showSnackBar(
-      const SnackBar(
-        content: Text("Some meetings failed to schedule."),
-      ),
-    );
-  }
-}
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -438,465 +423,463 @@ class _ScheduleMeetState extends State<ScheduleMeet> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // _buildLabel("Meeting Title *", Icons.description_outlined),
-              // CustomTextField(
-              //   controller: _titleController,
-              //   hintText: "Enter meeting title",
-              // ),
-              // _buildLabel("Meeting Title *", Icons.description_outlined),
-              // CustomTextField(
-              //   controller: _titleController,
-              //   hintText: "Enter meeting title",
-              // ),
-              _buildLabel("Meeting Title *", Icons.description_outlined),
-              CustomTextField(
-                controller: _titleController,
-                hintText: "Enter meeting title",
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
-                ],
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Meeting title is required";
-                  }
-                  if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value.trim())) {
-                    return "Only letters are allowed";
-                  }
-                  return null;
-                },
-              ),
-
-              const SizedBox(height: 15),
-
-              _buildLabel("Recurrence", Icons.bookmark_border),
-              DropdownButtonFormField<String>(
-                initialValue: _recurrence,
-                decoration: InputDecoration(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                items: ['One-time meeting', 'Daily', 'Weekly'].map((
-                  String val,
-                ) {
-                  return DropdownMenuItem(
-                    value: val,
-                    child: Text(val, style: const TextStyle(fontSize: 14)),
-                  );
-                }).toList(),
-                onChanged: (val) => setState(() {
-                  _recurrence = val!;
-                  // Reset dates when recurrence changes
-                  _selectedDate = null;
-                  _startDate = null;
-                  _endDate = null;
-                  _dateController.clear();
-                  _startDateController.clear();
-                  _endDateController.clear();
-                }),
-              ),
-              const SizedBox(height: 15),
-
-              if (_recurrence == 'One-time meeting') ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel("Date *", Icons.calendar_today_outlined),
-                          CustomTextField(
-                            controller: _dateController,
-                            hintText: "Select date",
-                            readOnly: true,
-                            onTap: _pickDate,
-                            suffixIcon: const Icon(Icons.keyboard_arrow_down),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel("Time *", Icons.access_time),
-                          CustomTextField(
-                            controller: _timeController,
-                            hintText: "Select time",
-                            readOnly: true,
-                            onTap: _pickTime,
-                            suffixIcon: const Icon(Icons.keyboard_arrow_down),
-                          ),
-                        ],
-                      ),
-                    ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildLabel("Meeting Title *", Icons.description_outlined),
+                CustomTextField(
+                  controller: _titleController,
+                  hintText: "Enter meeting title",
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z\s]')),
                   ],
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "Meeting title is required";
+                    }
+                    if (!RegExp(r'^[a-zA-Z\s]+$').hasMatch(value.trim())) {
+                      return "Only letters are allowed";
+                    }
+                    return null;
+                  },
                 ),
-              ] else ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.2),
+
+                const SizedBox(height: 15),
+
+                _buildLabel("Recurrence", Icons.bookmark_border),
+                DropdownButtonFormField<String>(
+                  initialValue: _recurrence,
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_month,
-                            size: 18,
-                            color: Colors.blue.shade700,
-                          ),
+                  items: ['One-time meeting', 'Daily', 'Weekly'].map((
+                    String val,
+                  ) {
+                    return DropdownMenuItem(
+                      value: val,
+                      child: Text(val, style: const TextStyle(fontSize: 14)),
+                    );
+                  }).toList(),
+                  onChanged: (val) => setState(() {
+                    _recurrence = val!;
+                    // Reset dates when recurrence changes
+                    _selectedDate = null;
+                    _startDate = null;
+                    _endDate = null;
+                    _dateController.clear();
+                    _startDateController.clear();
+                    _endDateController.clear();
+                  }),
+                ),
+                const SizedBox(height: 15),
 
-                          const SizedBox(width: 8),
-                          Text(
-                            "Recurrence Period",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue.shade700,
+                if (_recurrence == 'One-time meeting') ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel(
+                              "Date *",
+                              Icons.calendar_today_outlined,
                             ),
-                          ),
-                        ],
+                            CustomTextField(
+                              controller: _dateController,
+                              hintText: "Select date",
+                              readOnly: true,
+                              onTap: _pickDate,
+                              suffixIcon: const Icon(Icons.keyboard_arrow_down),
+                            ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "Start Date *",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                CustomTextField(
-                                  controller: _startDateController,
-                                  hintText: "dd-mm-yyyy",
-                                  readOnly: true,
-                                  onTap: _pickStartDate,
-                                  suffixIcon: const Icon(
-                                    Icons.calendar_today,
-                                    size: 16,
-                                  ),
-                                ),
-                              ],
+                      const SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel("Time *", Icons.access_time),
+                            CustomTextField(
+                              controller: _timeController,
+                              hintText: "Select time",
+                              readOnly: true,
+                              onTap: _pickTime,
+                              suffixIcon: const Icon(Icons.keyboard_arrow_down),
                             ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  "End Date *",
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                CustomTextField(
-                                  controller: _endDateController,
-                                  hintText: "dd-mm-yyyy",
-                                  readOnly: true,
-                                  onTap: _pickEndDate,
-                                  suffixIcon: const Icon(
-                                    Icons.calendar_today,
-                                    size: 16,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(height: 15),
-                _buildLabel("Time *", Icons.access_time),
-                CustomTextField(
-                  controller: _timeController,
-                  hintText: "Select time",
-                  readOnly: true,
-                  onTap: _pickTime,
-                  suffixIcon: const Icon(Icons.keyboard_arrow_down),
-                ),
-              ],
-
-              const SizedBox(height: 15),
-
-              _buildLabel("Duration (min) *", Icons.timer_outlined),
-              CustomTextField(
-                controller: _durationController,
-                hintText: "30",
-                keyboardType: TextInputType.number,
-              ),
-              // _buildLabel("Duration (min) *", Icons.timer_outlined),
-              // CustomTextField(
-              //   controller: _durationController,
-              //   hintText: "Enter duration in minutes",
-              //   keyboardType: TextInputType.number,
-              //   validator: (value) {
-              //     if (value == null || value.trim().isEmpty) {
-              //       return "Duration is required";
-              //     }
-              //     final duration = int.tryParse(value);
-              //     if (duration == null || duration <= 0) {
-              //       return "Please enter a valid duration";
-              //     }
-              //     if (duration > 480) {
-              //       // Max 8 hours
-              //       return "Duration cannot exceed 480 minutes (8 hours)";
-              //     }
-              //     return null;
-              //   },
-              // ),
-              const SizedBox(height: 15),
-
-              if (_calculateRecurrenceDates().length > 1) ...[
-                const Text(
-                  "Scheduled Instances Preview:",
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 60,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _calculateRecurrenceDates().length,
-                    itemBuilder: (context, index) {
-                      final date = _calculateRecurrenceDates()[index];
-                      return Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            Text(
-                              DateFormat('MMM dd').format(date),
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
+                            Icon(
+                              Icons.calendar_month,
+                              size: 18,
+                              color: Colors.blue.shade700,
                             ),
+
+                            const SizedBox(width: 8),
                             Text(
-                              DateFormat('EEE').format(date),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                color: Colors.grey,
+                              "Recurrence Period",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade700,
                               ),
                             ),
                           ],
                         ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 15),
-              ],
-
-              _buildLabel("Participants *", Icons.people_outline),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey.shade300),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _selectedParticipants.isEmpty
-                              ? "No participants selected"
-                              : "${_selectedParticipants.length} selected",
-                          style: const TextStyle(
-                            color: Colors.grey,
-                            fontSize: 13,
-                          ),
-                        ),
-
-                        ElevatedButton(
-                          onPressed: () => setState(
-                            () => _showParticipantList = !_showParticipantList,
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                          ),
-                          child: const Text("+ Add"),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "Start Date *",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  CustomTextField(
+                                    controller: _startDateController,
+                                    hintText: "dd-mm-yyyy",
+                                    readOnly: true,
+                                    onTap: _pickStartDate,
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    "End Date *",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  CustomTextField(
+                                    controller: _endDateController,
+                                    hintText: "dd-mm-yyyy",
+                                    readOnly: true,
+                                    onTap: _pickEndDate,
+                                    suffixIcon: const Icon(
+                                      Icons.calendar_today,
+                                      size: 16,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    if (_showParticipantList) ...[
-                      const Divider(),
-                      TextField(
-                        decoration: const InputDecoration(
-                          hintText: "Search employee...",
-                          prefixIcon: Icon(Icons.search, size: 18),
-                          border: InputBorder.none,
-                        ),
-                        onChanged: _filterEmployees,
-                      ),
-                      SizedBox(
-                        height: 200,
-                        child: ListView.builder(
-                          itemCount: _filteredEmployees.length,
-                          itemBuilder: (ctx, i) {
-                            final emp = _filteredEmployees[i];
-                            final isSel = _selectedParticipants.contains(emp);
-                            return CheckboxListTile(
-                              title: Text(
-                                emp.name,
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                              value: isSel,
-                              onChanged: (v) => setState(
-                                () => v!
-                                    ? _selectedParticipants.add(emp)
-                                    : _selectedParticipants.remove(emp),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ],
+                  ),
+                  const SizedBox(height: 15),
+                  _buildLabel("Time *", Icons.access_time),
+                  CustomTextField(
+                    controller: _timeController,
+                    hintText: "Select time",
+                    readOnly: true,
+                    onTap: _pickTime,
+                    suffixIcon: const Icon(Icons.keyboard_arrow_down),
+                  ),
+                ],
+
+                const SizedBox(height: 15),
+
+                _buildLabel("Duration (min) *", Icons.timer_outlined),
+                CustomTextField(
+                  controller: _durationController,
+                  hintText: "30",
+                  keyboardType: TextInputType.number,
                 ),
-              ),
-              const SizedBox(height: 15),
+                // _buildLabel("Duration (min) *", Icons.timer_outlined),
+                // CustomTextField(
+                //   controller: _durationController,
+                //   hintText: "Enter duration in minutes",
+                //   keyboardType: TextInputType.number,
+                //   validator: (value) {
+                //     if (value == null || value.trim().isEmpty) {
+                //       return "Duration is required";
+                //     }
+                //     final duration = int.tryParse(value);
+                //     if (duration == null || duration <= 0) {
+                //       return "Please enter a valid duration";
+                //     }
+                //     if (duration > 480) {
+                //       // Max 8 hours
+                //       return "Duration cannot exceed 480 minutes (8 hours)";
+                //     }
+                //     return null;
+                //   },
+                // ),
+                const SizedBox(height: 15),
 
-              // _buildLabel("Meeting Link *", Icons.link),
-              // CustomTextField(
-              //   controller: _linkController,
-              //   hintText: "https://meet.google.com/...",
-              // _buildLabel("Meeting Link *", Icons.link),
-              // CustomTextField(
-              //   controller: _linkController,
-              //   hintText: "https://meet.google.com/...",
-              _buildLabel("Meeting Link *", Icons.link),
-              CustomTextField(
-                controller: _linkController,
-                hintText: "https://meet.google.com/...",
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return "Meeting link is required";
-                  }
-                  if (!_isValidUrl(value.trim())) {
-                    return "Please enter a valid meeting URL";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 15),
+                if (_calculateRecurrenceDates().length > 1) ...[
+                  const Text(
+                    "Scheduled Instances Preview:",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
 
-              _buildLabel("Agenda / Summary *", Icons.notes),
-              CustomTextField(
-                controller: _agendaController,
-                hintText: "Enter meeting agenda or summary...",
-                maxLines: 3,
-              ),
-              const SizedBox(height: 15),
-
-              _buildLabel("Attachments", Icons.upload_file),
-              const Text(
-                "Allowed: PDF, DOC, PPT, XLS, TXT, Videos, Images (Max 8MB, 5 files)",
-                style: TextStyle(fontSize: 10, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              InkWell(
-                onTap: _attachments.length >= 5 ? null : _pickFiles,
-                child: Container(
-                  width: double.infinity,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.grey.shade300,
-                      style: BorderStyle.solid,
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 60,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _calculateRecurrenceDates().length,
+                      itemBuilder: (context, index) {
+                        final date = _calculateRecurrenceDates()[index];
+                        return Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                DateFormat('MMM dd').format(date),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              Text(
+                                DateFormat('EEE').format(date),
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
+                  ),
+                  const SizedBox(height: 15),
+                ],
+
+                _buildLabel("Participants *", Icons.people_outline),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(8),
-                    color: Colors.grey.shade50,
                   ),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.cloud_upload_outlined,
-                        color: Colors.grey,
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _selectedParticipants.isEmpty
+                                ? "No participants selected"
+                                : "${_selectedParticipants.length} selected",
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                            ),
+                          ),
+
+                          ElevatedButton(
+                            onPressed: () => setState(
+                              () =>
+                                  _showParticipantList = !_showParticipantList,
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                            ),
+                            child: const Text("+ Add"),
+                          ),
+                        ],
                       ),
-                      const Text(
-                        "Click to upload files",
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
+                      if (_showParticipantList) ...[
+                        const Divider(),
+                        TextField(
+                          decoration: const InputDecoration(
+                            hintText: "Search employee...",
+                            prefixIcon: Icon(Icons.search, size: 18),
+                            border: InputBorder.none,
+                          ),
+                          onChanged: _filterEmployees,
                         ),
-                      ),
-                      const Text(
-                        "Files will be uploaded immediately",
-                        style: TextStyle(fontSize: 10, color: Colors.grey),
-                      ),
-                      if (_attachments.isNotEmpty)
-                        Text(
-                          "${_attachments.length} files selected",
-                          style: const TextStyle(
-                            fontSize: 10,
-                            color: AppColors.primary,
+                        SizedBox(
+                          height: 200,
+                          child: ListView.builder(
+                            itemCount: _filteredEmployees.length,
+                            itemBuilder: (ctx, i) {
+                              final emp = _filteredEmployees[i];
+                              final isSel = _selectedParticipants.contains(emp);
+                              return CheckboxListTile(
+                                title: Text(
+                                  emp.name,
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                value: isSel,
+                                onChanged: (v) => setState(
+                                  () => v!
+                                      ? _selectedParticipants.add(emp)
+                                      : _selectedParticipants.remove(emp),
+                                ),
+                              );
+                            },
                           ),
                         ),
-                      if (_attachments.length >= 5)
-                        const Text(
-                          "Maximum file limit reached",
-                          style: TextStyle(fontSize: 10, color: Colors.red),
-                        ),
+                      ],
                     ],
                   ),
                 ),
-              ),
+                const SizedBox(height: 15),
 
-              const SizedBox(height: 30),
-              SizedBox(
-                width: double.infinity,
-                child: CustomButton(
-                  text: "Create Meeting",
-                  onPressed: _scheduleMeeting,
-                  backgroundColor: AppColors.primary,
+                // _buildLabel("Meeting Link *", Icons.link),
+                // CustomTextField(
+                //   controller: _linkController,
+                //   hintText: "https://meet.google.com/...",
+                // _buildLabel("Meeting Link *", Icons.link),
+                // CustomTextField(
+                //   controller: _linkController,
+                //   hintText: "https://meet.google.com/...",
+                _buildLabel("Meeting Link *", Icons.link),
+                CustomTextField(
+                  controller: _linkController,
+                  hintText: "https://meet.google.com/...",
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return "Meeting link is required";
+                    }
+                    if (!_isValidUrl(value.trim())) {
+                      return "Please enter a valid meeting URL";
+                    }
+                    return null;
+                  },
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 15),
+
+                _buildLabel("Agenda / Summary *", Icons.notes),
+                CustomTextField(
+                  controller: _agendaController,
+                  hintText: "Enter meeting agenda or summary...",
+                  maxLines: 3,
+                ),
+                const SizedBox(height: 15),
+
+                _buildLabel("Attachments", Icons.upload_file),
+                const Text(
+                  "Allowed: PDF, DOC, PPT, XLS, TXT, Videos, Images (Max 8MB, 5 files)",
+                  style: TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: _attachments.length >= 5 ? null : _pickFiles,
+                  child: Container(
+                    width: double.infinity,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Colors.grey.shade300,
+                        style: BorderStyle.solid,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.grey.shade50,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.cloud_upload_outlined,
+                          color: Colors.grey,
+                        ),
+                        const Text(
+                          "Click to upload files",
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Text(
+                          "Files will be uploaded immediately",
+                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        ),
+                        if (_attachments.isNotEmpty)
+                          Text(
+                            "${_attachments.length} files selected",
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        if (_attachments.length >= 5)
+                          const Text(
+                            "Maximum file limit reached",
+                            style: TextStyle(fontSize: 10, color: Colors.red),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: double.infinity,
+                  child: CustomButton(
+                    text: "Create Meeting",
+                    onPressed: _scheduleMeeting,
+                    backgroundColor: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
