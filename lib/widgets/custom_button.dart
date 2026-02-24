@@ -47,7 +47,7 @@ class CustomButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? AppColors.primary,
           elevation: elevation,
-          // padding: padding,
+          padding: width == null ? padding : EdgeInsets.zero, // Use padding only if width is auto
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             side: borderWidth > 0
@@ -64,18 +64,21 @@ class CustomButton extends StatelessWidget {
               const SizedBox(width: 8),
             ] else if (image != null && imagePosition == ImagePosition.leading) ...[
               image!,
-              const SizedBox(width: 8), // Space between image and text
+              const SizedBox(width: 8),
             ],
-            Text(
-              text,
-              style: TextStyle(
-                color: textColor ?? Colors.white,
-                fontSize: fontSize ?? 14.0,
-                fontWeight: FontWeight.w600,
+            Flexible( // Added Flexible to prevent overflow
+              child: Text(
+                text,
+                overflow: TextOverflow.ellipsis, // Added ellipsis for long text
+                style: TextStyle(
+                  color: textColor ?? Colors.white,
+                  fontSize: fontSize ?? 14.0,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
             if (image != null && imagePosition == ImagePosition.trailing) ...[
-              const SizedBox(width: 8), // Space between text and image
+              const SizedBox(width: 8),
               image!,
             ],
           ],
