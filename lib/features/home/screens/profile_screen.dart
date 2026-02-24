@@ -9,10 +9,24 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
   final List<String> _genderOptions = const ['Male', 'Female', 'Other'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Reload profile data when screen opens to ensure current user's profile
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ProfileProvider>().reloadProfileData();
+    });
+  }
 
   Future<void> _pickAndUploadImage(BuildContext context, ProfileProvider provider) async {
     try {

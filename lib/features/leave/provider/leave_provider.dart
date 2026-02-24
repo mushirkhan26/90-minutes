@@ -29,7 +29,6 @@ class LeaveProvider extends ChangeNotifier {
     bool forceRefresh = false,
   }) async {
     _isLoading = true;
-    notifyListeners();
 
     // 1. Load from local storage first for instant UI
     if (!forceRefresh) {
@@ -37,8 +36,9 @@ class LeaveProvider extends ChangeNotifier {
       final cachedAvailable = await _localStorage.getAvailableLeave();
       if (cachedHistory != null) _leaveHistory = cachedHistory;
       if (cachedAvailable != null) _availableLeave = cachedAvailable;
+      
+      // Notify immediately so UI shows cached data while fetching fresh data
       if (_leaveHistory != null || _availableLeave != null) {
-        _isLoading = false;
         notifyListeners();
       }
     }

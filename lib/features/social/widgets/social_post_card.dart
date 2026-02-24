@@ -117,7 +117,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
                         ),
                       const SizedBox(height: 2),
                       Text(
-                        'Created: ${DateFormat('dd/MM/yyyy, HH:mm:ss').format(widget.post.createdAt.toLocal())}',
+                        'Created: ${DateFormat('dd/MM/yyyy').format(widget.post.createdAt.toLocal())}',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey.shade500,
@@ -205,7 +205,37 @@ class _SocialPostCardState extends State<SocialPostCard> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  if (widget.post.options != null)
+                  
+                  // Show expired message if poll has expired
+                  if (_isPollExpired())
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.red.shade700,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Poll is expired',
+                            style: TextStyle(
+                              color: Colors.red.shade700,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else if (widget.post.options != null)
                     Builder(
                       builder: (context) {
                         final bool hasAnyVoted = widget.post.options!.any(
@@ -320,7 +350,7 @@ class _SocialPostCardState extends State<SocialPostCard> {
                     const Icon(Icons.event, size: 16, color: Colors.orange),
                     const SizedBox(width: 6),
                     Text(
-                      'Scheduled for: ${DateFormat('MMM dd, yyyy • hh:mm a').format(widget.post.eventDate!.toLocal())}',
+                      'Scheduled for: ${DateFormat('MMM dd, yyyy').format(widget.post.eventDate!.toLocal())}',
 
                       style: TextStyle(
                         fontSize: 12,
@@ -699,4 +729,13 @@ class _SocialPostCardState extends State<SocialPostCard> {
       child: Icon(iconData, color: color, size: 20),
     );
   }
+
+  /// Check if poll is expired
+  bool _isPollExpired() {
+    if (widget.post.type != 'poll' || widget.post.expiry == null) {
+      return false;
+    }
+    return DateTime.now().isAfter(widget.post.expiry!);
+  }
 }
+

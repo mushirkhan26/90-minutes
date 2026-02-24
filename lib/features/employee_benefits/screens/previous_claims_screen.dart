@@ -3,6 +3,7 @@ import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:provider/provider.dart';
 import 'package:hrtz_hrms/features/employee_benefits/provider/benefits_provider.dart';
 import 'package:hrtz_hrms/features/employee_benefits/screens/new_claim_screen.dart';
+import 'package:hrtz_hrms/core/models/benefits_claim_model.dart';
 
 class PreviousClaimsScreen extends StatelessWidget {
   const PreviousClaimsScreen({super.key});
@@ -24,6 +25,7 @@ class PreviousClaimsScreen extends StatelessWidget {
 
       body: Column(
         children: [
+
           // Proceed to Claim button
           Padding(
             padding: const EdgeInsets.all(16),
@@ -37,8 +39,9 @@ class PreviousClaimsScreen extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          const NewClaimScreen(benefitName: "REIMBURSEMENT"),
+                      builder: (_) => const NewClaimScreen(
+                        benefitName: "REIMBURSEMENT",
+                      ),
                     ),
                   );
                 },
@@ -56,115 +59,110 @@ class PreviousClaimsScreen extends StatelessWidget {
               itemCount: claims.length,
               itemBuilder: (context, index) {
                 final claim = claims[index];
+
                 final status = claim.claimStatus.toLowerCase();
-                final borderColor = status == "approved"
-                    ? Colors.green
-                    : status == "rejected"
-                    ? Colors.red
-                    : Colors.orange;
 
-                final statusColor = status == "approved"
-                    ? Colors.green
-                    : status == "rejected"
-                    ? Colors.red
-                    : Colors.orange;
+Color borderColor;
+Color statusColor;
 
-                // final isApproved =
-                //     claim.claimStatus.toLowerCase() == "approved";
-
-                // final borderColor =
-                //     isApproved ? Colors.green : Colors.orange;
-
-                // final statusColor =
-                //     isApproved ? Colors.green : Colors.orange;
+if (status == "approved") {
+  borderColor = Colors.green;
+  statusColor = Colors.green;
+} else if (status == "rejected") {
+  borderColor = Colors.red;
+  statusColor = Colors.red;
+} else {
+  // pending / waiting / anything else
+  borderColor = Colors.orange;
+  statusColor = Colors.orange;
+}
 
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 18),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: borderColor,
-                      width: 1.2, // thinner like web
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Benefit Name
-                      Text(
-                        claim.benefitName,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+  margin: const EdgeInsets.only(bottom: 18),
+  padding: const EdgeInsets.all(16),
+  decoration: BoxDecoration(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(
+      color: borderColor,
+      width: 1.2, // thinner like web
+    ),
+  ),
+  child: Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
 
-                      const SizedBox(height: 10),
+      // Benefit Name 
+      Text(
+        claim.benefitName,
+        style: const TextStyle(
+          fontSize: 15,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
 
-                      // 🔹 Insurance ID
-                      const Text(
-                        "Insurance ID:",
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      Text(claim.insuranceId ?? "-"),
+      const SizedBox(height: 10),
 
-                      const SizedBox(height: 6),
+      // 🔹 Insurance ID
+      const Text(
+        "Insurance ID:",
+        style: TextStyle(fontWeight: FontWeight.w500),
+      ),
+      Text(claim.insuranceId ?? "-"),
 
-                      Text("Claim ID: ${claim.id}"),
-                      const SizedBox(height: 6),
+      const SizedBox(height: 6),
 
-                      Text("Beneficiary: ${claim.beneficiaryName}"),
-                      const SizedBox(height: 6),
+      Text("Claim ID: ${claim.id}"),
+      const SizedBox(height: 6),
 
-                      Text("Claim Amount: ${claim.claimAmount}"),
+      Text("Beneficiary: ${claim.beneficiaryName}"),
+      const SizedBox(height: 6),
 
-                      const SizedBox(height: 6),
+      Text("Claim Amount: ${claim.claimAmount}"),
 
-                      // 🔹 Status
-                      Text(
-                        "Status: ${claim.claimStatus}",
-                        style: TextStyle(
-                          color: statusColor,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+      const SizedBox(height: 6),
 
-                      const SizedBox(height: 14),
+      // 🔹 Status
+      Text(
+        "Status: ${claim.claimStatus}",
+        style: TextStyle(
+          color: statusColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
 
-                      // 🔹 Track Button
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: SizedBox(
-                          height: 34,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(context).primaryColor,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                            ),
-                            onPressed: () {
-                              // Track screen
-                            },
-                            child: const Text(
-                              "Track Claim",
+      const SizedBox(height: 14),
 
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+      // 🔹 Track Button
+      Align(
+        alignment: Alignment.centerRight,
+        child: SizedBox(
+          height: 34,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+            ),
+            onPressed: () {
+              _showClaimDetailsDialog(context, claim);
+            },
+            child: const Text(
+              "Track Claim",
+
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 13,
+              ),
+            ),
+          ),
+        ),
+      ),
+    ],
+  ),
+);
               },
             ),
           ),
@@ -172,4 +170,164 @@ class PreviousClaimsScreen extends StatelessWidget {
       ),
     );
   }
+  void _showClaimDetailsDialog(BuildContext context, BenefitsClaimModel claim) {
+    final dialogStatus = claim.claimStatus.toLowerCase();
+
+Color dialogStatusColor;
+
+if (dialogStatus == "approved") {
+  dialogStatusColor = Colors.green;
+} else if (dialogStatus == "rejected") {
+  dialogStatusColor = Colors.red;
+} else {
+  dialogStatusColor = Colors.orange;
+}
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+
+                /// HEADER
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Claim Details",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: const Icon(Icons.close, color: Colors.red),
+                    )
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+
+                /// LEFT COLUMN DETAILS
+                _buildRow("Insurance ID", claim.insuranceId),
+                _buildRow("Beneficiary", claim.beneficiaryName),
+                _buildRow("Claim Amount", "₹${claim.claimAmount}"),
+                _buildRow("Hospital Name", claim.hospitalName),
+                _buildRow("Discharge Date", claim.dischargeDate),
+
+                const SizedBox(height: 10),
+
+                ///  REQUIRED NEW ORDER
+                _buildRow("Claim ID", claim.id),
+                _buildRow("Relation", claim.relationWithEmployee),
+                _buildRow("Bill Amount", "₹${claim.billAmount}"),
+                _buildRow("Admission Date", claim.admissionDate),
+                _buildRow("Email", claim.email),
+
+                const SizedBox(height: 6),
+
+                
+Text(
+  "Status: ${claim.claimStatus}",
+  style: TextStyle(
+    color: dialogStatusColor,
+    fontWeight: FontWeight.bold,
+  ),
+),
+
+                const SizedBox(height: 10),
+
+                ///  VISIT HOSPITAL BILL CLICK
+                if (claim.receipt != null && claim.receipt!.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => Dialog(
+                          child: InteractiveViewer(
+                            child: Image.network(
+                              claim.receipt!,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                    child: const Text(
+                      "Visit Hospital Bill",
+                      style: TextStyle(
+                        color: Colors.teal,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+
+                const SizedBox(height: 20),
+
+                /// BANK DETAILS SECTION
+                const Text(
+                  "Bank Details",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildRow(
+                          "Bank Name", claim.bankDetails.first.bankName),
+                      _buildRow("Account Holder",
+                          claim.bankDetails.first.accountHolderName),
+                      _buildRow("Account Number",
+                          claim.bankDetails.first.accountNumber),
+                      _buildRow(
+                          "IFSC Code", claim.bankDetails.first.ifscCode),
+                      _buildRow(
+                          "Account Type", claim.bankDetails.first.accountType),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+Widget _buildRow(String title, String? value) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 6),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "$title: ",
+          style: const TextStyle(fontWeight: FontWeight.w500),
+        ),
+        Expanded(
+          child: Text(value == null || value.isEmpty ? "-" : value),
+        ),
+      ],
+    ),
+  );
+}
 }

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
@@ -400,8 +401,17 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
   String label, {
   bool required = true,
 }) {
+  final isMobile = label.toLowerCase().contains('mobile') || label.toLowerCase().contains('phone');
+
   return TextFormField(
     controller: ctrl,
+    keyboardType: isMobile ? TextInputType.phone : TextInputType.text,
+    inputFormatters: isMobile
+        ? <TextInputFormatter>[
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ]
+        : null,
     decoration: InputDecoration(
       label: RichText(
         text: TextSpan(
@@ -441,8 +451,21 @@ class _AddServiceRequestScreenState extends State<AddServiceRequestScreen> {
       ),
     ),
     validator: required
-        ? (v) => v == null || v.isEmpty ? "$label is required" : null
-        : null,
+        ? (v) {
+            if (v == null || v.isEmpty) return "$label is required";
+            if (isMobile) {
+              final digits = v.replaceAll(RegExp(r"[^0-9]"), "");
+              if (digits.length != 10) return 'Enter a valid 10-digit mobile number';
+            }
+            return null;
+          }
+        : (v) {
+            if (isMobile && v != null && v.isNotEmpty) {
+              final digits = v.replaceAll(RegExp(r"[^0-9]"), "");
+              if (digits.length != 10) return 'Enter a valid 10-digit mobile number';
+            }
+            return null;
+          },
   );
 }
   Widget _addImageBox() {

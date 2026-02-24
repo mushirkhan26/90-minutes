@@ -47,9 +47,40 @@ class ProfileProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clear all profile data (called on logout)
+  void clear() {
+    nameController.clear();
+    emailController.clear();
+    mobileController.clear();
+    alterMobileController.clear();
+    genderController.clear();
+    addressController.clear();
+    employeeIdController.clear();
+    _profileImageUrl = null;
+    _isEditing = false;
+    _isLoading = false;
+    _local.removeString(_draftKey);
+    notifyListeners();
+  }
+
+  /// Force reload profile data (call after login or when user changes)
+  Future<void> reloadProfileData() async {
+    await loadProfileData();
+  }
+
   Future<void> loadProfileData() async {
     _isLoading = true;
     notifyListeners();
+
+    // Clear old data first to prevent showing previous user's profile
+    nameController.clear();
+    emailController.clear();
+    mobileController.clear();
+    alterMobileController.clear();
+    genderController.clear();
+    addressController.clear();
+    employeeIdController.clear();
+    _profileImageUrl = null;
 
     final userData = await _secureStorage.getUserData();
     final profileData = await _secureStorage.getProfileData();

@@ -19,7 +19,9 @@ class Document {
       name: json['name'] ?? json['documentName'] ?? 'Untitled Document',
       status: json['status'] ?? 'N/A',
       type: json['type'] ?? 'GENERAL',
-      url: json['url'] ?? '',
+      url: json['url'] ??
+            json['documentUrl'] ??
+            json['employeeSignature'] ?? '',
     );
   }
 }
