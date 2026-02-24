@@ -3,9 +3,9 @@ import 'package:go_router/go_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
-import 'package:hrtz_hrms/features/tasks/widgets/add_edit_task_dialog.dart';
+import 'package:hrtz_hrms/features/tasks/widgets/kanban_board.dart';
+import 'package:hrtz_hrms/features/tasks/widgets/task_stat_card.dart';
 import 'package:provider/provider.dart';
-import '../widgets/task_card.dart';
 
 class TasksScreen extends StatefulWidget {
   const TasksScreen({super.key});
@@ -15,13 +15,6 @@ class TasksScreen extends StatefulWidget {
 }
 
 class _TasksScreenState extends State<TasksScreen> {
-  @override
-  void initState() {
-    super.initState();
-    // Logic for fetching tasks moved to Provider constructor/bootstrap.
-    // UI simply consumes the current state.
-  }
-
   @override
   Widget build(BuildContext context) {
     final tasksProvider = Provider.of<TasksProvider>(context);
@@ -57,138 +50,108 @@ class _TasksScreenState extends State<TasksScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      "My Tasks",
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    Text(
-                      "Welcome back, $userName!",
-                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Manager Only Section: General HR Tasks Link
-              if (isManager)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
-                  child: Theme(
-                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: ListTile(
-                        leading: const Icon(Icons.assignment_ind_outlined, color: Color(0xFF26A69A)),
-                        title: const Text(
-                          'General HR Tasks',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                        ),
-                        subtitle: const Text("Tasks not associated with any sprint", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                        onTap: () {
-                          context.push(AppRoutes.generalHrTasks);
-                        },
-                      ),
-                    ),
-                  ),
-                ),
-
-              // Stats Cards Row
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                child: Row(
-                  children: [
-                    _buildStatCard(
-                      title: "Tasks",
-                      count: tasksProvider.totalTasksCount,
-                      icon: Icons.description,
-                      color: Colors.blue[50]!,
-                      iconColor: Colors.blue,
-                    ),
-                    const SizedBox(width: 10),
-                    _buildStatCard(
-                      title: "Subtasks",
-                      count: tasksProvider.subtasksCount,
-                      icon: Icons.check_box,
-                      color: Colors.green[50]!,
-                      iconColor: Colors.green,
-                    ),
-                    const SizedBox(width: 10),
-                    _buildStatCard(
-                      title: "Total Items",
-                      count: tasksProvider.totalItemsCount,
-                      icon: Icons.layers,
-                      color: Colors.purple[50]!,
-                      iconColor: Colors.purple,
-                    ),
-                  ],
-                ),
-              ),
-
-              // Recent Activity Header
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    _buildFilterDropdown(tasksProvider),
-                  ],
-                ),
-              ),
-
-              if (tasksProvider.isLoading && tasksProvider.allTasksList.isEmpty)
-                const Center(child: Padding(
-                  padding: EdgeInsets.all(40.0),
-                  child: CircularProgressIndicator(),
-                ))
-              else if (tasksProvider.tasks.isEmpty)
-                _buildEmptyState()
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: tasksProvider.tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasksProvider.tasks[index];
-                    return TaskCard(
-                      task: task,
-                      onEdit: () {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AddEditTaskDialog(
-                            task: task,
-                            onSave: (updatedTask) async {
-                              await tasksProvider.updateTask(
-                               updatedTask.id,
-                               updatedTask.toMap(),
-                               employeeId,
-                               );
-                             },
-                          ),
-                        );
-                      },
-                      onDelete: () {
-                        _showDeleteDialog(context, tasksProvider, task.id, employeeId);
-                      },
-                    );
-                  },
-                ),
+              _buildHeader(userName),
+              if (isManager) _buildManagerSection(context),
+              _buildStatsSection(tasksProvider),
+              _buildRecentActivityHeader(tasksProvider),
+              _buildTaskContent(tasksProvider),
               const SizedBox(height: 30),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(String userName) {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "My Tasks",
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            "Welcome back, $userName!",
+            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManagerSection(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 5),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: ListTile(
+            leading: const Icon(Icons.assignment_ind_outlined, color: Color(0xFF26A69A)),
+            title: const Text(
+              'General HR Tasks',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            subtitle: const Text("Tasks not associated with any sprint", style: TextStyle(fontSize: 12, color: Colors.grey)),
+            trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+            onTap: () {
+              context.push(AppRoutes.generalHrTasks);
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsSection(TasksProvider tasksProvider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
+      child: Row(
+        children: [
+          TaskStatCard(
+            title: "Tasks",
+            count: tasksProvider.totalTasksCount,
+            icon: Icons.description,
+            color: Colors.blue[50]!,
+            iconColor: Colors.blue,
+          ),
+          const SizedBox(width: 10),
+          TaskStatCard(
+            title: "Subtasks",
+            count: tasksProvider.subtasksCount,
+            icon: Icons.check_box,
+            color: Colors.green[50]!,
+            iconColor: Colors.green,
+          ),
+          const SizedBox(width: 10),
+          TaskStatCard(
+            title: "Total Items",
+            count: tasksProvider.totalItemsCount,
+            icon: Icons.layers,
+            color: Colors.purple[50]!,
+            iconColor: Colors.purple,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivityHeader(TasksProvider tasksProvider) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text("Recent Activity", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          _buildFilterDropdown(tasksProvider),
+        ],
       ),
     );
   }
@@ -218,41 +181,17 @@ class _TasksScreenState extends State<TasksScreen> {
     );
   }
 
-  Widget _buildStatCard({
-    required String title,
-    required int count,
-    required IconData icon,
-    required Color color,
-    required Color iconColor,
-  }) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: iconColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, color: Colors.white, size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(title, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500)),
-            Text(
-              "$count",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
+  Widget _buildTaskContent(TasksProvider tasksProvider) {
+    if (tasksProvider.isLoading && tasksProvider.allTasksList.isEmpty) {
+      return const Center(child: Padding(
+        padding: EdgeInsets.all(40.0),
+        child: CircularProgressIndicator(),
+      ));
+    } else if (tasksProvider.tasks.isEmpty) {
+      return _buildEmptyState();
+    } else {
+      return const KanbanBoard();
+    }
   }
 
   Widget _buildEmptyState() {
@@ -282,26 +221,6 @@ class _TasksScreenState extends State<TasksScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  void _showDeleteDialog(BuildContext context, TasksProvider provider, String id, String employeeId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Task'),
-        content: const Text('Are you sure you want to delete this task?'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              provider.deleteTask(id, employeeId);
-              Navigator.pop(context);
-            },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }

@@ -63,12 +63,7 @@ class TasksProvider with ChangeNotifier {
       final cachedTasks = await _local.getJson(_keyTasks);
       if (cachedTasks != null) {
         final message = cachedTasks['message'];
-        final summary = message['summary'];
-        _totalItems = summary['totalItems'] ?? 0;
-        _totalTasks = summary['totalTasks'] ?? 0;
-        _totalSubtasks = summary['totalSubtasks'] ?? 0;
-        final List<dynamic> itemsJson = message['allItems'] ?? [];
-        _allItems = itemsJson.map((json) => Task.fromMap(json)).toList();
+        _parseTasksFromMessage(message);
       }
 
       final cachedStandalone = await _local.getJson(_keyStandaloneTasks);
@@ -79,6 +74,30 @@ class TasksProvider with ChangeNotifier {
       notifyListeners();
     } catch (e) {
       _logger.error('TASKS_PROVIDER', 'Error loading from cache', error: e);
+    }
+  }
+
+  void _parseTasksFromMessage(Map<String, dynamic> message) {
+    final summary = message['summary'] ?? {};
+    _totalItems = summary['totalItems'] ?? 0;
+    _totalTasks = summary['totalTasks'] ?? 0;
+    _totalSubtasks = summary['totalSubtasks'] ?? 0;
+
+    // Handle both combined list and split lists from API
+    final List<dynamic> allItemsJson = message['allItems'] ?? [];
+    if (allItemsJson.isNotEmpty) {
+      _allItems = allItemsJson.map((json) => Task.fromMap(json)).toList();
+    } else {
+      // Fallback: Combine projectTasks, standaloneTasks and subtasks if allItems is missing
+      final List<dynamic> projectTasks = message['projectTasks'] ?? [];
+      final List<dynamic> standaloneTasks = message['standaloneTasks'] ?? [];
+      final List<dynamic> subtasks = message['subtasks'] ?? [];
+      
+      _allItems = [
+        ...projectTasks.map((json) => Task.fromMap({...json, 'itemType': 'task'})),
+        ...standaloneTasks.map((json) => Task.fromMap({...json, 'itemType': 'task'})),
+        ...subtasks.map((json) => Task.fromMap({...json, 'itemType': 'subtask'})),
+      ];
     }
   }
 
@@ -147,12 +166,7 @@ class TasksProvider with ChangeNotifier {
       if (response.success && response.data != null) {
         await _local.saveJson(_keyTasks, response.data);
         final message = response.data!['message'];
-        final summary = message['summary'];
-        _totalItems = summary['totalItems'] ?? 0;
-        _totalTasks = summary['totalTasks'] ?? 0;
-        _totalSubtasks = summary['totalSubtasks'] ?? 0;
-        final List<dynamic> itemsJson = message['allItems'] ?? [];
-        _allItems = itemsJson.map((json) => Task.fromMap(json)).toList();
+        _parseTasksFromMessage(message);
       }
     } finally {
       _isLoading = false;

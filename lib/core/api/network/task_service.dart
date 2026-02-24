@@ -12,7 +12,7 @@ class TaskService {
   /// 📋 Get All Assigned Items (Tasks & Subtasks) for a User (Doc 8.1)
   Future<ApiResponse<Map<String, dynamic>>> getAssignedItems(String employeeId) async {
     _logger.logNetwork('Fetching assigned items for employeeId: $employeeId');
-    return await _apiHelper.get<Map<String, dynamic>>('task/getAssignedItems?employeeId=$employeeId');
+    return await _apiHelper.get<Map<String, dynamic>>('task/getReviewItems?employeeId=$employeeId');
   }
 
   /// 📋 Get All Standalone Tasks (Doc 3.7)
