@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
+import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
 import 'package:hrtz_hrms/features/hr_services/widgets/my_performance_view.dart';
 import 'package:hrtz_hrms/features/hr_services/widgets/team_performance_view.dart';
 import 'package:provider/provider.dart';
@@ -14,6 +15,20 @@ class PerformanceScreen extends StatefulWidget {
 
 class _PerformanceScreenState extends State<PerformanceScreen> {
   bool isMyPerformance = true;
+
+  Future<void> _handleRefresh() async {
+    final provider = context.read<PerformanceProvider>();
+    final authProvider = context.read<AuthProvider>();
+    final employeeId = authProvider.userData?['employeeId']?.toString();
+
+    if (isMyPerformance) {
+      if (employeeId != null) {
+        await provider.fetchMyPerformance(employeeId);
+      }
+    } else {
+      await provider.fetchTeamPerformance();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +45,12 @@ class _PerformanceScreenState extends State<PerformanceScreen> {
           "Performance",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            onPressed: _handleRefresh,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
       ),
       body: Column(
         children: [
