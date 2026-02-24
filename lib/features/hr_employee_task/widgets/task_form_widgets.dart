@@ -249,10 +249,11 @@ class DocumentListSection extends StatelessWidget {
             ),
           );
         }),
+        const SizedBox(height: 4),
         CustomButton(
-          text: "Add Document",
+          text: \"Add Document\",
           icon: Icons.add,
-          width: 150,
+          width: 160, // Fixed width to avoid overflow
           height: 35,
           fontSize: 12,
           backgroundColor: Colors.transparent,
@@ -294,9 +295,9 @@ class ActionLinkListSection extends StatelessWidget {
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: entry.value["label"],
+                        controller: entry.value[\"label\"],
                         decoration: const InputDecoration(
-                          hintText: "Label (e.g NDA Form)",
+                          hintText: \"Label (e.g NDA Form)\",
                           border: OutlineInputBorder(),
                         ),
                       ),
@@ -309,9 +310,9 @@ class ActionLinkListSection extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: entry.value["url"],
+                  controller: entry.value[\"url\"],
                   decoration: const InputDecoration(
-                    hintText: "URL (https://...)",
+                    hintText: \"URL (https://...)\",
                     border: OutlineInputBorder(),
                   ),
                 ),
@@ -319,10 +320,11 @@ class ActionLinkListSection extends StatelessWidget {
             ),
           );
         }),
+        const SizedBox(height: 4),
         CustomButton(
-          text: "Add Link",
+          text: \"Add Link\",
           icon: Icons.link,
-          width: 150,
+          width: 140, // Fixed width to avoid overflow
           height: 35,
           fontSize: 12,
           backgroundColor: Colors.transparent,
