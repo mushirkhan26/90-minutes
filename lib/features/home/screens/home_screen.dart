@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hrtz_hrms/config/navigation/app_router.dart';
 import 'package:hrtz_hrms/config/navigation/app_routes.dart';
 import 'package:hrtz_hrms/config/theme/app_colors.dart';
 import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
 // import 'package:hrtz_hrms/features/home/widgets/face_verification.dart';
 import 'package:provider/provider.dart';
+import 'package:hrtz_hrms/features/notifications/provider/notification_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../provider/clock_provider.dart';
 import '../widgets/home_chart.dart';
@@ -104,7 +106,44 @@ class _HomeScreenState extends State<HomeScreen> {
       key: _scaffoldKey,
       appBar: AppBar(
         title: const Text("Home"),
-        actions: [Image.asset(AppConstants.logo, height: 60)],
+        //actions: [Image.asset(AppConstants.logo, height: 60)],
+        actions: [
+          Consumer<NotificationProvider>(
+            builder: (context, provider, child) {
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined, color: Colors.black),
+                    onPressed: () {
+                      context.goToNotifications();
+                    },
+                  ),
+                  if (provider.unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${provider.unreadCount}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+          Image.asset(AppConstants.logo, height: 60)
+        ],
       ),
       drawer: HomeDrawer(
         hostContext: context,

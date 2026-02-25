@@ -7,6 +7,7 @@ import 'package:hrtz_hrms/core/models/group_message_model.dart';
 import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
 import 'package:hrtz_hrms/core/models/mail_model.dart';
 import 'package:hrtz_hrms/core/models/meet_model.dart';
+import 'package:hrtz_hrms/core/models/notification_model.dart';
 import 'package:hrtz_hrms/core/models/performance_model.dart';
 import 'package:hrtz_hrms/core/models/project_model.dart';
 import 'package:hrtz_hrms/core/models/payroll_model.dart';
@@ -101,6 +102,9 @@ class LocalStorageService {
 
   static const String keyCompliancePrefix = 'compliance_';
  static const String keyComplianceTimestampPrefix = 'compliance_ts_';
+
+ // 🔔 Notification caching keys
+ static const String keyNotifications = 'notifications_list';
 
 
 
@@ -1028,5 +1032,32 @@ Future<DateTime?> getComplianceTimestamp(
     final key = '$_keyCompliancePrefix$employeeId';
     final ts = prefs.getInt('${key}_timestamp');
     return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
+  }
+
+  // --------------------------------------------------------------------------
+  // 🔔 Notifications caching methods
+  // --------------------------------------------------------------------------
+
+  Future<void> saveNotifications(List<NotificationModel> notifications) async {
+    final jsonList = notifications.map((e) => e.toJson()).toList();
+    await prefs.setString(keyNotifications, jsonEncode(jsonList));
+    _logger.logStorage('Saved ${notifications.length} notifications to cache');
+  }
+
+  Future<List<NotificationModel>?> getNotifications() async {
+    final jsonString = prefs.getString(keyNotifications);
+    if (jsonString == null) return null;
+    try {
+      final List<dynamic> list = jsonDecode(jsonString);
+      return list.map((json) => NotificationModel.fromJson(json)).toList();
+    } catch (e) {
+      _logger.error('LOCAL_STORAGE', 'Failed to parse cached notifications', error: e);
+      return null;
+    }
+  }
+
+  Future<void> clearNotificationsCache() async {
+    await prefs.remove(keyNotifications);
+    _logger.logStorage('Cleared notifications cache');
   }
 }

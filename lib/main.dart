@@ -30,6 +30,7 @@ import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
 import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
 import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
 import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
+import 'package:hrtz_hrms/features/notifications/provider/notification_provider.dart';
 import 'package:hrtz_hrms/features/social/provider/social_provider.dart';
 import 'package:hrtz_hrms/features/tasks/providers/project_provider.dart';
 import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
@@ -99,6 +100,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PayrollProvider()),
         ChangeNotifierProvider(create: (_) => ComplianceProvider()),
         ChangeNotifierProvider(create: (_) => DocumentProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
 
 
         ChangeNotifierProvider(create: (_) => ProjectProvider()),

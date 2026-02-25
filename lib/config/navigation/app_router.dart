@@ -29,6 +29,7 @@ import 'package:hrtz_hrms/features/auth/screens/forgot_pass_page.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_detail.dart';
 import 'package:hrtz_hrms/features/mail/screens/mail_screen.dart';
 import 'package:hrtz_hrms/features/meet/screens/meet_screen.dart';
+import 'package:hrtz_hrms/features/notifications/screens/notification_screen.dart';
 import 'package:hrtz_hrms/features/settings/screens/permission_screen.dart';
 import 'package:hrtz_hrms/features/social/screens/social_hub_screen.dart';
 import 'package:hrtz_hrms/features/tasks/screens/task_screen.dart';
@@ -395,6 +396,11 @@ final GoRouter appRouter = GoRouter(
       name: 'my-documents',
       builder: (context, state) => const MyDocumentsScreen(),
     ),
+    GoRoute(
+      path: AppRoutes.notifications,
+      name: 'notifications',
+      builder: (context, state) => const NotificationScreen(),
+    ),
   ],
 );
 
@@ -479,6 +485,7 @@ extension AuthNavigation on BuildContext {
   void goToPayrollDocuments() => push(AppRoutes.payrollDocuments);
   void goToComplianceCenter() => push(AppRoutes.complianceCenter);
   void goToMyDocuments() => push(AppRoutes.myDocuments);
+  void goToNotifications() => push(AppRoutes.notifications);
 }
 
 CustomTransitionPage buildTransitionPage(Widget child) {
