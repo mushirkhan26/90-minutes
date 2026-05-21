@@ -1,21 +1,12 @@
 import 'dart:convert';
-
-import 'package:hrtz_hrms/core/models/chat_message_model.dart';
-import 'package:hrtz_hrms/core/models/employee_model.dart';
-import 'package:hrtz_hrms/core/models/group_chat_list_model.dart';
-import 'package:hrtz_hrms/core/models/group_message_model.dart';
-import 'package:hrtz_hrms/core/models/leaderboard_model.dart';
-import 'package:hrtz_hrms/core/models/mail_model.dart';
-import 'package:hrtz_hrms/core/models/meet_model.dart';
-import 'package:hrtz_hrms/core/models/notification_model.dart';
-import 'package:hrtz_hrms/core/models/performance_model.dart';
-import 'package:hrtz_hrms/core/models/project_model.dart';
-import 'package:hrtz_hrms/core/models/payroll_model.dart';
-import 'package:hrtz_hrms/core/models/document_model.dart';
-import 'package:hrtz_hrms/core/models/compliance_model.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:hrtz_hrms/core/models/benefits_claim_model.dart';
+
+import '../models/chat_message_model.dart';
+import '../models/group_chat_list_model.dart';
+import '../models/group_message_model.dart';
+import '../models/notification_model.dart';
+import '../models/user_model.dart';
+import 'logger_service.dart';
 
 
 class LocalStorageService {
@@ -31,40 +22,12 @@ class LocalStorageService {
   static const String _keyLastSeenPrefix = 'last_seen_';
 
   static const String _keyRecentChats = 'recent_chats';
-  // employee list data related keys
-  static const String _keyEmployeeId = 'employee_id';
-  static const String _keyEmployeeName = 'employee_name';
-  static const String _keyEmployeeList = 'employee_list';
-  static const String _keyEmployeeListTimestamp = 'employee_list_timestamp';
+  
+  static const String _keyUserId = 'user_id';
+  static const String _keyUserName = 'user_name';
+  static const String _keyUserList = 'user_list';
+  static const String _keyUserListTimestamp = 'user_list_timestamp';
   static const String _keyUserRole = 'user_role';
-  // meet caching data related keys
-  static const String keyMeetList = 'meet_list';
-  static const String keyMeetListTimestamp = 'meet_list_timestamp';
-
-  // 📩 Mail caching related keys
-  static const String keyInboxMails = 'inbox_mails';
-  static const String keySentMails = 'sent_mails';
-  static const String keyTrashMails = 'trash_mails';
-
-  // 📈 Performance caching related keys
-  static const String keyMyRatings = 'my_ratings';
-  static const String keyTeamRatings = 'team_ratings';
-
-  // 🏆 Leaderboard caching related keys
-  static const String keyLeaderboardList = 'leaderboard_list';
-  static const String keyUserStats = 'user_stats';
-
-  // 📁 Project caching related keys
-  static const String keyProjectList = 'project_list';
-
-  // 💰 Payroll caching related keys
-  static const String _keyPayrollPrefix = 'payroll_';
-
-  // 📄 Document caching related keys
-  static const String _keyDocumentPrefix = 'documents_';
-
-  // 🛡️ Compliance caching related keys
-  static const String _keyCompliancePrefix = 'compliance_';
 
   // chat messages storage related  keys
   static const String _keyChatMessages = 'chat_messages_';
@@ -73,40 +36,8 @@ class LocalStorageService {
   static const String _keyGroupChats = 'group_chats';
   static const String _keyGroupMessages = 'group_messages_';
 
-  static const String keyLeaveHistory = 'leave_history';
-  static const String keyAvailableLeave = 'available_leave';
-  static const String keyAttendanceData = 'attendance_data';
-
-  ///learning studio related keys
-  // Learning Studio cache keys
-  static const String keyDepartments = 'ls_departments';
-  static const String keySubDepartmentsPrefix = 'ls_sub_departments_';
-  static const String keyCoursesPrefix = 'ls_courses_';
-  static const String keyEmployeeCourses = 'ls_employee_courses';
-  static const String keyCourseCount = 'ls_course_count';
-
-  ///service request cache keys
-
-  static const String keyServiceRequests = 'service_requests';
-  static const String keyServiceRequestCounts = 'service_request_counts';
-  static const String keyDepartmentsConfig = 'config_departments';
-
-  //  Benefits-Claims cache keys
-  static const String keyMyClaimsPrefix = 'benefits_my_claims_';
-  static const String keyMyClaimsTimestampPrefix = 'benefits_my_claims_ts_';
-
-  static const String keyAllClaims = 'benefits_all_claims';
-  static const String keyAllClaimsTimestamp = 'benefits_all_claims_ts';
-
-  // hr management task
-
-  static const String keyCompliancePrefix = 'compliance_';
- static const String keyComplianceTimestampPrefix = 'compliance_ts_';
-
  // 🔔 Notification caching keys
  static const String keyNotifications = 'notifications_list';
-
-
 
   /// 🚀 Initialize storage once on app start
   static Future<void> init() async {
@@ -235,51 +166,47 @@ class LocalStorageService {
     _logger.logStorage('Cleared all recent chat users');
   }
 
-  /// 👥 employee  data related methods
-  /// Save employee list to local storage
-  Future<void> saveEmployeeList(List<EmployeeModel> employees) async {
-    final employeeJsonList = employees.map((e) => e.toJson()).toList();
-    await prefs.setString(_keyEmployeeList, jsonEncode(employeeJsonList));
+  /// 👥 User list methods
+  Future<void> saveUserList(List<UserModel> users) async {
+    final userJsonList = users.map((e) => e.toJson()).toList();
+    await prefs.setString(_keyUserList, jsonEncode(userJsonList));
     await prefs.setInt(
-      _keyEmployeeListTimestamp,
+      _keyUserListTimestamp,
       DateTime.now().millisecondsSinceEpoch,
     );
-    _logger.logStorage('Saved employee list (${employees.length} employees)');
+    _logger.logStorage('Saved user list (${users.length} users)');
   }
 
-  ///  Get employee list from local storage
-  Future<List<EmployeeModel>?> getEmployeeList() async {
-    final jsonString = prefs.getString(_keyEmployeeList);
+  Future<List<UserModel>?> getUserList() async {
+    final jsonString = prefs.getString(_keyUserList);
     if (jsonString == null) return null;
 
     try {
-      final List<dynamic> employeeJsonList = jsonDecode(jsonString);
-      final employees = employeeJsonList
-          .map((json) => EmployeeModel.fromJson(json))
+      final List<dynamic> userJsonList = jsonDecode(jsonString);
+      final users = userJsonList
+          .map((json) => UserModel.fromJson(json))
           .toList();
       _logger.logStorage(
-        'Retrieved employee list (${employees.length} employees)',
+        'Retrieved user list (${users.length} users)',
       );
-      return employees;
+      return users;
     } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse employee list', error: e);
+      _logger.error('LOCAL_STORAGE', 'Failed to parse user list', error: e);
       return null;
     }
   }
 
-  /// Get timestamp when employee list was last cached
-  Future<DateTime?> getEmployeeListTimestamp() async {
-    final timestamp = prefs.getInt(_keyEmployeeListTimestamp);
+  Future<DateTime?> getUserListTimestamp() async {
+    final timestamp = prefs.getInt(_keyUserListTimestamp);
     return timestamp != null
         ? DateTime.fromMillisecondsSinceEpoch(timestamp)
         : null;
   }
 
-  /// Clear employee list cache
-  Future<void> clearEmployeeList() async {
-    await prefs.remove(_keyEmployeeList);
-    await prefs.remove(_keyEmployeeListTimestamp);
-    _logger.logStorage('Cleared employee list cache');
+  Future<void> clearUserList() async {
+    await prefs.remove(_keyUserList);
+    await prefs.remove(_keyUserListTimestamp);
+    _logger.logStorage('Cleared user list cache');
   }
 
   Future<void> saveUserRole(String role) async {
@@ -290,123 +217,6 @@ class LocalStorageService {
 Future<String?> getUserRole() async {
   return prefs.getString(_keyUserRole);
 }
-
-  // mail related save methods
-
-  // Save list of mails + timestamp
-  Future<void> saveMails(String key, List<MailModel> mails) async {
-    final jsonList = mails.map((e) => e.toJson()).toList();
-    await prefs.setString(key, jsonEncode(jsonList));
-    await prefs.setInt(
-      '${key}_timestamp',
-      DateTime.now().millisecondsSinceEpoch,
-    );
-    _logger.logStorage('Saved ${mails.length} mails to cache ($key)');
-  }
-
-  // Get cached mails
-  Future<List<MailModel>?> getMails(String key) async {
-    final jsonString = prefs.getString(key);
-    if (jsonString == null) return null;
-    try {
-      final List<dynamic> list = jsonDecode(jsonString);
-      return list.map((json) => MailModel.fromJson(json)).toList();
-    } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse cached mails', error: e);
-      return null;
-    }
-  }
-
-  // Get cache timestamp
-  Future<DateTime?> getMailCacheTimestamp(String key) async {
-    final ts = prefs.getInt('${key}_timestamp');
-    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
-  }
-
-  // Clear a cache
-  Future<void> clearMailCache(String key) async {
-    await prefs.remove(key);
-    await prefs.remove('${key}_timestamp');
-    _logger.logStorage('Cleared mail cache for $key');
-  }
-
-  // 📈 Performance related save methods
-  Future<void> savePerformanceRatings(
-    String key,
-    List<PerformanceModel> ratings,
-  ) async {
-    final jsonList = ratings.map((e) => e.toJson()).toList();
-    await prefs.setString(key, jsonEncode(jsonList));
-    await prefs.setInt(
-      '${key}_timestamp',
-      DateTime.now().millisecondsSinceEpoch,
-    );
-    _logger.logStorage(
-      'Saved ${ratings.length} performance ratings to cache ($key)',
-    );
-  }
-
-  Future<List<PerformanceModel>?> getPerformanceRatings(String key) async {
-    final jsonString = prefs.getString(key);
-    if (jsonString == null) return null;
-    try {
-      final List<dynamic> list = jsonDecode(jsonString);
-      return list.map((json) => PerformanceModel.fromJson(json)).toList();
-    } catch (e) {
-      _logger.error(
-        'LOCAL_STORAGE',
-        'Failed to parse cached performance ratings',
-        error: e,
-      );
-      return null;
-    }
-  }
-
-  //--------------------------------------------------------------------------
-  // meet api  storage methods
-  // -------------------------------------------------------------------------
-  // Meet caching related keys
-
-  // Save meet list to local storage
-  Future<void> saveMeetList(List<Meet> meets) async {
-    final meetJsonList = meets.map((e) => e.toJson()).toList();
-    await prefs.setString(keyMeetList, jsonEncode(meetJsonList));
-    await prefs.setInt(
-      keyMeetListTimestamp,
-      DateTime.now().millisecondsSinceEpoch,
-    );
-    _logger.logStorage('Saved meet list (${meets.length} meets)');
-  }
-
-  // Get meet list from local storage
-  Future<List<Meet>?> getMeetList() async {
-    final jsonString = prefs.getString(keyMeetList);
-    if (jsonString == null) return null;
-    try {
-      final List<dynamic> meetJsonList = jsonDecode(jsonString);
-      final meets = meetJsonList.map((json) => Meet.fromJson(json)).toList();
-      _logger.logStorage('Retrieved meet list (${meets.length} meets)');
-      return meets;
-    } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse meet list', error: e);
-      return null;
-    }
-  }
-
-  // Get timestamp when meet list was last cached
-  Future<DateTime?> getMeetListTimestamp() async {
-    final timestamp = prefs.getInt(keyMeetListTimestamp);
-    return timestamp != null
-        ? DateTime.fromMillisecondsSinceEpoch(timestamp)
-        : null;
-  }
-
-  // Clear meet list cache
-  Future<void> clearMeetList() async {
-    await prefs.remove(keyMeetList);
-    await prefs.remove(keyMeetListTimestamp);
-    _logger.logStorage('Cleared meet list cache');
-  }
 
   // chat message storage
 
@@ -598,441 +408,31 @@ Future<String?> getUserRole() async {
     return '$_keyGroupMessages$groupId';
   }
 
-  /// Save leave history
-  Future<void> saveLeaveHistory(Map<String, dynamic> leaveHistory) async {
-    await saveString(keyLeaveHistory, jsonEncode(leaveHistory));
+  /// 🔹 Get logged-in user name
+  Future<String?> getUserName() async {
+    return prefs.getString(_keyUserName);
   }
 
-  /// Get leave history
-  Future<Map<String, dynamic>?> getLeaveHistory() async {
-    final jsonString = await getString(keyLeaveHistory);
-    if (jsonString == null) return null;
-    try {
-      return Map<String, dynamic>.from(jsonDecode(jsonString));
-    } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse leave history', error: e);
-      return null;
-    }
-  }
-
-  /// Save available leave
-  Future<void> saveAvailableLeave(Map<String, dynamic> availableLeave) async {
-    await saveString(keyAvailableLeave, jsonEncode(availableLeave));
-  }
-
-  /// Get available leave
-  Future<Map<String, dynamic>?> getAvailableLeave() async {
-    final jsonString = await getString(keyAvailableLeave);
-    if (jsonString == null) return null;
-    try {
-      return Map<String, dynamic>.from(jsonDecode(jsonString));
-    } catch (e) {
-      _logger.error(
-        'LOCAL_STORAGE',
-        'Failed to parse available leave',
-        error: e,
-      );
-      return null;
-    }
-  }
-
-  /// Save attendance data
-  Future<void> saveAttendanceData(Map<String, dynamic> attendanceData) async {
-    await saveString(keyAttendanceData, jsonEncode(attendanceData));
-  }
-
-  /// Get attendance data
-  Future<Map<String, dynamic>?> getAttendanceData() async {
-    final jsonString = await getString(keyAttendanceData);
-    if (jsonString == null) return null;
-    try {
-      return Map<String, dynamic>.from(jsonDecode(jsonString));
-    } catch (e) {
-      _logger.error(
-        'LOCAL_STORAGE',
-        'Failed to parse attendance data',
-        error: e,
-      );
-      return null;
-    }
-  }
-
-  /// 🔹 Get logged-in employee name
-  Future<String?> getEmployeeName() async {
-    return prefs.getString(_keyEmployeeName);
-  }
-
-  /// 🔹 Save logged-in employee details
-  Future<void> saveLoggedInEmployee({
-    required String employeeId,
-    required String employeeName,
+  /// 🔹 Save logged-in user details
+  Future<void> saveLoggedInUser({
+    required String userId,
+    required String userName,
   }) async {
-    await prefs.setString(_keyEmployeeId, employeeId);
-    await prefs.setString(_keyEmployeeName, employeeName);
-    _logger.logStorage('Saved logged-in employee: $employeeId - $employeeName');
+    await prefs.setString(_keyUserId, userId);
+    await prefs.setString(_keyUserName, userName);
+    _logger.logStorage('Saved logged-in user: $userId - $userName');
   }
 
-  /// 🔹 Get logged-in employee ID
-  Future<String?> getEmployeeId() async {
-    return prefs.getString(_keyEmployeeId);
+  /// 🔹 Get logged-in user ID
+  Future<String?> getUserId() async {
+    return prefs.getString(_keyUserId);
   }
 
-  // ================= SERVICE REQUEST STORAGE =================
-
-  // Save service request list
-  Future<void> saveServiceRequests(List<Map<String, dynamic>> requests) async {
-    await prefs.setString(keyServiceRequests, jsonEncode(requests));
-    await prefs.setInt(
-      '${keyServiceRequests}_timestamp',
-      DateTime.now().millisecondsSinceEpoch,
-    );
-    _logger.logStorage('Saved service requests (${requests.length})');
-  }
-
-  // Get cached service request list
-  Future<List<Map<String, dynamic>>?> getServiceRequests() async {
-    final jsonString = prefs.getString(keyServiceRequests);
-    if (jsonString == null) return null;
-
-    try {
-      final List list = jsonDecode(jsonString);
-      return List<Map<String, dynamic>>.from(list);
-    } catch (e) {
-      _logger.error(
-        'LOCAL_STORAGE',
-        'Failed to parse service requests',
-        error: e,
-      );
-      return null;
-    }
-  }
-
-  Future<void> saveUserStats(UserStatsModel stats) async {
-    await prefs.setString(keyUserStats, jsonEncode(stats.toJson()));
-    _logger.logStorage('Saved user stats');
-  }
-
-  Future<UserStatsModel?> getUserStats() async {
-    final jsonString = prefs.getString(keyUserStats);
-    if (jsonString == null) return null;
-    try {
-      return UserStatsModel.fromJson(jsonDecode(jsonString));
-    } catch (e) {
-      return null;
-    }
-  }
-
-  // ================= DEPARTMENTS =================
-  Future<void> saveDepartments(List<String> departments) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList('departments', departments);
-  }
-
-  Future<List<String>?> getDepartments() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getStringList('departments');
-  }
-
-  // ================= REQUEST COUNTS =================
-  Future<void> saveServiceRequestCounts(Map<String, int> counts) async {
-    final prefs = await SharedPreferences.getInstance();
-    final map = counts.map((k, v) => MapEntry(k, v.toString()));
-    await prefs.setString('service_request_counts', jsonEncode(map));
-  }
-
-  Future<Map<String, dynamic>?> getServiceRequestCounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString('service_request_counts');
-    if (json == null) return null;
-    return Map<String, dynamic>.from(jsonDecode(json));
-  }
-
-  // ================= TIMESTAMP =================
-  Future<void> saveServiceRequestTimestamp(DateTime time) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('service_request_timestamp', time.toIso8601String());
-  }
-
-  Future<DateTime?> getServiceRequestTimestamp() async {
-    final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getString('service_request_timestamp');
-    if (value == null) return null;
-    return DateTime.parse(value);
-  }
-
-  // ================= LOGGED IN EMPLOYEE =================
-Future<void> clearLoggedInEmployee() async {
-  await prefs.remove(_keyEmployeeId);
-  await prefs.remove(_keyEmployeeName);
+  // ================= LOGGED IN USER =================
+Future<void> clearLoggedInUser() async {
+  await prefs.remove(_keyUserId);
+  await prefs.remove(_keyUserName);
 }
-
-// 📁 Project caching methods
-Future<void> saveProjectList(List<ProjectModel> list) async {
-  final jsonList = list.map((e) => e.toJson()).toList();
-  await prefs.setString(keyProjectList, jsonEncode(jsonList));
-  _logger.logStorage('Saved ${list.length} project entries');
-}
-
-Future<List<ProjectModel>?> getProjectList() async {
-  final jsonString = prefs.getString(keyProjectList);
-  if (jsonString == null) return null;
-  try {
-    final List<dynamic> list = jsonDecode(jsonString);
-    return list.map((json) => ProjectModel.fromJson(json)).toList();
-  } catch (e) {
-    return null;
-  }
-}
-
-/// employee benefits 
-
-Future<void> saveClaims(
-  String employeeId,
-  List<BenefitsClaimModel> claims,
-) async {
-  final key = '$keyMyClaimsPrefix$employeeId';
-  final tsKey = '$keyMyClaimsTimestampPrefix$employeeId';
-
-  final jsonList = claims.map((e) => e.toJson()).toList();
-
-  await prefs.setString(key, jsonEncode(jsonList));
-  await prefs.setInt(tsKey, DateTime.now().millisecondsSinceEpoch);
-
-  _logger.logStorage(
-      'Saved ${claims.length} benefits claims for $employeeId');
-}
-
-Future<List<BenefitsClaimModel>?> getClaims(
-    String employeeId) async {
-  final key = '$keyMyClaimsPrefix$employeeId';
-
-  final jsonString = prefs.getString(key);
-  if (jsonString == null) return null;
-
-  try {
-    final List<dynamic> list = jsonDecode(jsonString);
-    return list
-        .map((json) =>
-            BenefitsClaimModel.fromJson(json))
-        .toList();
-  } catch (e) {
-    _logger.error(
-      'LOCAL_STORAGE',
-      'Failed to parse benefits claims',
-      error: e,
-    );
-    return null;
-  }
-}
-
-Future<DateTime?> getClaimsTimestamp(
-    String employeeId) async {
-  final tsKey = '$keyMyClaimsTimestampPrefix$employeeId';
-  final ts = prefs.getInt(tsKey);
-
-  return ts != null
-      ? DateTime.fromMillisecondsSinceEpoch(ts)
-      : null;
-}
-
-Future<List<BenefitsClaimModel>?> getAllClaims() async {
-  final jsonString = prefs.getString(keyAllClaims);
-  if (jsonString == null) return null;
-
-  try {
-    final List<dynamic> list = jsonDecode(jsonString);
-    return list
-        .map((json) =>
-            BenefitsClaimModel.fromJson(json))
-        .toList();
-  } catch (e) {
-    _logger.error(
-      'LOCAL_STORAGE',
-      'Failed to parse all benefits claims',
-      error: e,
-    );
-    return null;
-  }
-}
-
-Future<void> saveAllClaims(
-    List<BenefitsClaimModel> claims) async {
-  final jsonList = claims.map((e) => e.toJson()).toList();
-
-  await prefs.setString(
-      keyAllClaims, jsonEncode(jsonList));
-  await prefs.setInt(
-      keyAllClaimsTimestamp,
-      DateTime.now().millisecondsSinceEpoch);
-
-  _logger.logStorage(
-      'Saved ${claims.length} all benefits claims');
-}
-
-Future<DateTime?> getAllClaimsTimestamp() async {
-  final ts = prefs.getInt(keyAllClaimsTimestamp);
-
-  return ts != null
-      ? DateTime.fromMillisecondsSinceEpoch(ts)
-      : null;
-}
-  // 💰 Payroll caching methods
-  Future<void> savePayroll(PayrollModel payroll) async {
-    final key = '$_keyPayrollPrefix${payroll.employeeId}_${payroll.year}_${payroll.month}';
-    await prefs.setString(key, jsonEncode(payroll.toJson()));
-    _logger.logStorage('Saved payroll for ${payroll.employeeId} - ${payroll.month} ${payroll.year}');
-  }
-
-  Future<PayrollModel?> getPayroll(String employeeId, String year, String month) async {
-    final key = '$_keyPayrollPrefix$employeeId _$year _$month';
-    final jsonString = prefs.getString(key);
-    if (jsonString == null) return null;
-    try {
-      final Map<String, dynamic> json = jsonDecode(jsonString);
-      // Note: the toJson/fromJson might need adjustment if the API structure is complex, 
-      // but let's assume PayrollModel.fromJson can handle its own toJson output.
-      // Wait, PayrollModel.fromJson expects 'packageDetails'. 
-      // Let's check PayrollModel again.
-      return PayrollModel(
-        employeeId: json['employeeId'],
-        packageName: json['packageName'],
-        basicSalary: json['basicSalary'],
-        allowances: json['allowances'],
-        bonus: json['bonus'],
-        grossSalary: json['grossSalary'],
-        providentFund: json['providentFund'],
-        tax: json['tax'],
-        netSalary: json['netSalary'],
-        lastUpdated: json['lastUpdated'],
-        month: json['month'],
-        year: json['year'],
-      );
-    } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse cached payroll', error: e);
-      return null;
-    }
-  }
-
-  // --------------------------------------------------------------------------
-  // 📄 Documents caching methods
-  // --------------------------------------------------------------------------
-
-  Future<void> saveDocuments(String employeeId, List<Document> documents) async {
-    final key = '$_keyDocumentPrefix$employeeId';
-    final jsonList = documents.map((e) => {
-      'id': e.id,
-      'name': e.name,
-      'status': e.status,
-      'type': e.type,
-      'url': e.url,
-    }).toList();
-    await prefs.setString(key, jsonEncode(jsonList));
-    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
-    _logger.logStorage('Saved ${documents.length} documents for $employeeId');
-  }
-
-  Future<List<Document>?> getDocuments(String employeeId) async {
-    final key = '$_keyDocumentPrefix$employeeId';
-    final jsonString = prefs.getString(key);
-    if (jsonString == null) return null;
-    try {
-      final List<dynamic> list = jsonDecode(jsonString);
-      return list.map((json) => Document.fromJson(json)).toList();
-    } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse cached documents', error: e);
-      return null;
-    }
-  }
-
-  Future<DateTime?> getDocumentCacheTimestamp(String employeeId) async {
-    final key = '$_keyDocumentPrefix$employeeId';
-    final ts = prefs.getInt('${key}_timestamp');
-    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
-  }
-
-  Future<void> saveComplianceList(
-    String employeeId,
-    List<Compliance> compliances) async {
-
-  final key = '$keyCompliancePrefix$employeeId';
-  final tsKey = '$keyComplianceTimestampPrefix$employeeId';
-
-  final jsonList =
-      compliances.map((e) => e.toJson()).toList();
-
-  await prefs.setString(key, jsonEncode(jsonList));
-  await prefs.setInt(
-      tsKey, DateTime.now().millisecondsSinceEpoch);
-
-  _logger.logStorage(
-      'Saved ${compliances.length} compliances for $employeeId');
-}
-
-Future<List<Compliance>?> getComplianceList(
-    String employeeId) async {
-
-  final key = '$keyCompliancePrefix$employeeId';
-  final jsonString = prefs.getString(key);
-
-  if (jsonString == null) return null;
-
-  try {
-    final List<dynamic> list =
-        jsonDecode(jsonString);
-
-    return list
-        .map((json) => Compliance.fromJson(json))
-        .toList();
-  } catch (e) {
-    _logger.error(
-      'LOCAL_STORAGE',
-      'Failed to parse compliance list',
-      error: e,
-    );
-    return null;
-  }
-}
-
-Future<DateTime?> getComplianceTimestamp(
-    String employeeId) async {
-
-  final tsKey = '$keyComplianceTimestampPrefix$employeeId';
-  final ts = prefs.getInt(tsKey);
-
-  return ts != null
-      ? DateTime.fromMillisecondsSinceEpoch(ts)
-      : null;
-}
-  // --------------------------------------------------------------------------
-  // 🛡️ Compliance caching methods
-  // --------------------------------------------------------------------------
-
-  Future<void> saveCompliance(String employeeId, List<Compliance> compliance) async {
-    final key = '$_keyCompliancePrefix$employeeId';
-    final jsonList = compliance.map((e) => e.toJson()).toList();
-    await prefs.setString(key, jsonEncode(jsonList));
-    await prefs.setInt('${key}_timestamp', DateTime.now().millisecondsSinceEpoch);
-    _logger.logStorage('Saved ${compliance.length} compliance items for $employeeId');
-  }
-
-  Future<List<Compliance>?> getCompliance(String employeeId) async {
-    final key = '$_keyCompliancePrefix$employeeId';
-    final jsonString = prefs.getString(key);
-    if (jsonString == null) return null;
-    try {
-      final List<dynamic> list = jsonDecode(jsonString);
-      return list.map((json) => Compliance.fromJson(json)).toList();
-    } catch (e) {
-      _logger.error('LOCAL_STORAGE', 'Failed to parse cached compliance', error: e);
-      return null;
-    }
-  }
-
-  Future<DateTime?> getComplianceCacheTimestamp(String employeeId) async {
-    final key = '$_keyCompliancePrefix$employeeId';
-    final ts = prefs.getInt('${key}_timestamp');
-    return ts != null ? DateTime.fromMillisecondsSinceEpoch(ts) : null;
-  }
 
   // --------------------------------------------------------------------------
   // 🔔 Notifications caching methods

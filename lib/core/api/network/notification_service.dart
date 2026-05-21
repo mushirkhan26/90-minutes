@@ -1,7 +1,8 @@
-import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
-import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
-import 'package:hrtz_hrms/core/errors/app_exception.dart';
-import 'package:hrtz_hrms/core/models/notification_model.dart';
+
+import '../../errors/app_exception.dart';
+import '../../models/notification_model.dart';
+import '../base_api/api_helper.dart';
+import '../base_api/api_response.dart';
 
 class NotificationService {
   final ApiHelper _apiHelper = ApiHelper();

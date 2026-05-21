@@ -1,6 +1,8 @@
-import 'package:hrtz_hrms/core/constants/app_constants.dart';
-import 'package:logger/logger.dart';
+
 import 'package:flutter/foundation.dart';
+import 'package:logger/logger.dart';
+
+import '../constants/app_constants.dart';
 
 /// Simple synchronization for Dart
 void synchronized(Object lock, void Function() block) {

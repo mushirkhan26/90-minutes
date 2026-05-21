@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
+import '../services/secure_storage_service.dart';
 
 extension SecureStorageExtensions on BuildContext {
-  /// Get current user's employee ID from secure storage
-  Future<String?> getCurrentEmployeeId() async {
+  /// Get current user's ID from secure storage
+  Future<String?> getCurrentUserId() async {
     final userData = await SecureStorageService().getUserData();
-    return userData?['employeeId'];
+    return userData?['employeeId']; // We map userId to employeeId in getUserData for now
   }
 
   /// Get current user's username from secure storage

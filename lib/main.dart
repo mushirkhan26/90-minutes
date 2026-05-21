@@ -3,199 +3,77 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:hrtz_hrms/config/navigation/app_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_state_provider.dart';
-import 'package:hrtz_hrms/core/constants/app_constants.dart';
-import 'package:hrtz_hrms/core/services/local_notifications_service.dart';
-import 'package:hrtz_hrms/core/services/local_storage_service.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'package:hrtz_hrms/config/theme/app_theme.dart';
-import 'package:hrtz_hrms/core/services/push_notification_service.dart';
-import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
-import 'package:hrtz_hrms/core/socket/socket_provider.dart';
-import 'package:hrtz_hrms/core/socket/socket_service.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
-import 'package:hrtz_hrms/features/auth/providers/nda_provider.dart';
-import 'package:hrtz_hrms/features/auth/providers/onboarding_provider.dart';
-import 'package:hrtz_hrms/features/auth/providers/profile_provider.dart';
-import 'package:hrtz_hrms/features/documents/provider/document_provider.dart';
-import 'package:hrtz_hrms/features/employee_benefits/provider/benefits_provider.dart';
-import 'package:hrtz_hrms/features/employee_directory/provider/employee_directory_provider.dart';
-import 'package:hrtz_hrms/features/home/provider/clock_provider.dart';
-import 'package:hrtz_hrms/features/hr_employee_task/providers/compliance_provider.dart';
-import 'package:hrtz_hrms/features/hr_services/provider/performance_provider.dart';
-import 'package:hrtz_hrms/features/hr_services/provider/registration_provider.dart';
-import 'package:hrtz_hrms/features/leaderboard/provider/leaderboard_provider.dart';
-import 'package:hrtz_hrms/features/leave/provider/leave_provider.dart';
-import 'package:hrtz_hrms/features/mail/provider/mail_provider.dart';
-import 'package:hrtz_hrms/features/meet/providers/meet_provider.dart';
-import 'package:hrtz_hrms/features/holiday/provider/holiday_provider.dart';
-import 'package:hrtz_hrms/features/notifications/provider/notification_provider.dart';
-import 'package:hrtz_hrms/features/social/provider/social_provider.dart';
-import 'package:hrtz_hrms/features/tasks/providers/project_provider.dart';
-import 'package:hrtz_hrms/features/tasks/providers/task_provider.dart';
-import 'package:hrtz_hrms/features/complaint/provider/complaint_provider.dart';
-import 'package:hrtz_hrms/features/learning_studio/provider/learning_studio_provider.dart'; 
-import 'package:hrtz_hrms/features/service_request/providers/service_request_provider.dart';
-import 'package:hrtz_hrms/firebase_options.dart';
-import 'package:hrtz_hrms/splash_screen.dart';
-import 'package:provider/provider.dart';
-import 'package:hrtz_hrms/payroll_documents/provider/payroll_provider.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'config/navigation/app_router.dart';
+import 'config/theme/app_theme.dart';
+import 'core/services/local_storage_service.dart';
+import 'core/services/logger_service.dart';
+import 'core/services/push_notification_service.dart';
+import 'core/socket/socket_service.dart';
+import 'features/auth/bloc/auth_bloc.dart';
+import 'features/auth/bloc/auth_event.dart';
+import 'core/services/secure_storage_service.dart';
+import 'core/api/network/auth_service.dart';
+import 'features/cart/bloc/cart_bloc.dart';
+import 'features/cart/bloc/cart_event.dart';
+import 'features/home/bloc/product_bloc.dart';
+import 'features/search/bloc/search_bloc.dart';
+import 'features/wishlist/bloc/wishlist_bloc.dart';
+import 'features/tracking/bloc/tracking_bloc.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await dotenv.load(fileName: "keys.env");
-
-  // Initialize logging service
   await LoggingService.instance.initialize();
-  // Initialize local storage before runApp
   await LocalStorageService.init();
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  //  Initialize Push Notification Service early (for terminated-state handling)
   await PushNotificationService().init();
-
-  // Initialize socket connection (will connect but not join)
   SocketService.instance.init();
 
-  // 🧩 Register background FCM handler (important for background/terminated messages)
   FirebaseMessaging.onBackgroundMessage(
     PushNotificationService.firebaseMessagingBackgroundHandler,
   );
 
-  // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.white,
-      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
+
   runApp(
-    MultiProvider(
+    MultiBlocProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AppStateProvider()),
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => NdaProvider()),
-        ChangeNotifierProvider(create: (_) => OnboardingProvider()),
-        ChangeNotifierProvider(create: (_) => ProfileProvider()),
-        ChangeNotifierProvider(create: (_) => SocketProvider()),
-        ChangeNotifierProvider(create: (_) => GroupSocketProvider()),
-        ChangeNotifierProvider(create: (_) => MeetProvider()),
-        ChangeNotifierProvider(create: (_) => LeaveProvider()),
-        ChangeNotifierProvider(create: (_) => HolidayProvider()),
-        ChangeNotifierProvider(create: (_) => TasksProvider()),
-        ChangeNotifierProvider(create: (_) => SocialProvider()),
-        ChangeNotifierProvider(create: (_) => ComplaintProvider()),
-        ChangeNotifierProvider(create:  (_) => LearningStudioProvider()),
-        ChangeNotifierProvider(create: (_) => RegistrationProvider()),
-        ChangeNotifierProvider(create: (_) => PerformanceProvider()),
-        ChangeNotifierProvider(create: (_) => EmployeeDirectoryProvider()),
-        ChangeNotifierProvider(create: (_) => LeaderboardProvider()),
-        ChangeNotifierProvider(create: (_) => ServiceRequestProvider()),
-        ChangeNotifierProvider(create: (_) => BenefitsProvider()),
-        ChangeNotifierProvider(create: (_) => PayrollProvider()),
-        ChangeNotifierProvider(create: (_) => ComplianceProvider()),
-        ChangeNotifierProvider(create: (_) => DocumentProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-
-
-        ChangeNotifierProvider(create: (_) => ProjectProvider()),
-        ChangeNotifierProvider<MailProvider>(
-          create: (_) => MailProvider()..fetchInbox(),
+        BlocProvider(
+          create: (_) => AuthBloc(
+            secureStorage: SecureStorageService(),
+            localStorage: LocalStorageService(),
+            authService: AuthService(),
+          )..add(AppStarted()),
         ),
-
-        ChangeNotifierProvider(
-          create: (_) => ClockProvider()
-            ..getAttendance(
-              date:
-                  '${DateTime.now().toUtc().toIso8601String().split('T')[0]}T00:00:00Z',
-            ),
-        ),
+        BlocProvider(create: (_) => CartBloc()..add(LoadCart())),
+        BlocProvider(create: (_) => ProductBloc()),
+        BlocProvider(create: (_) => SearchBloc()),
+        BlocProvider(create: (_) => WishlistBloc()),
+        BlocProvider(create: (_) => TrackingBloc()),
       ],
       child: const MainApp(),
     ),
   );
 }
 
-class MainApp extends StatefulWidget {
+class MainApp extends StatelessWidget {
   const MainApp({super.key});
-
-  @override
-  State<MainApp> createState() => _MainAppState();
-}
-
-class _MainAppState extends State<MainApp> {
-  @override
-  void initState() {
-    super.initState();
-    SplashScreen.onSplashComplete = () {
-      // Update app readiness via provider
-      Provider.of<AppStateProvider>(
-        rootNavigatorKey.currentContext!,
-        listen: false,
-      ).setAppReady(true);
-    };
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await LocalNotificationService().init();
-      if (PushNotificationService.pendingPayload != null) {
-        final payload = PushNotificationService.pendingPayload!;
-        LoggingService.instance.logNetwork(
-          "🕹️ App launched via terminated notification payload → $payload",
-        );
-        // Wait for splash to complete
-        while (!Provider.of<AppStateProvider>(
-          rootNavigatorKey.currentContext!,
-          listen: false,
-        ).isAppReady) {
-          await Future.delayed(const Duration(milliseconds: 100));
-        }
-        LoggingService.instance.logNetwork(
-          "🚦 Router ready check done, processing notification tap...",
-        );
-        PushNotificationService.handleNotificationTap(payload);
-        PushNotificationService.pendingPayload = null;
-      } else {
-        LoggingService.instance.logNetwork(
-          "ℹ️ No pending payload on app start",
-        );
-      }
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: AppConstants.appName,
+      title: '90-min Fashion',
       debugShowCheckedModeBanner: false,
-
-      // Theme Configuration
       theme: AppTheme.lightTheme,
-      themeMode: ThemeMode.light,
-      // Router Configuration
       routerConfig: appRouter,
-
-      // Localization (if needed in future)
-      // locale: const Locale('en', 'US'),
-      // supportedLocales: const [
-      //   Locale('en', 'US'),
-      // ],
-
-      // Builder for global configurations
-      builder: (context, child) {
-        return MediaQuery(
-          // Prevent font scaling beyond reasonable limits
-          data: MediaQuery.of(context).copyWith(
-            textScaler: TextScaler.linear(
-              MediaQuery.of(context).textScaler.scale(1.0).clamp(0.8, 1.2),
-            ),
-          ),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
     );
   }
 }

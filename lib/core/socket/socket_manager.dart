@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:socket_io_client/socket_io_client.dart';
 
+import '../services/logger_service.dart';
 import 'socket_service.dart';
 
 class SocketManager {
@@ -223,6 +223,28 @@ class SocketManager {
   void registerEvent(String eventName, Function(dynamic data) callback) {
     socket.on(eventName, callback);
     LoggingService.instance.logNetwork('Registered socket event: $eventName');
+  }
+
+  //============================================================================
+  // Delivery related socket events
+  //============================================================================
+
+  /// Register listener for driver location updates
+  void onDriverLocationUpdate(Function(Map<String, dynamic> data) onUpdate) {
+    registerEvent('driverLocationUpdate', (data) {
+      if (data is Map<String, dynamic>) {
+        onUpdate(data);
+      }
+    });
+  }
+
+  /// Register listener for order status changes
+  void onOrderStatusUpdate(Function(Map<String, dynamic> data) onUpdate) {
+    registerEvent('orderStatusUpdate', (data) {
+      if (data is Map<String, dynamic>) {
+        onUpdate(data);
+      }
+    });
   }
 
   /// Unregisters a callback for a socket event.

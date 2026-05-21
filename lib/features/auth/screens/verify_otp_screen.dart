@@ -1,131 +1,238 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/core/utils/alert_utils.dart';
-import 'package:hrtz_hrms/widgets/custom_button.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import 'package:hrtz_hrms/core/utils/utils.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
 import 'package:pinput/pinput.dart';
+import 'package:sms_autofill/sms_autofill.dart';
+import '../../../config/navigation/app_routes.dart';
+import '../../../config/theme/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/utils/alert_utils.dart';
+import '../../../widgets/auth_header.dart';
+import '../../../widgets/custom_button.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
 
 class VerifyOtpScreen extends StatefulWidget {
-  final String employeeId;
-  const VerifyOtpScreen({super.key, required this.employeeId});
+  final String mobile;
+  const VerifyOtpScreen({super.key, required this.mobile});
 
   @override
   State<VerifyOtpScreen> createState() => _VerifyOtpScreenState();
 }
 
-class _VerifyOtpScreenState extends State<VerifyOtpScreen> {
+class _VerifyOtpScreenState extends State<VerifyOtpScreen> with CodeAutoFill {
   final _otpController = TextEditingController();
-  bool _isLoading = false;
+  int _timerSeconds = 60;
+  Timer? _timer;
+
+  @override
+  void codeUpdated() {
+    if (!mounted) return;
+    if (code != null && code!.length == AppConstants.otpLength) {
+      // ✅ Race condition fix: Check if already loading
+      final currentState = context.read<AuthBloc>().state;
+      if (currentState is AuthLoading && currentState.action == 'verify') return;
+
+      setState(() {
+        _otpController.text = code!;
+      });
+      _verifyOtp();
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+    listenForCode();
+  }
+
+  void _startTimer() {
+    _timer?.cancel();
+    setState(() => _timerSeconds = 60);
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_timerSeconds > 0) {
+        if (mounted) setState(() => _timerSeconds--);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _otpController.dispose();
+    cancel(); // sms_autofill cancel
     super.dispose();
+  }
+
+  void _verifyOtp() {
+    if (_otpController.text.length == AppConstants.otpLength) {
+      context
+          .read<AuthBloc>()
+          .add(OtpVerificationRequested(widget.mobile, _otpController.text));
+    } else {
+      AlertHelper.snackBarError(context, 'Please enter a valid ${AppConstants.otpLength}-digit OTP');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double screenWidth = MediaQuery.of(context).size.width;
 
-    return SafeArea(
-      child: Scaffold(
-        body: Center(
-          child: SizedBox(
-            width: Utils().width(context) * 0.8,
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  SizedBox(height: 50),
-                  Text('Verify OTP', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
-                  Text(
-                    'Enter the OTP sent to ${widget.employeeId}',
-                    style: TextStyle(fontSize: 12),
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: 20),
-                  Pinput(
-                    controller: _otpController,
-                    length: 6,
-                    defaultPinTheme: PinTheme(
-                      textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                      height: 50,
-                      width: 50,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey.shade400),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: _buildAppBar(context),
+      body: BlocListener<AuthBloc, AuthState>(
+        listener: _authListener,
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.06,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AuthHeader(
+                            title: 'Verify your number',
+                            subtitle: 'OTP sent to +91 ${widget.mobile}',
+                            showLogo: false,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          SizedBox(height: screenHeight * 0.05),
+                          _buildOtpInput(screenWidth),
+                          SizedBox(height: screenHeight * 0.04),
+                          _buildResendSection(),
+                          const Spacer(),
+                          _buildVerifyButton(),
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
                   ),
-                  SizedBox(height: 40),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      CustomButton(
-                        text: 'Go Back',
-                        onPressed: () => context.go(AppRoutes.loginRoute),
-                        width: Utils().width(context) * 0.38,
-                        backgroundColor: Colors.white,
-                        textColor: Colors.black,
-                        fontSize: 12,
-                      ),
-                      _isLoading
-                          ? CircularProgressIndicator()
-                          : CustomButton(
-                              text: 'Verify',
-                              onPressed: () async {
-                                final otp = _otpController.text.trim();
-                                if (otp.isEmpty) return;
-
-                                setState(() => _isLoading = true);
-                                final success = await authProvider.verifyOtp(
-                                  widget.employeeId,
-                                  int.parse(otp),
-                                );
-                                setState(() => _isLoading = false);
-
-                                if (success) {
-                                  if (context.mounted) {
-                                    context.goNamed('change-password', extra: widget.employeeId);
-                                  }
-                                } else {
-                                  if (context.mounted) {
-                                    AlertHelper.snackBarWarning(context, 'Invalid OTP or expired');
-                                  }
-                                }
-                              },
-                              width: Utils().width(context) * 0.38,
-                              fontSize: 12,
-                            ),
-                    ],
-                  ),
-                  SizedBox(height: 20),
-                  InkWell(
-                    onTap: () async {
-                      setState(() => _isLoading = true);
-                      await authProvider.resendOtp(widget.employeeId);
-                      setState(() => _isLoading = false);
-                      if (context.mounted) {
-                        AlertHelper.snackBarSuccess(context, "OTP Resent!");
-                      }
-                    },
-                    child: Text(
-                      'Resend OTP',
-                      style: TextStyle(color: AppColors.blue, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  SizedBox(height: 10),
-                  // Image.asset('assets/images/verification.png', height: 300),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BuildContext context) {
+    return AppBar(
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.black),
+        onPressed: () => context.pop(),
+      ),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+    );
+  }
+
+  void _authListener(BuildContext context, AuthState state) {
+    if (state is AuthOtpSent) {
+      _startTimer(); // ✅ Start timer only on success
+      AlertHelper.snackBarSuccess(context, 'OTP resent successfully!');
+    } else if (state is AuthAuthenticated) {
+      AlertHelper.snackBarSuccess(context, 'Verified successfully!');
+      context.go(AppRoutes.homeRoute);
+    } else if (state is AuthNeedsSignup) {
+      context.push('/signup', extra: state.mobile);
+    } else if (state is AuthError) {
+      AlertHelper.snackBarError(context, state.message);
+    }
+  }
+
+  Widget _buildOtpInput(double screenWidth) {
+    final pinWidth = (screenWidth - (screenWidth * 0.12) - 48) / AppConstants.otpLength;
+    final defaultPinTheme = PinTheme(
+      width: pinWidth.clamp(50, 60),
+      height: 60,
+      textStyle: const TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.bold,
+        color: Colors.black,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.greyOutline),
+      ),
+    );
+
+    return Center(
+      child: Pinput(
+        controller: _otpController,
+        length: AppConstants.otpLength,
+        defaultPinTheme: defaultPinTheme,
+        focusedPinTheme: defaultPinTheme.copyWith(
+          decoration: defaultPinTheme.decoration!.copyWith(
+            border: Border.all(color: AppColors.primaryDarkGreen, width: 2),
+          ),
+        ),
+        onCompleted: (pin) => _verifyOtp(),
+      ),
+    );
+  }
+
+  Widget _buildResendSection() {
+    return Center(
+      child: Column(
+        children: [
+          const Text(
+            'Didn\'t receive the code?',
+            style: TextStyle(color: Colors.grey, fontSize: 14),
+          ),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: _timerSeconds == 0
+                ? () {
+                    context.read<AuthBloc>().add(LoginRequested(widget.mobile));
+                    // _startTimer(); // ❌ Removed from here, moved to listener
+                  }
+                : null,
+            child: Text(
+              _timerSeconds > 0
+                  ? 'Resend OTP in 00:${_timerSeconds.toString().padLeft(2, '0')}'
+                  : 'Resend OTP',
+              style: TextStyle(
+                color: _timerSeconds > 0 ? Colors.grey : AppColors.primaryAmber,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerifyButton() {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final isLoading = state is AuthLoading && state.action == 'verify';
+        return CustomButton(
+          text: 'Verify & Proceed',
+          onPressed: isLoading ? null : _verifyOtp,
+          isLoading: isLoading,
+          backgroundColor: AppColors.primaryDarkGreen,
+          textColor: Colors.white,
+          height: 50,
+          borderRadius: 8,
+          borderColor: AppColors.primaryDarkGreen,
+        );
+      },
     );
   }
 }

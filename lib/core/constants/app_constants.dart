@@ -1,7 +1,12 @@
 class AppConstants {
   // App Info
-  static const String appName = 'HrZ_hrms';
+  static const String appName = '90-Min Delivery';
   static const String appVersion = '1.0.0';
+
+  // Delivery Constants
+  static const int deliveryTimeMinutes = 90;
+  static const double baseDeliveryFee = 40.0;
+  static const double freeDeliveryThreshold = 500.0;
 
   //urls
   static const String socketbaseurl = "https://hrms-socket.onrender.com";
@@ -38,6 +43,9 @@ class AppConstants {
   static const double spacingMedium = 16.0;
   static const double spacingLarge = 24.0;
   static const double spacingXLarge = 32.0;
+
+  // Auth Constants
+  static const int otpLength = 4;
 
   // Border Radius Constants
   static const double borderRadiusSmall = 4.0;

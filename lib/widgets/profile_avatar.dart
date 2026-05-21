@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_initicon/flutter_initicon.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
+
+import '../config/theme/app_colors.dart';
 
 class ProfileAvatar extends StatelessWidget {
   final String image;

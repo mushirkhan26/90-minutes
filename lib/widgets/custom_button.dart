@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
+
+import '../config/theme/app_colors.dart';
+
 
 class CustomButton extends StatelessWidget {
   const CustomButton({
@@ -19,6 +21,7 @@ class CustomButton extends StatelessWidget {
     this.borderWidth = 1,
     this.image,
     this.imagePosition = ImagePosition.leading,
+    this.isLoading = false,
   });
 
   final String text;
@@ -36,6 +39,7 @@ class CustomButton extends StatelessWidget {
   final double borderWidth;
   final Widget? image;
   final ImagePosition imagePosition;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +47,7 @@ class CustomButton extends StatelessWidget {
       width: width,
       height: height,
       child: ElevatedButton(
-        onPressed: onPressed,
+        onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: backgroundColor ?? AppColors.primary,
           elevation: elevation,
@@ -55,7 +59,16 @@ class CustomButton extends StatelessWidget {
                 : BorderSide.none,
           ),
         ),
-        child: Row(
+        child: isLoading 
+          ? const SizedBox(
+              width: 20, 
+              height: 20, 
+              child: CircularProgressIndicator(
+                strokeWidth: 2, 
+                color: Colors.white
+              )
+            )
+          : Row(
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [

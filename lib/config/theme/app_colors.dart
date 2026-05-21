@@ -40,6 +40,10 @@ class AppColors {
   static const Color warningColor = Color(0xFFF59E0B);
   static const Color infoColor = Color(0xFF3B82F6);
 
+  static const Color primaryAmber = Color(0xFFFDB022);
+  static const Color primaryDarkGreen = Color(0xFF064E3B);
+  static const Color greyOutline = Color(0xFFD0D5DD);
+
   static const blue = Color(0xff2F82EF);
   static const blue00ABE9 = Color(0xff00ABE9);
   static const background = Color(0xffF0F4FF);

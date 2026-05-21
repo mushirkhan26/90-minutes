@@ -1,6 +1,7 @@
-import 'package:hrtz_hrms/core/constants/app_constants.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+
+import '../constants/app_constants.dart';
+import '../services/logger_service.dart';
 
 class SocketService {
   static final SocketService instance = SocketService._internal();

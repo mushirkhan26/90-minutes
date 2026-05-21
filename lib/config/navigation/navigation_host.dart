@@ -1,14 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
-import 'package:hrtz_hrms/core/socket/group_socket_provider.dart';
-import 'package:hrtz_hrms/core/socket/socket_provider.dart';
-import 'package:hrtz_hrms/core/utils/alert_utils.dart';
-import 'package:provider/provider.dart';
+
+import '../../core/utils/alert_utils.dart';
+import '../theme/app_colors.dart';
+import 'app_routes.dart';
 
 class NavigationHost extends StatefulWidget {
   final Widget child;
@@ -21,39 +17,6 @@ class NavigationHost extends StatefulWidget {
 class _NavigationHostState extends State<NavigationHost> {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
-
-  @override
-  void initState() {
-    super.initState();
-    _joinUserToSocket();
-  }
-
-  Future<void> _joinUserToSocket() async {
-    try {
-      final userData = await SecureStorageService().getUserData();
-      if (userData != null && userData['employeeId'] != null && userData['username'] != null) {
-        // ignore: use_build_context_synchronously
-        final socketProvider = context.read<SocketProvider>();
-        // ignore: use_build_context_synchronously
-        final groupSocketProvider = context.read<GroupSocketProvider>();
-        await socketProvider.joinUser(userData['employeeId'], userData['username']);
-        // Initialize event listeners AFTER joining the room
-        socketProvider.init();
-        groupSocketProvider.init();
-
-        LoggingService.instance.logNetwork(
-          'User joined socket and initialized listeners: ${userData['employeeId']}, ${userData["userName"]}',
-        );
-      } else {
-        LoggingService.instance.error(
-          'NavigationHost',
-          'Failed to fetch user details: employeeId or username is null',
-        );
-      }
-    } catch (e) {
-      LoggingService.instance.error('NavigationHost', 'Failed to join user to socket', error: e);
-    }
-  }
 
   @override
   void didChangeDependencies() {
@@ -77,7 +40,6 @@ class _NavigationHostState extends State<NavigationHost> {
               _lastBackPressed = now;
               AlertHelper.snackBarInfo(context, "Back again to exit");
             } else {
-              // Exit the app
               SystemNavigator.pop();
             }
           }
@@ -93,13 +55,13 @@ class _NavigationHostState extends State<NavigationHost> {
                 return const TextStyle(
                   color: AppColors.primary,
                   fontWeight: FontWeight.w500,
-                ); // selected label color
+                );
               }
-              return const TextStyle(color: AppColors.grey808080); // unselected label color
+              return const TextStyle(color: AppColors.grey808080);
             }),
           ),
           child: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
             ),
@@ -118,12 +80,7 @@ class _NavigationHostState extends State<NavigationHost> {
                 destinations: List.generate(_routes.length, (index) {
                   final isSelected = index == _selectedIndex;
                   return NavigationDestination(
-                    icon: AnimatedScale(
-                      scale: 1.0, // isSelected ? 1.2 : 1.0,
-                      duration: const Duration(milliseconds: 200),
-                      curve: Curves.easeOut,
-                      child: Icon(_icons[index], color: isSelected ? Colors.white : Colors.grey),
-                    ),
+                    icon: Icon(_icons[index], color: isSelected ? Colors.white : Colors.grey),
                     label: _labels[index],
                   );
                 }),
@@ -137,26 +94,28 @@ class _NavigationHostState extends State<NavigationHost> {
 
   int _getSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).uri.toString();
-    return _routes.indexWhere((r) => location.startsWith(r));
+    final index = _routes.indexWhere((r) => location.startsWith(r));
+    return index == -1 ? 0 : index;
   }
 
   static const _routes = [
     AppRoutes.homeRoute,
-    AppRoutes.chatRoute,
-    AppRoutes.meetRoute,
-    AppRoutes.mailRoute,
+    '/search',
+    '/cart',
+    AppRoutes.userProfile,
   ];
 
   static const _icons = [
     Icons.home_rounded,
-    Icons.chat_bubble_rounded,
-    Icons.video_call_rounded,
-    Icons.mail_rounded,
+    Icons.search_rounded,
+    Icons.shopping_bag_rounded,
+    Icons.person_rounded,
   ];
 
   static const _labels = [
-    'Home', 'Chat',
-    'Meet',
-    'Mail',
+    'Home',
+    'Search',
+    'Bag',
+    'Profile',
   ];
 }

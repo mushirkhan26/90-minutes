@@ -10,10 +10,11 @@ class SecureStorageService {
 
   // 🔑 Keys
   static const String _keyToken = 'auth_token';
-  static const String _keyEmployeeId = 'employee_id';
-  static const String _keyUsername = 'username';
+  static const String _keyUserId = 'user_id';
+  static const String _keyName = 'name'; // username -> name
   static const String _keyEmail = 'email';
   static const String _keyRole = 'role';
+  static const String _keyPhone = 'phone'; // phone field added
   static const String _keyAppToken = 'app_token'; 
 
   // 📄 Profile Keys
@@ -23,27 +24,21 @@ class SecureStorageService {
   static const String _keyAddress = 'address';
   static const String _keyProfileImage = 'profile_image';
 
-  // 🆕 New Account Keys
-  static const String _keyNdaSubmitted = 'nda_submitted';
-  static const String _keyOnboardingCompleted = 'onboarding_completed';
-
   /// ✅ Save user data securely
   Future<void> saveUserData({
     required String token,
-    required String employeeId,
-    required String username,
+    required String userId,
+    required String name,
     required String email,
+    required String phone,
     required String role,
-    bool ndaSubmitted = false,
-    bool onboardingCompleted = false,
   }) async {
     await _secureStorage.write(key: _keyToken, value: token);
-    await _secureStorage.write(key: _keyEmployeeId, value: employeeId);
-    await _secureStorage.write(key: _keyUsername, value: username);
+    await _secureStorage.write(key: _keyUserId, value: userId);
+    await _secureStorage.write(key: _keyName, value: name);
     await _secureStorage.write(key: _keyEmail, value: email);
+    await _secureStorage.write(key: _keyPhone, value: phone);
     await _secureStorage.write(key: _keyRole, value: role);
-    await _secureStorage.write(key: _keyNdaSubmitted, value: ndaSubmitted.toString());
-    await _secureStorage.write(key: _keyOnboardingCompleted, value: onboardingCompleted.toString());
   }
 
   /// 📥 Get user data
@@ -52,12 +47,11 @@ class SecureStorageService {
     if (token == null) return null;
     return {
       "token": token,
-      "employeeId": await _secureStorage.read(key: _keyEmployeeId),
-      "username": await _secureStorage.read(key: _keyUsername),
+      "userId": await _secureStorage.read(key: _keyUserId),
+      "name": await _secureStorage.read(key: _keyName),
       "email": await _secureStorage.read(key: _keyEmail),
+      "phone": await _secureStorage.read(key: _keyPhone),
       "role": await _secureStorage.read(key: _keyRole),
-      "ndaSubmitted": (await _secureStorage.read(key: _keyNdaSubmitted)) == 'true',
-      "onboardingCompleted": (await _secureStorage.read(key: _keyOnboardingCompleted)) == 'true',
     };
   }
 
@@ -71,12 +65,12 @@ class SecureStorageService {
     return _secureStorage.read(key: _keyToken);
   }
 
-  // Get user ID or employee ID
-  Future<String?> getEmployeeId() async =>
-      _secureStorage.read(key: _keyEmployeeId);
+  // Get user ID
+  Future<String?> getUserId() async =>
+      _secureStorage.read(key: _keyUserId);
 
-  // Get current username or employee name
-  Future<String?> getUserName() async => _secureStorage.read(key: _keyUsername);
+  // Get current name
+  Future<String?> getName() async => _secureStorage.read(key: _keyName);
 
   // 🔥 FCM Token Methods
   Future<void> saveAppToken(String token) async =>
@@ -135,15 +129,5 @@ class SecureStorageService {
     await _secureStorage.delete(key: _keyGender);
     await _secureStorage.delete(key: _keyAddress);
     await _secureStorage.delete(key: _keyProfileImage);
-  }
-
-  /// Update NDA status
-  Future<void> setNdaSubmitted(bool submitted) async {
-    await _secureStorage.write(key: _keyNdaSubmitted, value: submitted.toString());
-  }
-
-  /// Update Onboarding status
-  Future<void> setOnboardingCompleted(bool completed) async {
-    await _secureStorage.write(key: _keyOnboardingCompleted, value: completed.toString());
   }
 }

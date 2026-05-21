@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>90-minutes App — Full Stack Architecture Report</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Inter',sans-serif;background:#f8fafc;color:#1e293b;font-size:13px;line-height:1.6;}
+  .cover{background:linear-gradient(135deg,#1e3a5f 0%,#0f4c81 40%,#1a6b9a 100%);color:#fff;padding:60px 50px;min-height:220px;position:relative;overflow:hidden;}
+  .cover::before{content:'';position:absolute;top:-60px;right:-60px;width:300px;height:300px;border-radius:50%;background:rgba(255,255,255,0.05);}
+  .cover::after{content:'';position:absolute;bottom:-80px;left:-40px;width:250px;height:250px;border-radius:50%;background:rgba(255,255,255,0.04);}
+  .cover h1{font-size:32px;font-weight:800;letter-spacing:-0.5px;margin-bottom:8px;}
+  .cover .subtitle{font-size:15px;opacity:0.8;font-weight:300;margin-bottom:20px;}
+  .cover .meta{display:flex;gap:30px;font-size:12px;opacity:0.7;}
+  .cover .meta span{display:flex;align-items:center;gap:6px;}
+  .container{max-width:900px;margin:0 auto;padding:30px 40px;}
+  h2{font-size:18px;font-weight:700;color:#0f4c81;margin:32px 0 12px;padding-bottom:6px;border-bottom:2px solid #e2e8f0;display:flex;align-items:center;gap:8px;}
+  h2 .num{background:#0f4c81;color:#fff;width:24px;height:24px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+  h3{font-size:13px;font-weight:600;color:#334155;margin:16px 0 8px;}
+  p{margin-bottom:10px;color:#475569;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:12px;}
+  th{background:#0f4c81;color:#fff;padding:8px 12px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;}
+  td{padding:7px 12px;border-bottom:1px solid #e2e8f0;color:#334155;}
+  tr:nth-child(even) td{background:#f8fafc;}
+  tr:hover td{background:#eff6ff;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;margin:1px;}
+  .badge-blue{background:#dbeafe;color:#1d4ed8;}
+  .badge-green{background:#dcfce7;color:#15803d;}
+  .badge-purple{background:#f3e8ff;color:#7e22ce;}
+  .badge-orange{background:#ffedd5;color:#c2410c;}
+  .badge-red{background:#fee2e2;color:#b91c1c;}
+  .code-block{background:#1e293b;color:#e2e8f0;padding:16px;border-radius:8px;font-family:'Fira Code',monospace;font-size:11px;line-height:1.7;margin:12px 0;overflow-x:auto;white-space:pre;}
+  .code-block .comment{color:#64748b;}
+  .code-block .key{color:#7dd3fc;}
+  .code-block .val{color:#86efac;}
+  .info-box{background:#eff6ff;border-left:4px solid #3b82f6;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:12px;color:#1e40af;}
+  .warn-box{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:12px;color:#92400e;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:12px 0;}
+  .card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .card h4{font-size:12px;font-weight:700;color:#0f4c81;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;}
+  .card ul{list-style:none;padding:0;}
+  .card ul li{font-size:11px;color:#475569;padding:3px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:6px;}
+  .card ul li:last-child{border-bottom:none;}
+  .card ul li::before{content:'▸';color:#3b82f6;font-size:10px;flex-shrink:0;}
+  .arch-diagram{background:#1e293b;border-radius:10px;padding:20px;margin:12px 0;font-family:'Fira Code',monospace;font-size:11px;color:#e2e8f0;line-height:1.8;}
+  .arch-diagram .box{color:#7dd3fc;}
+  .arch-diagram .arrow{color:#64748b;}
+  .arch-diagram .label{color:#86efac;}
+  .page-break{page-break-before:always;}
+  .toc{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:20px;margin:20px 0;}
+  .toc h3{color:#0f4c81;margin-bottom:12px;font-size:14px;}
+  .toc ol{padding-left:20px;}
+  .toc li{padding:4px 0;font-size:12px;color:#475569;}
+  .toc a{color:#0f4c81;text-decoration:none;}
+  .footer{background:#1e293b;color:#94a3b8;text-align:center;padding:20px;font-size:11px;margin-top:40px;}
+  .highlight{background:#fef9c3;padding:1px 4px;border-radius:3px;font-weight:600;color:#854d0e;}
+  @media print{
+    body{background:#fff;}
+    .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    th{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .page-break{page-break-before:always;}
+  }
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <h1>🛍️ 90-minutes App</h1>
+  <div class="subtitle">Complete Full-Stack Architecture & Technical Analysis Report</div>
+  <div class="meta">
+    <span>📱 Flutter Mobile App (E-commerce)</span>
+    <span>📅 May 2026</span>
+    <span>🔖 Version 1.0.0</span>
+    <span>🌐 Android + iOS</span>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- TOC -->
+<div class="toc">
+  <h3>📋 Table of Contents</h3>
+  <ol>
+    <li>Project Overview</li>
+    <li>Architecture Pattern (BLoC)</li>
+    <li>State Management Strategy</li>
+    <li>Networking / API Layer</li>
+    <li>Real-Time Tracking (WebSocket)</li>
+    <li>Storage Strategy</li>
+    <li>Push Notifications</li>
+    <li>Navigation System</li>
+    <li>Firebase Integration</li>
+    <li>Theme & UI (Quick-Commerce)</li>
+    <li>Authentication Flow (Mobile OTP)</li>
+    <li>Feature Modules</li>
+    <li>Key Packages Summary</li>
+    <li>Architecture Diagram</li>
+  </ol>
+</div>
+
+<!-- 1. OVERVIEW -->
+<h2><span class="num">1</span> Project Overview</h2>
+<p><strong>90-minutes</strong> is a high-performance <strong>Quick-Commerce (Q-Commerce)</strong> application for fashion, inspired by platforms like Blinkit and Instamart. It focuses on ultra-fast delivery of Men's, Women's, and Kids' fashion items, featuring a seamless shopping experience and real-time order tracking.</p>
+
+<table>
+  <tr><th>Property</th><th>Value</th></tr>
+  <tr><td>App Name</td><td>90-minutes</td></tr>
+  <tr><td>Category</td><td>E-commerce / Fashion</td></tr>
+  <tr><td>Version</td><td>1.0.0</td></tr>
+  <tr><td>Framework</td><td>Flutter (Dart SDK ^3.9.0)</td></tr>
+  <tr><td>Platforms</td><td>Android + iOS</td></tr>
+  <tr><td>Backend REST</td><td>TBD (Target: Node.js / AWS)</td></tr>
+  <tr><td>Backend Socket</td><td>TBD (Target: Socket.IO)</td></tr>
+  <tr><td>State Management</td><td>BLoC (flutter_bloc)</td></tr>
+  <tr><td>Live Tracking</td><td>Integrated via WebSocket</td></tr>
+</table>
+
+<!-- 2. ARCHITECTURE -->
+<h2><span class="num">2</span> Architecture Pattern (BLoC)</h2>
+<p>The project follows a <strong>Clean Architecture with BLoC</strong> pattern, ensuring high maintainability and testability. The code is organized by features, each containing its own BLoCs, Repositories, and UI components.</p>
+
+<div class="code-block"><span class="key">lib/</span>
+├── <span class="val">config/</span>              <span class="comment"># App configuration & routing</span>
+├── <span class="val">core/</span>                <span class="comment"># Shared logic & infrastructure</span>
+│   ├── api/             <span class="comment"># Networking layer (Dio/Http)</span>
+│   ├── bloc/            <span class="comment"># Global/shared BLoCs</span>
+│   ├── constants/       <span class="comment"># Theme & App constants</span>
+│   ├── errors/          <span class="comment"># Failure & Exception handling</span>
+│   └── tracking/        <span class="comment"># Real-time location logic</span>
+│
+├── <span class="val">features/</span>            <span class="comment"># Module-based features</span>
+│   ├── auth/            <span class="comment"># Mobile Login & Signup (Unified)</span>
+│   ├── home/            <span class="comment"># Category-based discovery (Men/Women/Kids)</span>
+│   ├── search/          <span class="comment"># Smart product search</span>
+│   ├── cart/            <span class="comment"># Cart management & Checkout</span>
+│   ├── wishlist/        <span class="comment"># Saved items</span>
+│   ├── profile/         <span class="comment"># User account & settings</span>
+│   └── tracking/        <span class="comment"># Live order status tracking</span>
+│
+└── <span class="val">widgets/</span>             <span class="comment"># Reusable UI components</span></div>
+
+<div class="info-box"><strong>BLoC Workflow:</strong> UI dispatches an <b>Event</b> → <b>BLoC</b> processes business logic via Repository → <b>BLoC</b> emits a <b>State</b> → UI rebuilds based on the State.</div>
+
+<!-- 3. STATE MANAGEMENT -->
+<h2><span class="num">3</span> State Management Strategy</h2>
+<p>Uses <strong>flutter_bloc</strong> for robust, predictable state transitions across the application.</p>
+
+<table>
+  <tr><th>BLoC / Cubit</th><th>Responsibility</th><th>Scope</th></tr>
+  <tr><td>AuthBloc</td><td>Mobile OTP login, registration, and session management</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>CartBloc</td><td>Managing cart items, quantity updates, and price calculations</td><td><span class="badge badge-blue">Global</span></td></tr>
+  <tr><td>ProductBloc</td><td>Fetching products by category (Men/Women/Kids)</td><td><span class="badge badge-green">Feature</span></td></tr>
+  <tr><td>SearchBloc</td><td>Live search and filter functionality</td><td><span class="badge badge-green">Feature</span></td></tr>
+  <tr><td>TrackingBloc</td><td>Real-time delivery partner location updates</td><td><span class="badge badge-orange">Active Order</span></td></tr>
+  <tr><td>WishlistBloc</td><td>Managing favorite items</td><td><span class="badge badge-blue">Global</span></td></tr>
+</table>
+
+<!-- 4. NETWORKING -->
+<div class="page-break"></div>
+<h2><span class="num">4</span> Networking / API Layer</h2>
+
+<div class="grid-2">
+  <div class="card">
+    <h4>🌐 REST API (Dio)</h4>
+    <ul>
+      <li>Client: <code>Dio</code> for interceptors & performance</li>
+      <li>Auth: Bearer Token injection</li>
+      <li>Automatic Retries & Error Mapping</li>
+      <li>Multipart support for Profile Image</li>
+    </ul>
+  </div>
+  <div class="card">
+    <h4>🔌 Socket.IO</h4>
+    <ul>
+      <li>Live Delivery Tracking</li>
+      <li>Order Status Push Updates</li>
+      <li>Low-latency real-time events</li>
+      <li>Automatic reconnection handling</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 5. REAL-TIME TRACKING -->
+<h2><span class="num">5</span> Real-Time Communication (Tracking)</h2>
+<p>Real-time location tracking allows customers to see the delivery partner's movement on the map within 90 minutes.</p>
+
+<div class="code-block"><span class="key">LocationService</span>  <span class="comment">→ Handles Google Maps / Mapbox integration</span>
+      ↓
+<span class="key">SocketManager</span>    <span class="comment">→ Listens to 'rider_location_update' event</span>
+      ↓
+<span class="key">TrackingBloc</span>     <span class="comment">→ Updates UI with Lat/Lng coordinates</span></div>
+
+<!-- 6. STORAGE -->
+<h2><span class="num">6</span> Storage Strategy</h2>
+<table>
+  <tr><th>Tool</th><th>Data Type</th></tr>
+  <tr><td>Flutter Secure Storage</td><td>Sensitive data (Auth JWT, Refresh Token)</td></tr>
+  <tr><td>Shared Preferences</td><td>Local cache (Search history, Cart local sync, User prefs)</td></tr>
+</table>
+
+<!-- 7. PUSH NOTIFICATIONS -->
+<h2><span class="num">7</span> Push Notifications</h2>
+<p>Integrated with <strong>Firebase Cloud Messaging (FCM)</strong> for:</p>
+<ul>
+  <li>Order Confirmation</li>
+  <li>Delivery Progress (Out for Delivery)</li>
+  <li>Promotional Offers & Flash Sales</li>
+</ul>
+
+<!-- 8. NAVIGATION -->
+<div class="page-break"></div>
+<h2><span class="num">8</span> Navigation System</h2>
+<p>Uses <strong>GoRouter</strong> for deep-linking and state-aware routing.</p>
+
+<table>
+  <tr><th>Route</th><th>Description</th></tr>
+  <tr><td>/login</td><td>Combined Login/Signup via Mobile</td></tr>
+  <tr><td>/home</td><td>Main Dashboard (Fashion discovery)</td></tr>
+  <tr><td>/search</td><td>Product Search & Filters</td></tr>
+  <tr><td>/cart</td><td>Cart details & Checkout process</td></tr>
+  <tr><td>/wishlist</td><td>User's saved fashion items</td></tr>
+  <tr><td>/profile</td><td>Account settings & Order history</td></tr>
+  <tr><td>/track-order/:id</td><td>Live Map Tracking View</td></tr>
+</table>
+
+<!-- 11. AUTH FLOW -->
+<h2><span class="num">11</span> Authentication Flow (Mobile OTP)</h2>
+<div class="code-block"><span class="comment">── OTP AUTH FLOW ───────────────────────────────────────────</span>
+<span class="key">1.</span> User enters Mobile Number
+<span class="key">2.</span> Request OTP (Send to Phone)
+<span class="key">3.</span> Verify OTP
+<span class="key">4.</span> If New User → Minimal Signup (Name, Email)
+<span class="key">5.</span> Store JWT & Navigate to Home</div>
+
+<!-- 12. FEATURE MODULES -->
+<h2><span class="num">12</span> Feature Modules</h2>
+<table>
+  <tr><th>Feature</th><th>Category</th><th>Key Capabilities</th></tr>
+  <tr><td>Fashion Discovery</td><td>Men/Women/Kids</td><td>High-res image viewing, size selection, category filtering</td></tr>
+  <tr><td>Cart & Checkout</td><td>E-commerce</td><td>Coupon application, address management, payment integration</td></tr>
+  <tr><td>Search & Filters</td><td>Discovery</td><td>Price range, color, brand, and size filtering</td></tr>
+  <tr><td>Live Tracking</td><td>Post-Order</td><td>Google Maps integration, estimated time of arrival (ETA)</td></tr>
+</table>
+
+<!-- 14. ARCHITECTURE DIAGRAM -->
+<div class="page-break"></div>
+<h2><span class="num">14</span> Architecture Diagram (BLoC)</h2>
+
+<div class="arch-diagram">
+<span class="box">┌─────────────────────────────────────────────────────────────┐</span>
+<span class="box">│                    Flutter UI (Presentations)               │</span>
+<span class="box">│         Screens → Atomic Widgets → BLoC Listeners           │</span>
+<span class="box">└──────────────────────┬──────────────────────────────────────┘</span>
+                       │ (Events)
+          <span class="arrow">┌────────────▼────────────┐</span>
+          │      <b>BLoC Layer</b>         │
+          │ (Business Logic Component)│
+          └────────────┬────────────┘
+                       │ (Calls)
+<span class="box">┌─────────▼──────┐         ┌────────▼────────┐</span>
+<span class="box">│  Repository    │         │  Data Source    │</span>
+<span class="box">│ (Abstraction)  │         │ (Remote/Local)  │</span>
+<span class="box">└─────────┬──────┘         └────────┬────────┘</span>
+          │                         │
+          <span class="arrow">└────────────┬────────────┘</span>
+                       │
+          <span class="box">┌────────────▼────────────┐</span>
+          <span class="box">│     Backend (90-min)    │</span>
+          <span class="box">│  REST APIs (Products)   │</span>
+          <span class="box">│  WebSocket (Tracking)   │</span>
+          <span class="box">└─────────────────────────┘</span>
+</div>
+
+<div class="info-box">
+  <strong>Note:</strong> The app is optimized for a 90-minute delivery window. Real-time features are crucial for customer satisfaction in the fashion quick-commerce space.
+</div>
+
+</div><!-- end container -->
+
+<div class="footer">
+  90-minutes App — Architecture Report &nbsp;|&nbsp; Generated May 2026 &nbsp;|&nbsp; Flutter ^3.9.0 &nbsp;|&nbsp; Confidential
+</div>
+
+<script>
+  window.onload = function() {
+    setTimeout(() => {
+      window.print();
+    }, 1500);
+  };
+</script>
+</body>
+</html>

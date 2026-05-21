@@ -1,8 +1,9 @@
-import 'package:hrtz_hrms/core/api/base_api/api_helper.dart';
-import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
-import 'package:hrtz_hrms/core/models/employee_model.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
 
+
+import '../../models/user_model.dart';
+import '../../services/logger_service.dart';
+import '../base_api/api_helper.dart';
+import '../base_api/api_response.dart';
 
 class AuthService {
   final ApiHelper _apiHelper = ApiHelper();
@@ -10,88 +11,96 @@ class AuthService {
 
   /// 🔐 Login API
   Future<ApiResponse<Map<String, dynamic>>> login({
-    required String employeeId,
+    required String userId,
     required String password,
   }) async {
-    final body = {"employeeId": employeeId, "password": password};
-    return await _apiHelper.post<Map<String, dynamic>>('employee/login', body);
+    final body = {"userId": userId, "password": password};
+    return await _apiHelper.post<Map<String, dynamic>>('customer/login', body);
   }
 
-  /// 📩 Get OTP API
+  /// 📩 Get OTP API (Login or Register)
   Future<ApiResponse<Map<String, dynamic>>> getOtp({
-    required String employeeId,
+    required String userId,
   }) async {
-    final endpoint = 'employee/getOTP/$employeeId';
-    _logger.logAuth('Requesting OTP for employeeId: $employeeId');
-    return await _apiHelper.get<Map<String, dynamic>>(endpoint);
+    final body = {
+      "se": "lo_us",
+      "data": {"phone_number": userId}
+    };
+    _logger.logAuth('Requesting OTP (lo_us) for phone: $userId');
+    return await _apiHelper.post<Map<String, dynamic>>('auth', body);
   }
 
   /// 🔎 Verify OTP API
   Future<ApiResponse<Map<String, dynamic>>> verifyOtp({
-    required String employeeId,
+    required String userId,
     required int otp,
   }) async {
-    final body = {"employeeId": employeeId, "otp": otp};
-    _logger.logAuth('Verifying OTP for employeeId: $employeeId');
-    return await _apiHelper.post<Map<String, dynamic>>(
-      'employee/verifyOtp',
-      body,
-    );
+    final body = {
+      "se": "ve_otp",
+      "data": {"phone_number": userId, "otp": otp}
+    };
+    _logger.logAuth('Verifying OTP (ve_otp) for phone: $userId');
+    return await _apiHelper.post<Map<String, dynamic>>('auth', body);
   }
 
   /// 🔑 Change password API
   Future<ApiResponse<Map<String, dynamic>>> changePassword({
-    required String employeeId,
+    required String userId,
     required String password,
   }) async {
-    final body = {"employeeId": employeeId, "password": password};
-    _logger.logAuth('Changing password for employeeId: $employeeId');
+    final body = {"userId": userId, "password": password};
+    _logger.logAuth('Changing password for userId: $userId');
     return await _apiHelper.post<Map<String, dynamic>>(
-      'employee/changePassword',
+      'customer/changePassword',
       body,
     );
   }
 
-  /// 👥 Get employee list API
-  Future<ApiResponse<List<EmployeeModel>>> getEmployeeList() async {
-    _logger.logAuth('Fetching employee list');
-    final response = await _apiHelper.get<Map<String, dynamic>>(
-      'employee/employeeList',
-    );
-    if (response.success && response.data != null) {
-      final List<dynamic> employeesJson = response.data!['message'] ?? [];
-      final employees = employeesJson
-          .map((json) => EmployeeModel.fromJson(json))
-          .toList();
-      return ApiResponse.success(employees);
-    }
-    return ApiResponse.error(
-      response.message ?? 'Failed to fetch employee list',
-    );
-  }
-
-  /// 📄 Get Employee Info API
-  Future<ApiResponse<EmployeeModel>> getEmployeeInfo({
-    required String employeeId,
+  /// 👥 Get user info API (Keep as profile info)
+  Future<ApiResponse<UserModel>> getUserInfo({
+    required String userId,
   }) async {
-    _logger.logAuth('Fetching info for employeeId: $employeeId');
-    final endpoint = 'employee/getInfo/$employeeId';
+    _logger.logAuth('Fetching info for userId: $userId');
+    final endpoint = 'customer/getInfo/$userId';
     final response = await _apiHelper.get<Map<String, dynamic>>(endpoint);
 
     if (response.success && response.data != null) {
       final Map<String, dynamic> message = response.data!['message'];
-      final employee = EmployeeModel.fromJson(message);
-      return ApiResponse.success(employee);
+      final user = UserModel.fromJson(message);
+      return ApiResponse.success(user);
     } else {
       return ApiResponse.error(
-        response.message ?? 'Failed to fetch employee info',
+        response.message ?? 'Failed to fetch user info',
       );
     }
   }
 
-  /// ✏️ Update Employee Profile API
- Future<ApiResponse<Map<String, dynamic>>> updateEmployeeProfile({
-  required String employeeId,
+  /// 📝 Register User API
+  Future<ApiResponse<Map<String, dynamic>>> registerUser({
+    required String name,
+    required String email,
+    required String mobile,
+  }) async {
+    final body = {
+      "name": name,
+      "email": email,
+      "mobile": mobile,
+      "role": "customer",
+    };
+    _logger.logAuth('Registering user: $name ($mobile)');
+    return await _apiHelper.post<Map<String, dynamic>>('customer/register', body);
+  }
+
+  /// 🔄 Refresh Token API
+  Future<ApiResponse<Map<String, dynamic>>> refreshToken() async {
+    // Note: Assuming endpoint 'customer/refresh' exists
+    _logger.logAuth('Refreshing token');
+    return await _apiHelper.post<Map<String, dynamic>>('customer/refresh', {});
+  }
+
+  /// ✏️ Update Profile API
+ Future<ApiResponse<Map<String, dynamic>>> updateUserProfile({
+  required String userId,
   required String name,
   required String email,
   required String mobile,
@@ -100,7 +109,7 @@ class AuthService {
   required String address,
   String? profileImage,
 }) async {
-  final endpoint = 'employee/profile/$employeeId';
+  final endpoint = 'customer/profile/$userId';
 
 final parsedMobile = int.tryParse(mobile.trim());
 final parsedAltMobile = int.tryParse(alterMobile.trim());
@@ -140,104 +149,27 @@ final body = {
 }
   ///  Update FCM Token (appToken)
   Future<ApiResponse<Map<String, dynamic>>> updateFCMToken({
-    required String employeeId,
+    required String userId,
     required String appToken,
   }) async {
-    _logger.logNetwork("🔁 Updating FCM token for employeeId: $employeeId");
+    _logger.logNetwork("🔁 Updating FCM token for userId: $userId");
     final body = {"appToken": appToken};
     final response = await _apiHelper.put<Map<String, dynamic>>(
-      'employee/profile/$employeeId',
+      'customer/profile/$userId',
       body,
     );
     return response;
   }
 
-  /// 📅 Add Leave Request API
-  Future<ApiResponse<Map<String, dynamic>>> addLeaveRequest({
-    required String name,
-    required String employeeId,
-    required String startDate,
-    required String endDate,
-    required String reason,
-    required int duration,
-    required String type,
-    String? medicalCertificate,
-  }) async {
-    final body = {
-      "name": name,
-      "employeeId": employeeId,
-      "startDate": startDate,
-      "endDate": endDate,
-      "reason": reason,
-      "duration": duration,
-      "type": type,
-      if (medicalCertificate != null)
-        "medicalCertificate": [medicalCertificate],
-    };
-
-    _logger.logAuth('Adding leave request to leave/add');
-    return await _apiHelper.post<Map<String, dynamic>>('leave/add', body);
-  }
-
-  /// 📜 Get Leave History API
-  Future<ApiResponse<Map<String, dynamic>>> getLeaveHistory({
-    required String employeeId,
-  }) async {
-    _logger.logAuth('Fetching leave history for employeeId: $employeeId');
-    final endpoint = 'leave/history/$employeeId?limit=100';
-    return await _apiHelper.get<Map<String, dynamic>>(endpoint);
-  }
-
-  /// 📜 Get All Leave Requests API (Admin)
-  Future<ApiResponse<Map<String, dynamic>>> getAllLeaveRequests() async {
-    _logger.logAuth('Fetching all leave requests for admin');
-    return await _apiHelper.get<Map<String, dynamic>>('leave/getAll');
-  }
-
-  /// ✅ Update Leave Status API (Admin Approval/Rejection)
-  Future<ApiResponse<Map<String, dynamic>>> updateLeaveStatus({
-    required String leaveId,
-    required String status,
-    required String updatedBy,
-  }) async {
-    _logger.logAuth(
-      'Updating leave status for $leaveId to $status by $updatedBy',
-    );
-    final endpoint = 'leave/update/$leaveId';
-    final body = {"status": status, "updatedBy": updatedBy};
-    return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
-  }
-
-  /// 📊 Get Available Leave API
-  Future<ApiResponse<Map<String, dynamic>>> getAvailableLeave({
-    required String employeeId,
-  }) async {
-    _logger.logAuth('Fetching available leave for employeeId: $employeeId');
-    final endpoint = 'leave/availableLeave/$employeeId';
-    return await _apiHelper.get<Map<String, dynamic>>(endpoint);
-  }
-
-  /// 🗑️ Cancel/Delete Leave Request API
-  Future<ApiResponse<Map<String, dynamic>>> deleteLeaveRequest({
-    required String leaveId,
-    required String updatedBy,
-  }) async {
-    _logger.logAuth('Cancelling leave request: $leaveId');
-    final endpoint = 'leave/update/$leaveId';
-    final body = {"status": "Cancelled", "updatedBy": updatedBy};
-    return await _apiHelper.put<Map<String, dynamic>>(endpoint, body);
-  }
-
-  /// 📅 Get Attendance API
-  Future<ApiResponse<Map<String, dynamic>>> getAttendance({
-    required String employeeId,
-    required String date,
-  }) async {
-    _logger.logAuth(
-      'Fetching attendance for employeeId: $employeeId on date: $date',
-    );
-    final endpoint = 'attendence/getAttentence';
-    final body = {"date": date, "employeeId": employeeId};
-    return await _apiHelper.post<Map<String, dynamic>>(endpoint, body);
+  /// 📱 Check App Version
+  Future<ApiResponse<Map<String, dynamic>>> checkAppVersion() async {
+    // In a real app, you'd send current version to backend
+    // For now, we mock a response.
+    return ApiResponse.success({
+      "latestVersion": "1.0.0",
+      "minVersion": "1.0.0",
+      "updateUrl": "https://play.google.com/store/apps/details?id=com.delivery90.app",
+      "forceUpdate": false,
+    });
   }
 }

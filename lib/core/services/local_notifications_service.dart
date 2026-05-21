@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-
 import 'dart:io';
+
+import '../../config/navigation/app_router.dart';
+import '../../config/navigation/app_routes.dart';
+import 'logger_service.dart';
 
 class LocalNotificationService {
   // Singleton pattern

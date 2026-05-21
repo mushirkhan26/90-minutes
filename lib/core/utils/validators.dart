@@ -18,4 +18,14 @@ class Validators {
     }
     return null;
   }
+
+  static String? validatePhone(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Please enter mobile number';
+    }
+    if (!RegExp(r'^[0-9]{10}$').hasMatch(value.trim())) {
+      return 'Enter a valid 10-digit number without spaces or special characters';
+    }
+    return null;
+  }
 }

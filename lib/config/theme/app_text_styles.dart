@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
+
+import 'app_colors.dart';
 
 class AppTextStyles {
   static const black22_600 = TextStyle(

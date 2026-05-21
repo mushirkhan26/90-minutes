@@ -1,11 +1,10 @@
 import 'dart:io';
-
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'package:hrtz_hrms/core/services/push_notification_service.dart';
-import 'package:hrtz_hrms/core/utils/alert_utils.dart';
 import 'package:permission_handler/permission_handler.dart';
+import '../../../core/services/logger_service.dart';
+import '../../../core/services/push_notification_service.dart';
+import '../../../core/utils/alert_utils.dart';
 
 class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key});

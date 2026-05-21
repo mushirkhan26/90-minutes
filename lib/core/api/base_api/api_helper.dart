@@ -1,14 +1,17 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'package:hrtz_hrms/core/api/base_api/api_response.dart';
-import 'package:hrtz_hrms/core/errors/app_exception.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:http/http.dart' as http;
 
+import '../../errors/app_exception.dart';
+import '../../services/logger_service.dart';
+import '../../services/secure_storage_service.dart';
+import 'api_response.dart';
+
 class ApiHelper {
-  static const String _defaultBaseUrl = "https://kudr3e0ick.execute-api.us-east-1.amazonaws.com/";
+  static const String _defaultBaseUrl = "http://192.168.1.210:5000/";
   // static String baseUrl2 = "https://hrms-socket.onrender.com";
+
 
   static const String otherBaseUrl =
       "https://hrms-socket.onrender.com/"; // Replace with your mail service base URL
@@ -16,6 +19,7 @@ class ApiHelper {
   final SecureStorageService _secureStorage = SecureStorageService();
 
   String _currentBaseUrl; // Global base URL for the current service
+  final Duration _timeout = const Duration(seconds: 10);
 
   ApiHelper({String? baseUrl}) : _currentBaseUrl = baseUrl ?? _defaultBaseUrl;
 
@@ -85,27 +89,41 @@ class ApiHelper {
     try {
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http.get(url, headers: defaultHeaders);
+          response = await http
+              .get(url, headers: defaultHeaders)
+              .timeout(_timeout);
           break;
         case 'POST':
-          response = await http.post(
-            url,
-            headers: defaultHeaders,
-            body: jsonEncode(body),
-          );
+          response = await http
+              .post(
+                url,
+                headers: defaultHeaders,
+                body: jsonEncode(body),
+              )
+              .timeout(_timeout);
           break;
         case 'PUT':
-          response = await http.put(url, headers: defaultHeaders, body: jsonEncode(body));
+          response = await http
+              .put(url, headers: defaultHeaders, body: jsonEncode(body))
+              .timeout(_timeout);
           break;
         case 'PATCH':
-          response = await http.patch(
-            url,
-            headers: defaultHeaders,
-            body: jsonEncode(body),
-          );
+          response = await http
+              .patch(
+                url,
+                headers: defaultHeaders,
+                body: jsonEncode(body),
+              )
+              .timeout(_timeout);
           break;
         case 'DELETE':
-          response = await http.delete(url, headers: defaultHeaders, body: body != null ? jsonEncode(body) : null,);
+          response = await http
+              .delete(
+                url,
+                headers: defaultHeaders,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(_timeout);
           break;
         default:
           throw BadRequestException('Invalid HTTP method');
@@ -118,6 +136,9 @@ class ApiHelper {
 
       final result = _handleResponse<T>(response);
       return result;
+    } on TimeoutException catch (e, s) {
+      _logger.error('TIMEOUT', 'Connection Timeout', error: e, stackTrace: s);
+      return ApiResponse.error('Connection Timeout. Please check your server.');
     } on SocketException catch (e, s) {
       _logger.error('NETWORK', 'No Internet Connection', error: e, stackTrace: s);
       return ApiResponse.error('No Internet Connection');

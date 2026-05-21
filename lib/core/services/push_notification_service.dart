@@ -1,16 +1,14 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:delivery_90/core/services/secure_storage_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_router.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-import 'package:hrtz_hrms/config/navigation/app_state_provider.dart';
-import 'package:hrtz_hrms/core/api/network/auth_service.dart';
-import 'package:hrtz_hrms/core/services/logger_service.dart';
-import 'package:hrtz_hrms/core/services/secure_storage_service.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:provider/provider.dart';
+import '../../config/navigation/app_router.dart';
+import '../../config/navigation/app_routes.dart';
+import '../api/network/auth_service.dart';
+import 'logger_service.dart';
 
 class PushNotificationService {
   static final PushNotificationService _instance = PushNotificationService._internal();
@@ -96,7 +94,8 @@ class PushNotificationService {
 
   /// ☁️ Configure Firebase event listeners
   Future<void> _configureFirebase() async {
-    await checkAndUpdateFCMToken();
+    // 🧩 Don't 'await' token update, let it run in background so app doesn't hang
+    checkAndUpdateFCMToken();
 
     // Foreground message listener
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
@@ -167,7 +166,7 @@ class PushNotificationService {
       if (saved != currentToken) {
         final empId = userData['employeeId'];
         logger.logNetwork("🔁 Updating new FCM token → $currentToken");
-        final response = await auth.updateFCMToken(employeeId: empId, appToken: currentToken);
+        final response = await auth.updateFCMToken(userId: empId, appToken: currentToken);
 
         if (response.success) {
           await storage.saveAppToken(currentToken);
@@ -224,18 +223,6 @@ class PushNotificationService {
           return handleNotificationTap(payload, attempt: attempt + 1);
         }
         logger.logNetwork("❌ Navigation failed → context never became ready after 10 retries");
-        return;
-      }
-
-      // Check if the app is ready using the provider
-      final isAppReady = Provider.of<AppStateProvider>(context, listen: false).isAppReady;
-      if (!isAppReady) {
-        if (attempt < 10) {
-          logger.logNetwork("⏳ App not ready → retrying in 300ms (attempt ${attempt + 1})");
-          await Future.delayed(const Duration(milliseconds: 300));
-          return handleNotificationTap(payload, attempt: attempt + 1);
-        }
-        logger.logNetwork("❌ Navigation failed → app never became ready after 10 retries");
         return;
       }
 

@@ -1,14 +1,18 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hrtz_hrms/widgets/custom_button.dart';
-import 'package:hrtz_hrms/widgets/custom_textfield.dart';
-import 'package:hrtz_hrms/config/navigation/app_routes.dart';
-import 'package:hrtz_hrms/core/utils/alert_utils.dart';
-import 'package:hrtz_hrms/core/utils/utils.dart';
-import 'package:hrtz_hrms/core/utils/validators.dart';
-import 'package:hrtz_hrms/features/auth/providers/auth_provider.dart';
-import 'package:provider/provider.dart';
+import '../../../config/navigation/app_routes.dart';
+import '../../../config/theme/app_colors.dart';
+import '../../../core/utils/alert_utils.dart';
+import '../../../core/utils/url_launcher_helper.dart';
+import '../../../core/utils/validators.dart';
+import '../../../widgets/auth_header.dart';
+import '../../../widgets/custom_button.dart';
+import '../../../widgets/mobile_number_input.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,161 +22,172 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _employeeIdController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _mobileController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  
+  // ✅ Track recognizers for disposal to prevent memory leaks
+  final List<TapGestureRecognizer> _gestureRecognizers = [];
+  String? _mobileError;
 
   @override
   void dispose() {
-    _employeeIdController.dispose();
-    _passwordController.dispose();
+    _mobileController.dispose();
+    for (final r in _gestureRecognizers) {
+      r.dispose();
+    }
     super.dispose();
   }
 
-  Future<void> _handleLogin(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  void _handleLogin() {
+    final mobile = _mobileController.text.trim();
+    final error = Validators.validatePhone(mobile);
 
-    if (!_formKey.currentState!.validate()) {
-      return;
+    setState(() {
+      _mobileError = error;
+    });
+
+    if (error == null) {
+      context.read<AuthBloc>().add(LoginRequested(mobile));
     }
+  }
 
-    final employeeId = _employeeIdController.text.trim();
-    final password = _passwordController.text.trim();
-
+  void _launchUrl(String url) async {
     try {
-      await authProvider.login(employeeId, password);
-
-      if (authProvider.state == AuthState.authenticated) {
-        if (context.mounted) {
-          AlertHelper.snackBarSuccess(context, 'Logged in successfully!');
-          
-          // Check for NDA and Onboarding
-          if (!authProvider.ndaSubmitted) {
-            context.go(AppRoutes.ndaRoute);
-          } else if (!authProvider.onboardingCompleted) {
-            context.go(AppRoutes.onboardingRoute);
-          } else {
-            context.go(AppRoutes.homeRoute);
-          }
-        }
-      } else if (authProvider.state == AuthState.error) {
-        if (context.mounted) {
-          AlertHelper.snackBarWarning(context, authProvider.errorMessage ?? 'Login failed');
-        }
-      }
+      await UrlLauncherHelper.launchUrlString(url);
     } catch (e) {
-      if (context.mounted) {
-        AlertHelper.snackBarError(context, e.toString());
+      if (mounted) {
+        AlertHelper.snackBarError(context, 'Could not open link');
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
+    final double screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        child: Center(
-          heightFactor: 1.1,
-          child: SizedBox(
-            width: Utils().width(context) * 0.85,
-            child: Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Image.asset('assets/images/login_image.jpg'),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text('Login', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 5),
-                  const Text('Please log in to continue', style: TextStyle(fontSize: 18)),
-                  const SizedBox(height: 15),
-
-                  // Employee ID
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 5),
-                        child: Text(
-                          'Employee Id',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      backgroundColor: Colors.white,
+      body: BlocListener<AuthBloc, AuthState>(
+        listener: (context, state) {
+          if (state is AuthOtpSent) {
+            AlertHelper.snackBarSuccess(context, 'OTP sent successfully!');
+            context.push(AppRoutes.verifyOtpRoute, extra: state.mobile);
+          } else if (state is AuthError) {
+            AlertHelper.snackBarError(context, state.message);
+          }
+        },
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.06,
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  const AuthHeader(
+                                    title: 'LuxeDrop',
+                                    subtitle:
+                                        'Your Wardrobe, Delivered in\n90 Mins',
+                                  ),
+                                  MobileNumberInput(
+                                    controller: _mobileController,
+                                    errorText: _mobileError,
+                                    onChanged: (value) {
+                                      if (_mobileError != null) {
+                                        setState(() {
+                                          _mobileError = null;
+                                        });
+                                      }
+                                    },
+                                  ),
+                                  const SizedBox(height: 32),
+                                  _buildGetOtpButton(),
+                                ],
+                              ),
+                            ),
+                            _buildFooter(),
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 5),
-                      CustomTextField(
-                        controller: _employeeIdController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        hintText: 'Employee Id',
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Employee ID is required';
-                          }
-                          if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
-                            return 'Employee ID must be numeric';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Password
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Padding(
-                        padding: EdgeInsets.only(left: 5),
-                        child: Text(
-                          'Password',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      CustomTextField(
-                        controller: _passwordController,
-                        maxLines: 1,
-                        isPassword: true,
-                        keyboardType: TextInputType.visiblePassword,
-                        hintText: '********',
-                        validator: (value) => Validators.validateName(value, fieldName: 'Password'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Forgot Password
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: InkWell(
-                      onTap: () {
-                        context.go(AppRoutes.forgotPasswordScreen);
-                      },
-                      child: const Text(
-                        'Forgot Password',
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
-
-                  // Login Button
-                  authProvider.state == AuthState.loading
-                      ? const CircularProgressIndicator()
-                      : CustomButton(text: 'Login', onPressed: () => _handleLogin(context)),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),
     );
   }
+
+  Widget _buildGetOtpButton() {
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        final isLoading = state is AuthLoading && state.action == 'login';
+        return CustomButton(
+          text: 'Get OTP',
+          onPressed: isLoading ? null : _handleLogin,
+          isLoading: isLoading,
+          backgroundColor: AppColors.primaryAmber,
+          textColor: Colors.black,
+          height: 50,
+          borderRadius: 8,
+          borderColor: AppColors.primaryAmber,
+          image: const Icon(Icons.arrow_forward, color: Colors.black, size: 20),
+          imagePosition: ImagePosition.trailing,
+        );
+      },
+    );
+  }
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24.0),
+      child: RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          style: const TextStyle(
+            fontSize: 12,
+            color: Colors.grey,
+            height: 1.5,
+          ),
+          children: [
+            const TextSpan(text: 'By continuing, you agree to our\n'),
+            _linkText('Terms & Conditions', 'https://luxedrop.in/terms'),
+            const TextSpan(text: ' and '),
+            _linkText('Privacy Policy', 'https://luxedrop.in/privacy'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  TextSpan _linkText(String text, String url) {
+    final recognizer = TapGestureRecognizer()
+      ..onTap = () => _launchUrl(url);
+    _gestureRecognizers.add(recognizer);
+
+    return TextSpan(
+      text: text,
+      style: const TextStyle(
+        decoration: TextDecoration.underline,
+        color: AppColors.primaryDarkGreen,
+        fontWeight: FontWeight.w500,
+      ),
+      recognizer: recognizer,
+    );
+  }
 }
+
+
+

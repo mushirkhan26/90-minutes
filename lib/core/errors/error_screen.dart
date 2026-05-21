@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/widgets/custom_button.dart';
-import 'package:hrtz_hrms/core/constants/app_constants.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
+
+import '../../config/theme/app_colors.dart';
+import '../../widgets/custom_button.dart';
+import '../constants/app_constants.dart';
 
 class ErrorScreen extends StatelessWidget {
   final String error;

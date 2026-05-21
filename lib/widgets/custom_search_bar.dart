@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hrtz_hrms/config/theme/app_colors.dart';
+
+import '../config/theme/app_colors.dart';
+
 
 class CustomSearchBar extends StatelessWidget {
   final double? width;
