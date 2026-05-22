@@ -22,10 +22,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initial fetch for trending products
     context
         .read<ProductBloc>()
-        .add(FetchProductsByCategory('Women')); // Defaulting to Women for trending
+        .add(FetchProductsByCategory('Women'));
   }
 
   @override
@@ -35,28 +34,31 @@ class _HomeScreenState extends State<HomeScreen> {
         statusBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: AppColors.primaryDarkGreen,
+        backgroundColor: AppColors.primaryDarkGreen, // Status bar area green
         body: SafeArea(
           bottom: false,
           child: Container(
-            color: Colors.white, // Default body background
+            color: Colors.white, // White background for the whole scrollable area
             child: CustomScrollView(
               slivers: [
+                // 1. Scrolling Location Header
                 SliverToBoxAdapter(
                   child: Container(
                     color: AppColors.primaryDarkGreen,
                     child: const HomeHeader(),
                   ),
                 ),
+                // 2. Sticky Search Bar
                 SliverPersistentHeader(
                   pinned: true,
                   delegate: _StickySearchBarDelegate(
                     child: Container(
                       color: AppColors.primaryDarkGreen,
-                      child: HomeSearchBar(),
+                      child: const HomeSearchBar(),
                     ),
                   ),
                 ),
+                // 3. Category List & Transition
                 SliverToBoxAdapter(
                   child: Container(
                     decoration: const BoxDecoration(
@@ -79,6 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
+                // 4. Products Section
                 SliverToBoxAdapter(
                   child: BlocBuilder<ProductBloc, ProductState>(
                     builder: (context, state) {
@@ -110,9 +113,6 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-
-
-
 class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
 
@@ -125,7 +125,7 @@ class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
   }
 
   @override
-  double get maxExtent => 61.0; // 45 (search bar height) + 16 (vertical padding)
+  double get maxExtent => 61.0; // SearchBar height (45) + Vertical padding (16)
 
   @override
   double get minExtent => 61.0;

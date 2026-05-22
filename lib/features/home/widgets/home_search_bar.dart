@@ -13,6 +13,7 @@ class HomeSearchBar extends StatefulWidget {
 
 class _HomeSearchBarState extends State<HomeSearchBar> {
   final List<String> _hints = [
+    'Search "gift for him"',
     'Search "Kurtas"',
     'Search "Sarees"',
     'Search "Jeans"',

@@ -157,7 +157,7 @@ class _SearchScreenState extends State<SearchScreen> {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 2.2,
+            childAspectRatio: 2.0,
             children: [
               _buildCategoryCard('Women', '1,240 items', Icons.woman, AppColors.categoryWomenBg, AppColors.categoryWomenText),
               _buildCategoryCard('Men', '860 items', Icons.man, AppColors.categoryMenBg, AppColors.categoryMenText),
@@ -241,10 +241,14 @@ class _SearchScreenState extends State<SearchScreen> {
                 Text(
                   title,
                   style: TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   subtitle,
                   style: TextStyle(color: textColor.withValues(alpha: 0.7), fontSize: 11),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -313,13 +317,17 @@ class _SearchScreenState extends State<SearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        image: DecorationImage(
-                          image: NetworkImage(product.images.first),
-                          fit: BoxFit.cover,
-                        ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        product.images.first,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: Colors.grey.shade200,
+                            child: const Icon(Icons.broken_image, color: Colors.grey),
+                          );
+                        },
                       ),
                     ),
                   ),
