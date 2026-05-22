@@ -4,18 +4,30 @@ import 'search_event.dart';
 import 'search_state.dart';
 
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
-  SearchBloc() : super(SearchInitial()) {
+  final List<String> _recentSearches = ['Oversized T-shirts', 'Anarkali Suits', 'Running Shoes'];
+
+  SearchBloc() : super(SearchInitial(recentSearches: const ['Oversized T-shirts', 'Anarkali Suits', 'Running Shoes'])) {
     on<SearchQueryChanged>(_onSearchQueryChanged);
+    on<RemoveRecentSearch>(_onRemoveRecentSearch);
+    on<ClearRecentSearches>(_onClearRecentSearches);
   }
 
   Future<void> _onSearchQueryChanged(SearchQueryChanged event, Emitter<SearchState> emit) async {
     if (event.query.isEmpty) {
-      emit(SearchInitial());
+      emit(SearchInitial(recentSearches: List.from(_recentSearches)));
       return;
     }
 
     emit(SearchLoading());
+    
+    // Add to history if query is long enough and not already there
+    if (event.query.length > 2 && !_recentSearches.contains(event.query)) {
+      // For a real app, you might want to wait for "Enter" or a specific action to add to history
+      // but for this mock, we'll just track it if it's new.
+    }
+
     await Future.delayed(const Duration(milliseconds: 500));
+    // ... rest of logic
 
     // MOCK DATA for Static Preview
     final List<ProductModel> mockResults = [
@@ -42,5 +54,19 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     ].where((p) => p.name.toLowerCase().contains(event.query.toLowerCase())).toList();
 
     emit(SearchLoaded(mockResults));
+  }
+
+  void _onRemoveRecentSearch(RemoveRecentSearch event, Emitter<SearchState> emit) {
+    _recentSearches.remove(event.query);
+    if (state is SearchInitial) {
+      emit(SearchInitial(recentSearches: List.from(_recentSearches)));
+    }
+  }
+
+  void _onClearRecentSearches(ClearRecentSearches event, Emitter<SearchState> emit) {
+    _recentSearches.clear();
+    if (state is SearchInitial) {
+      emit(SearchInitial(recentSearches: const []));
+    }
   }
 }

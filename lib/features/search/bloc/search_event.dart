@@ -15,3 +15,16 @@ class SearchQueryChanged extends SearchEvent {
   @override
   List<Object?> get props => [query];
 }
+
+class RemoveRecentSearch extends SearchEvent {
+  final String query;
+
+  const RemoveRecentSearch(this.query);
+
+  @override
+  List<Object?> get props => [query];
+}
+
+class ClearRecentSearches extends SearchEvent {
+  const ClearRecentSearches();
+}

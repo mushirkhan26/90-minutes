@@ -5,6 +5,11 @@ import '../bloc/cart_bloc.dart';
 import '../bloc/cart_event.dart';
 import '../bloc/cart_state.dart';
 import '../../../config/theme/app_colors.dart';
+void main(){
+  runApp(
+    MaterialApp(home: CartScreen(),)
+  );
+}
 
 class CartScreen extends StatelessWidget {
   const CartScreen({super.key});
