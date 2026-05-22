@@ -1,13 +1,15 @@
+import 'package:delivery_90/config/theme/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
-import '../../../config/theme/app_colors.dart';
 import '../bloc/product_bloc.dart';
 import '../bloc/product_event.dart';
 import '../bloc/product_state.dart';
-import '../../cart/bloc/cart_bloc.dart';
-import '../../cart/bloc/cart_event.dart';
-import '../../../core/models/cart_model.dart';
+import '../widgets/home_header.dart';
+import '../widgets/home_search_bar.dart';
+import '../widgets/promo_banner.dart';
+import '../widgets/category_list.dart';
+import '../widgets/trending_section.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,139 +18,120 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final List<String> _categories = ['Men', 'Women', 'Kids'];
-
+class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: _categories.length, vsync: this);
-    _tabController.addListener(_handleTabSelection);
-    
-    // Initial fetch
-    context.read<ProductBloc>().add(FetchProductsByCategory(_categories[0]));
-  }
-
-  void _handleTabSelection() {
-    if (_tabController.indexIsChanging) {
-      context.read<ProductBloc>().add(FetchProductsByCategory(_categories[_tabController.index]));
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+    // Initial fetch for trending products
+    context
+        .read<ProductBloc>()
+        .add(FetchProductsByCategory('Women')); // Defaulting to Women for trending
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('90-min Fashion'),
-        leading: IconButton(
-          icon: const Icon(Icons.person_outline),
-          onPressed: () => context.push('/profile'),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: _categories.map((c) => Tab(text: c)).toList(),
-          labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: AppColors.primary,
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () => Navigator.pushNamed(context, '/search'),
-          ),
-          IconButton(
-            icon: const Icon(Icons.shopping_bag_outlined),
-            onPressed: () => Navigator.pushNamed(context, '/cart'),
-          ),
-        ],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
       ),
-      body: BlocBuilder<ProductBloc, ProductState>(
-        builder: (context, state) {
-          if (state is ProductLoading) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (state is ProductLoaded) {
-            return GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.7,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              itemCount: state.products.length,
-              itemBuilder: (context, index) {
-                final product = state.products[index];
-                return GestureDetector(
-                  onTap: () {
-                    context.push('/product-details', extra: product);
-                  },
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: NetworkImage(product.images.first),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        product.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        '₹${product.price}',
-                        style: const TextStyle(color: AppColors.primary),
-                      ),
-                      const SizedBox(height: 4),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            context.read<CartBloc>().add(AddToCart(CartItem(
-                              productId: product.id,
-                              productName: product.name,
-                              productImage: product.images.first,
-                              quantity: 1,
-                              price: product.price,
-                            )));
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Added to bag')),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.black,
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.zero,
-                          ),
-                          child: const Text('Add to Bag', style: TextStyle(fontSize: 12)),
-                        ),
-                      )
-                    ],
+      child: Scaffold(
+        backgroundColor: AppColors.primaryDarkGreen,
+        body: SafeArea(
+          bottom: false,
+          child: Container(
+            color: Colors.white, // Default body background
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Container(
+                    color: AppColors.primaryDarkGreen,
+                    child: const HomeHeader(),
                   ),
-                );
-              },
-            );
-          } else if (state is ProductError) {
-            return Center(child: Text(state.message));
-          }
-          return const Center(child: Text('Select a category'));
-        },
+                ),
+                SliverPersistentHeader(
+                  pinned: true,
+                  delegate: _StickySearchBarDelegate(
+                    child: Container(
+                      color: AppColors.primaryDarkGreen,
+                      child: HomeSearchBar(),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.primaryDarkGreen,
+                          Colors.white,
+                        ],
+                        stops: [0.0, 0.4],
+                      ),
+                    ),
+                    child: const Column(
+                      children: [
+                        CategoryList(),
+                        PromoBanner(),
+                        SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: BlocBuilder<ProductBloc, ProductState>(
+                    builder: (context, state) {
+                      if (state is ProductLoading) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      } else if (state is ProductLoaded) {
+                        return TrendingSection(products: state.products);
+                      } else if (state is ProductError) {
+                        return Center(child: Text(state.message));
+                      }
+                      return const Center(child: Text('Initializing...'));
+                    },
+                  ),
+                ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 32),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
+  }
+}
+
+
+
+
+class _StickySearchBarDelegate extends SliverPersistentHeaderDelegate {
+  final Widget child;
+
+  _StickySearchBarDelegate({required this.child});
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return child;
+  }
+
+  @override
+  double get maxExtent => 61.0; // 45 (search bar height) + 16 (vertical padding)
+
+  @override
+  double get minExtent => 61.0;
+
+  @override
+  bool shouldRebuild(covariant _StickySearchBarDelegate oldDelegate) {
+    return oldDelegate.child != child;
   }
 }

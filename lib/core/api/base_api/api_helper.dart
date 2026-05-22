@@ -9,7 +9,7 @@ import '../../services/secure_storage_service.dart';
 import 'api_response.dart';
 
 class ApiHelper {
-  static const String _defaultBaseUrl = "http://192.168.1.210:5000/";
+  static const String _defaultBaseUrl = "http://192.168.1.186:5000/";
   // static String baseUrl2 = "https://hrms-socket.onrender.com";
 
 

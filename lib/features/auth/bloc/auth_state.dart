@@ -45,13 +45,5 @@ class AuthError extends AuthState {
 
   @override
   List<Object?> get props => [message];
-}
 
-class AuthNeedsSignup extends AuthState {
-  final String mobile;
-
-  const AuthNeedsSignup(this.mobile);
-
-  @override
-  List<Object?> get props => [mobile];
 }

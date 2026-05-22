@@ -28,19 +28,4 @@ class OtpVerificationRequested extends AuthEvent {
   List<Object?> get props => [mobile, otp];
 }
 
-class SignupRequested extends AuthEvent {
-  final String name;
-  final String email;
-  final String mobile;
-
-  const SignupRequested({
-    required this.name,
-    required this.email,
-    required this.mobile,
-  });
-
-  @override
-  List<Object?> get props => [name, email, mobile];
-}
-
 class LogoutRequested extends AuthEvent {}

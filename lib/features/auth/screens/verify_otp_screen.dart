@@ -31,7 +31,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with CodeAutoFill {
   void codeUpdated() {
     if (!mounted) return;
     if (code != null && code!.length == AppConstants.otpLength) {
-      // ✅ Race condition fix: Check if already loading
       final currentState = context.read<AuthBloc>().state;
       if (currentState is AuthLoading && currentState.action == 'verify') return;
 
@@ -142,13 +141,11 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with CodeAutoFill {
 
   void _authListener(BuildContext context, AuthState state) {
     if (state is AuthOtpSent) {
-      _startTimer(); // ✅ Start timer only on success
+      _startTimer();
       AlertHelper.snackBarSuccess(context, 'OTP resent successfully!');
     } else if (state is AuthAuthenticated) {
       AlertHelper.snackBarSuccess(context, 'Verified successfully!');
       context.go(AppRoutes.homeRoute);
-    } else if (state is AuthNeedsSignup) {
-      context.push('/signup', extra: state.mobile);
     } else if (state is AuthError) {
       AlertHelper.snackBarError(context, state.message);
     }
@@ -199,7 +196,6 @@ class _VerifyOtpScreenState extends State<VerifyOtpScreen> with CodeAutoFill {
             onTap: _timerSeconds == 0
                 ? () {
                     context.read<AuthBloc>().add(LoginRequested(widget.mobile));
-                    // _startTimer(); // ❌ Removed from here, moved to listener
                   }
                 : null,
             child: Text(

@@ -7,7 +7,6 @@ import '../../../core/services/secure_storage_service.dart';
 import '../../../core/socket/socket_manager.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/utils/validators.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 
@@ -27,7 +26,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AppStarted>(_onAppStarted);
     on<LoginRequested>(_onLoginRequested);
     on<OtpVerificationRequested>(_onOtpVerificationRequested);
-    on<SignupRequested>(_onSignupRequested);
     on<LogoutRequested>(_onLogoutRequested);
   }
 
@@ -140,15 +138,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     final data = response.data!;
 
-    // ✅ Cleaner new user check
-    final bool isNewUser = data['isNewUser'] == true || 
-                          (data['name'] == null && data['username'] == null);
-
-    if (isNewUser) {
-      emit(AuthNeedsSignup(event.mobile));
-      return;
-    }
-
     // ✅ Consistent field naming for customer app
     final userData = {
       'token': data['token'] ?? '',
@@ -168,54 +157,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       email: userData['email'],
       mobile: userData['phone'],
       role: userData['role']!,
-    )));
-  }
-
-  // ─────────────────────────────────────────
-  // SIGNUP — New user registration
-  // ─────────────────────────────────────────
-  Future<void> _onSignupRequested(
-      SignupRequested event, Emitter<AuthState> emit) async {
-    emit(const AuthLoading(action: 'signup'));
-
-    // ✅ Email validation using Utility
-    final emailError = Validators.validateEmail(event.email);
-    if (emailError != null) {
-      emit(AuthError(emailError));
-      return;
-    }
-
-    // ✅ Actual API call
-    final response = await _authService.registerUser(
-      name: event.name,
-      email: event.email,
-      mobile: event.mobile,
-    );
-
-    if (!response.success || response.data == null) {
-      emit(AuthError(response.message ?? 'Registration failed'));
-      return;
-    }
-
-    final data = response.data!;
-    final userData = {
-      'token': data['token'] ?? '',
-      'userId': data['userId']?.toString() ?? data['employeeId']?.toString() ?? event.mobile,
-      'name': event.name,
-      'email': event.email,
-      'phone': event.mobile,
-      'role': 'customer',
-    };
-
-    await _saveAuthData(userData);
-
-    emit(AuthAuthenticated(UserModel(
-      id: userData['userId']!,
-      name: event.name,
-      userId: userData['userId']!,
-      email: event.email,
-      mobile: event.mobile,
-      role: 'customer',
     )));
   }
 

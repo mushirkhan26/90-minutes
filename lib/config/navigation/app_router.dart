@@ -12,6 +12,7 @@ import '../../features/search/screens/search_screen.dart';
 import '../../core/models/product_model.dart';
 import '../../splash_screen.dart';
 import 'app_routes.dart';
+import 'navigation_host.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -37,10 +38,30 @@ final GoRouter appRouter = GoRouter(
         return VerifyOtpScreen(mobile: mobile);
       },
     ),
+    ShellRoute(
+      builder: (context, state, child) => NavigationHost(child: child),
+      routes: [
+        GoRoute(
+          path: AppRoutes.homeRoute,
+          name: 'home',
+          builder: (context, state) => const HomeScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.cartRoute,
+          name: 'cart',
+          builder: (context, state) => const CartScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.userProfile,
+          name: 'profile',
+          builder: (context, state) => const ProfileScreen(),
+        ),
+      ],
+    ),
     GoRoute(
-      path: AppRoutes.homeRoute,
-      name: 'home',
-      builder: (context, state) => const HomeScreen(),
+      path: AppRoutes.searchRoute,
+      name: 'search',
+      builder: (context, state) => const SearchScreen(),
     ),
     GoRoute(
       path: '/product-details',
@@ -51,24 +72,9 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path: '/cart',
-      name: 'cart',
-      builder: (context, state) => const CartScreen(),
-    ),
-    GoRoute(
       path: '/checkout',
       name: 'checkout',
       builder: (context, state) => const CheckoutScreen(),
-    ),
-    GoRoute(
-      path: '/search',
-      name: 'search',
-      builder: (context, state) => const SearchScreen(),
-    ),
-    GoRoute(
-      path: '/profile',
-      name: 'profile',
-      builder: (context, state) => const ProfileScreen(),
     ),
     GoRoute(
       path: AppRoutes.ordersRoute,

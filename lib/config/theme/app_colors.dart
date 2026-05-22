@@ -42,6 +42,8 @@ class AppColors {
 
   static const Color primaryAmber = Color(0xFFFDB022);
   static const Color primaryDarkGreen = Color(0xFF064E3B);
+  static const Color lightGreenBadge = Color(0xFFC6F6D5);
+  static const Color darkGreenText = Color(0xFF22543D);
   static const Color greyOutline = Color(0xFFD0D5DD);
 
   static const blue = Color(0xff2F82EF);
@@ -77,4 +79,16 @@ class AppColors {
   static const grey474747 = Color(0xff474747);
   static const black2E2E2E = Color(0xff2E2E2E);
   static const recieverMessageBubble = Color(0xffF2F2F2);
+
+  // Explore Screen Colors
+  static const categoryWomenBg = Color(0xFFFFE5EC);
+  static const categoryWomenText = Color(0xFFD63384);
+  static const categoryMenBg = Color(0xFFE2F0D9);
+  static const categoryMenText = Color(0xFF388E3C);
+  static const categoryBridalBg = Color(0xFFFFF4E5);
+  static const categoryBridalText = Color(0xFFE67E22);
+  static const categoryLocalBg = Color(0xFFE8EAF6);
+  static const categoryLocalText = Color(0xFF3F51B5);
+  static const trendingChipBg = Colors.white;
+  static const exploreBackground = Color(0xFFF9F9F7);
 }

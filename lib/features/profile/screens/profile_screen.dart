@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../config/navigation/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../../auth/bloc/auth_bloc.dart';
 import '../../auth/bloc/auth_event.dart';
@@ -34,7 +35,7 @@ class ProfileScreen extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 40,
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                         child: Text(
                           user?.name[0].toUpperCase() ?? 'G',
                           style: const TextStyle(
@@ -135,7 +136,7 @@ class ProfileScreen extends StatelessWidget {
                     child: OutlinedButton(
                       onPressed: () {
                         context.read<AuthBloc>().add(LogoutRequested());
-                        context.go('/login');
+                        context.go(AppRoutes.loginRoute);
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,

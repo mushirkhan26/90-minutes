@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-
 import '../../core/utils/alert_utils.dart';
+import '../../features/cart/bloc/cart_bloc.dart';
+import '../../features/cart/bloc/cart_state.dart';
 import '../theme/app_colors.dart';
 import 'app_routes.dart';
 
@@ -18,10 +20,20 @@ class _NavigationHostState extends State<NavigationHost> {
   int _selectedIndex = 0;
   DateTime? _lastBackPressed;
 
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = 0;
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _selectedIndex = _getSelectedIndex(context);
+    final newIndex = _getSelectedIndex(context);
+    if (newIndex != _selectedIndex) {
+      setState(() => _selectedIndex = newIndex);
+    }
   }
 
   @override
@@ -34,62 +46,93 @@ class _NavigationHostState extends State<NavigationHost> {
             setState(() => _selectedIndex = 0);
             context.go(_routes[0]);
           } else {
-            final now = DateTime.now();
-            if (_lastBackPressed == null ||
-                now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
-              _lastBackPressed = now;
-              AlertHelper.snackBarInfo(context, "Back again to exit");
-            } else {
+            if (_canExit()) {
               SystemNavigator.pop();
+            } else {
+              if (!mounted) return;
+              AlertHelper.snackBarInfo(context, "Back again to exit");
             }
           }
         }
       },
       child: Scaffold(
+        extendBody: true,
         body: widget.child,
-        bottomNavigationBar: NavigationBarTheme(
-          data: NavigationBarThemeData(
-            indicatorColor: AppColors.primary,
-            labelTextStyle: WidgetStateProperty.resolveWith((states) {
-              if (states.contains(WidgetState.selected)) {
-                return const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500,
-                );
-              }
-              return const TextStyle(color: AppColors.grey808080);
-            }),
-          ),
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
             ),
-            child: SafeArea(
-              child: NavigationBar(
-                height: 65,
-                backgroundColor: AppColors.primary2.withValues(alpha: 0.2),
-                indicatorColor: AppColors.primary,
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: (index) {
-                  if (index != _selectedIndex) {
-                    setState(() => _selectedIndex = index);
-                    context.go(_routes[index]);
-                  }
-                },
-                destinations: List.generate(_routes.length, (index) {
-                  final isSelected = index == _selectedIndex;
-                  return NavigationDestination(
-                    icon: Icon(_icons[index], color: isSelected ? Colors.white : Colors.grey),
-                    label: _labels[index],
-                  );
-                }),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
               ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+            child: BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (index) {
+                if (index != _selectedIndex) {
+                  setState(() => _selectedIndex = index);
+                  context.go(_routes[index]);
+                }
+              },
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.white,
+              selectedItemColor: AppColors.primaryDarkGreen,
+              unselectedItemColor: AppColors.grey808080,
+              showSelectedLabels: true,
+              showUnselectedLabels: true,
+              selectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 12,
+              ),
+              items: [
+                BottomNavigationBarItem(
+                  icon: Icon(_selectedIndex == 0 ? Icons.home_rounded : Icons.home_outlined),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(_selectedIndex == 1 ? Icons.search_rounded : Icons.search_outlined),
+                  label: 'Explore',
+                ),
+                const BottomNavigationBarItem(
+                  icon: _CartIconWithBadge(),
+                  label: 'Cart',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(_selectedIndex == 3 ? Icons.person_rounded : Icons.person_outline),
+                  label: 'Profile',
+                ),
+              ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  bool _canExit() {
+    final now = DateTime.now();
+    if (_lastBackPressed == null ||
+        now.difference(_lastBackPressed!) > const Duration(seconds: 2)) {
+      _lastBackPressed = now;
+      return false;
+    }
+    return true;
   }
 
   int _getSelectedIndex(BuildContext context) {
@@ -100,22 +143,27 @@ class _NavigationHostState extends State<NavigationHost> {
 
   static const _routes = [
     AppRoutes.homeRoute,
-    '/search',
-    '/cart',
+    AppRoutes.searchRoute,
+    AppRoutes.cartRoute,
     AppRoutes.userProfile,
   ];
+}
 
-  static const _icons = [
-    Icons.home_rounded,
-    Icons.search_rounded,
-    Icons.shopping_bag_rounded,
-    Icons.person_rounded,
-  ];
+class _CartIconWithBadge extends StatelessWidget {
+  const _CartIconWithBadge();
 
-  static const _labels = [
-    'Home',
-    'Search',
-    'Bag',
-    'Profile',
-  ];
+  @override
+  Widget build(BuildContext context) {
+    return BlocBuilder<CartBloc, CartState>(
+      builder: (context, state) {
+        final count = state is CartLoaded ? state.cart.items.length : 0;
+        return Badge(
+          label: count > 99 ? const Text('99+') : Text(count.toString()),
+          backgroundColor: AppColors.primaryAmber,
+          isLabelVisible: count > 0,
+          child: Icon(context.watch<GoRouterState>().uri.toString().startsWith(AppRoutes.cartRoute) ? Icons.shopping_bag_rounded : Icons.shopping_bag_outlined),
+        );
+      },
+    );
+  }
 }
