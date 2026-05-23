@@ -409,7 +409,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                     child: const Text(
                       "Loading...",
                       style: TextStyle(
-                        color: AppColors.primary,
+                        color: AppColors.primaryDarkGreen,
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         letterSpacing: 1.1,

@@ -82,7 +82,7 @@ class ErrorScreen extends StatelessWidget {
               // Support Link
               TextButton.icon(
                 onPressed: () => {},
-                icon: Icon(Icons.support_agent_rounded, size: 18, color: AppColors.primary),
+                icon: Icon(Icons.support_agent_rounded, size: 18, color: AppColors.primaryDarkGreen),
                 label: Text('Contact Support'),
               ),
             ],

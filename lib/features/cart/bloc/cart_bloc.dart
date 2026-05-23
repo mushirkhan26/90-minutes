@@ -21,14 +21,58 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     emit(CartLoading());
     try {
       final cartJson = await _localStorage.getString(_cartKey);
+      CartModel cart;
       if (cartJson != null) {
-        final cart = CartModel.fromJson(jsonDecode(cartJson));
-        emit(CartLoaded(cart));
+        cart = CartModel.fromJson(jsonDecode(cartJson));
       } else {
-        emit(CartLoaded(CartModel.empty()));
+        cart = CartModel.empty();
       }
+
+      // If cart is empty, add dummy items for demonstration
+      if (cart.items.isEmpty) {
+        // Commenting out dummy items to test Empty Cart UI
+        /*
+        final dummyItems = [
+          CartItem(
+            productId: '1',
+            productName: 'Classic Kurta Set',
+            brand: 'Manyavar',
+            size: 'M',
+            color: 'Ivory',
+            productImage: 'https://images.unsplash.com/photo-1583391733956-6c78276477e2?w=500',
+            quantity: 1,
+            price: 2299.0,
+            originalPrice: 2999.0,
+            badges: ['AI Try-On available'],
+          ),
+          CartItem(
+            productId: '2',
+            productName: 'Floral Summer Dress',
+            brand: 'Biba',
+            size: 'S',
+            color: 'Pink',
+            productImage: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=500',
+            quantity: 1,
+            price: 1499.0,
+            originalPrice: 1899.0,
+            badges: ['AI Try-On available'],
+          ),
+        ];
+
+        cart = CartModel(
+          items: dummyItems,
+          subtotal: 3798.0,
+          deliveryFee: 0.0,
+          tax: 0.0,
+          discount: 1100.0, 
+        );
+        await _saveCart(cart);
+        */
+      }
+      
+      emit(CartLoaded(cart));
     } catch (e) {
-      emit(const CartError('Failed to load cart'));
+      emit(CartError('Failed to load cart: $e'));
     }
   }
 
@@ -43,9 +87,14 @@ class CartBloc extends Bloc<CartEvent, CartState> {
         updatedItems[index] = CartItem(
           productId: existingItem.productId,
           productName: existingItem.productName,
+          brand: existingItem.brand,
+          size: existingItem.size,
+          color: existingItem.color,
           productImage: existingItem.productImage,
           quantity: existingItem.quantity + event.item.quantity,
           price: existingItem.price,
+          originalPrice: existingItem.originalPrice,
+          badges: existingItem.badges,
         );
       } else {
         updatedItems.add(event.item);
@@ -76,9 +125,14 @@ class CartBloc extends Bloc<CartEvent, CartState> {
           return CartItem(
             productId: i.productId,
             productName: i.productName,
+            brand: i.brand,
+            size: i.size,
+            color: i.color,
             productImage: i.productImage,
             quantity: event.quantity,
             price: i.price,
+            originalPrice: i.originalPrice,
+            badges: i.badges,
           );
         }
         return i;

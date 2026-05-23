@@ -17,7 +17,7 @@ class CustomButton extends StatelessWidget {
     this.borderRadius = 10,
     this.padding = const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
     this.elevation = 0,
-    this.borderColor = AppColors.primary,
+    this.borderColor = AppColors.primaryDarkGreen,
     this.borderWidth = 1,
     this.image,
     this.imagePosition = ImagePosition.leading,
@@ -49,13 +49,13 @@ class CustomButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: backgroundColor ?? AppColors.primary,
+          backgroundColor: backgroundColor ?? AppColors.primaryDarkGreen,
           elevation: elevation,
           padding: width == null ? padding : EdgeInsets.zero, // Use padding only if width is auto
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(borderRadius),
             side: borderWidth > 0
-                ? BorderSide(color: borderColor ?? AppColors.primary, width: borderWidth)
+                ? BorderSide(color: borderColor ?? AppColors.primaryDarkGreen, width: borderWidth)
                 : BorderSide.none,
           ),
         ),

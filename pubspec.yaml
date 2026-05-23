@@ -58,6 +58,7 @@ dependencies:
   sms_autofill: ^2.4.1
   animated_notch_bottom_bar: 1.0.4
   animated_text_kit: ^4.3.0
+  # google_fonts removed for offline font setup
   
 
 flutter_native_splash:
@@ -93,3 +94,20 @@ flutter:
     - assets/icons/
     - assets/videos/splash.mp4
     - keys.env
+
+  fonts:
+    - family: Poppins
+      fonts:
+        - asset: assets/fonts/poppins/Poppins-Light.ttf
+          weight: 300
+        - asset: assets/fonts/poppins/Poppins-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/poppins/Poppins-Italic.ttf
+          weight: 400
+          style: italic
+        - asset: assets/fonts/poppins/Poppins-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/poppins/Poppins-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/poppins/Poppins-Bold.ttf
+          weight: 700

@@ -15,4 +15,6 @@ class AppRoutes {
   static const String userProfile = '/user-profile';
   static const String notifications = '/notifications';
   static const String ordersRoute = '/orders';
+  static const String trackOrderRoute = '/track-order';
+  static const String wishlistRoute = '/wishlist';
 }

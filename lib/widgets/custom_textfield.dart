@@ -129,7 +129,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 borderSide: BorderSide(
                   color: widget.errorText != null
                       ? Colors.red
-                      : AppColors.primary2,
+                      : AppColors.primaryDarkGreen,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
@@ -145,7 +145,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 borderSide: BorderSide(
                   color: widget.errorText != null
                       ? Colors.red
-                      : AppColors.primary,
+                      : AppColors.primaryDarkGreen,
                   width: 2,
                 ),
               ),

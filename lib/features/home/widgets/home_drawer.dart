@@ -45,7 +45,7 @@ class _HomeDrawerState extends State<HomeDrawer> {
                   padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Color(0xFF1D8D85), AppColors.primary],
+                      colors: [Color(0xFF1D8D85), AppColors.primaryDarkGreen],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),

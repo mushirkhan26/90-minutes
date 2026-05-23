@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../config/navigation/app_routes.dart';
 import '../../../config/theme/app_colors.dart';
 import '../bloc/search_bloc.dart';
 import '../bloc/search_event.dart';
@@ -34,7 +36,13 @@ class SearchHeader extends StatelessWidget {
           children: [
             IconButton(
               icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.primaryDarkGreen, size: 20),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                if (Navigator.of(context).canPop()) {
+                  Navigator.pop(context);
+                } else {
+                  context.go(AppRoutes.homeRoute);
+                }
+              },
             ),
             Expanded(
               child: TextField(
